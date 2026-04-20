@@ -42,4 +42,3 @@ export const sendEmail = async (options: EmailOptions): Promise<void> => {
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for email service

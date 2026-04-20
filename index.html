@@ -3,24 +3,34 @@
   <head><script>window.__SUPABASE_URL__="https://wmxnwapnfurwoalvkkwh.supabase.co";window.__SUPABASE_ANON_KEY__="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteG53YXBuZnVyd29hbHZra3doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDgwODEsImV4cCI6MjA5MTQ4NDA4MX0.BNgF4LD35_Ooxtkv5Pok8ldrBeHPOCDauv-ZYG1v7_Q";</script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0F172A" />
     <title>ShopSphere</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
     <style>
       body {
         margin: 0;
         font-family: 'Source Sans Pro', sans-serif;
         background-color: #0F172A;
         color: #F8FAFC;
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
       #root {
         min-height: 100vh;
-        animation: fadeIn 0.3s ease-in;
+        display: flex;
+        flex-direction: column;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.8; }
+      }
+      .animate-pulse-slow {
+        animation: pulse 2s ease-in-out infinite;
       }
     </style>
   </head>

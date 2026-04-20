@@ -118,4 +118,3 @@ export default passport;
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for client URL

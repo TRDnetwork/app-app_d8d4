@@ -1,32 +1,46 @@
 'use client';
 
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
-import { useState } from 'react';
 
-export function SearchBar() {
+export default function SearchBar({ onSearch }: { onSearch: (query: string) => void }) {
   const [query, setQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      // Handle search submission
-      console.log('Searching for:', query);
+    
+    if (!query.trim()) return;
+    
+    setIsSearching(true);
+    
+    try {
+      onSearch(query);
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setIsSearching(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text_dim" />
-        <Input
-          type="text"
-          placeholder="Search for products, brands, and more..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="pl-10 py-6 text-lg"
-        />
-      </div>
+    <form onSubmit={handleSubmit} className="relative">
+      <Input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search documents..."
+        className="pr-10"
+      />
+      <button
+        type="submit"
+        disabled={isSearching}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-text_dim hover:text-text"
+      >
+        <Search className="h-4 w-4" />
+      </button>
     </form>
   );
 }
+```

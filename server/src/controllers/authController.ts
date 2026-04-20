@@ -326,4 +326,3 @@ export const resetPassword = async (req: Request, res: Response) => {
 ```
 
 ```typescript
-// SECURITY FIX: Add rate limiting to auth routes

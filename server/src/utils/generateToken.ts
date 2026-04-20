@@ -25,4 +25,3 @@ export const verifyToken = (token: string, secret: string): any => {
 ```
 
 ```typescript
-// SECURITY FIX: Add rate limiting to password reset endpoint
