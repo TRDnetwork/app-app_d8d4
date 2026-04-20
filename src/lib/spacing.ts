@@ -1,6 +1,7 @@
+// Spacing tokens for TRD Network
 export const spacing = {
   px: "1px",
-  0: "0rem",
+  0: "0",
   0.5: "0.125rem",
   1: "0.25rem",
   1.5: "0.375rem",
@@ -35,3 +36,6 @@ export const spacing = {
   80: "20rem",
   96: "24rem",
 } as const
+```
+
+```typescript

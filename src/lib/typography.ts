@@ -1,8 +1,12 @@
+// Typography tokens for TRD Network
 export const typography = {
+  // Font families
   fontFamily: {
     display: "Playfair Display, serif",
     body: "Source Sans Pro, sans-serif",
   },
+  
+  // Font sizes
   fontSize: {
     xs: "0.75rem",
     sm: "0.875rem",
@@ -18,6 +22,8 @@ export const typography = {
     "8xl": "6rem",
     "9xl": "8rem",
   },
+  
+  // Font weights
   fontWeight: {
     thin: "100",
     extralight: "200",
@@ -29,6 +35,8 @@ export const typography = {
     extrabold: "800",
     black: "900",
   },
+  
+  // Line heights
   lineHeight: {
     none: "1",
     tight: "1.25",
@@ -37,6 +45,8 @@ export const typography = {
     relaxed: "1.625",
     loose: "2",
   },
+  
+  // Letter spacing
   letterSpacing: {
     tighter: "-0.05em",
     tight: "-0.025em",
@@ -46,3 +56,6 @@ export const typography = {
     widest: "0.1em",
   },
 } as const
+```
+
+```typescript
