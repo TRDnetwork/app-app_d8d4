@@ -1,661 +1,1089 @@
 # ShopSphere API Documentation
 
-## Authentication Endpoints
+## Authentication
 
 ### Register User
-Create a new user account.
-
-**POST** `/api/auth/register`
-
-#### Request Body
+- **Endpoint**: `POST /api/auth/register`
+- **Description**: Register a new user with email and password
+- **Request Body**:
 ```json
 {
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "password123"
+  "email": "user@example.com",
+  "password": "password123",
+  "name": "John Doe"
 }
 ```
-
-#### Response (201 Created)
+- **Response**:
 ```json
 {
-  "success": true,
-  "message": "User registered successfully. Please verify your email.",
-  "data": {
-    "user": {
-      "_id": "64a1b2c3d4e5f6a7b8c9d0e1",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "role": "customer",
-      "emailVerified": false
-    },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
-}
-```
-
-#### Example cURL
-```bash
-curl -X POST http://localhost:3001/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
+  "user": {
+    "_id": "user_id",
+    "email": "user@example.com",
     "name": "John Doe",
-    "email": "john@example.com",
-    "password": "password123"
-  }'
+    "role": "customer"
+  },
+  "token": "jwt_token"
+}
+```
+- **Example**:
+```bash
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"password123","name":"John Doe"}'
 ```
 
 ### Login User
-Authenticate user with email and password.
-
-**POST** `/api/auth/login`
-
-#### Request Body
+- **Endpoint**: `POST /api/auth/login`
+- **Description**: Login with email and password
+- **Request Body**:
 ```json
 {
-  "email": "john@example.com",
+  "email": "user@example.com",
   "password": "password123"
 }
 ```
-
-#### Response (200 OK)
+- **Response**:
 ```json
 {
-  "success": true,
-  "message": "Login successful",
-  "data": {
-    "user": {
-      "_id": "64a1b2c3d4e5f6a7b8c9d0e1",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "role": "customer",
-      "emailVerified": true,
-      "profilePictureUrl": "",
-      "phone": "",
-      "loyaltyPoints": 0
-    },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
+  "user": {
+    "_id": "user_id",
+    "email": "user@example.com",
+    "name": "John Doe",
+    "role": "customer"
+  },
+  "token": "jwt_token",
+  "refreshToken": "refresh_token"
 }
 ```
-
-#### Example cURL
+- **Example**:
 ```bash
-curl -X POST http://localhost:3001/api/auth/login \
+curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com",
-    "password": "password123"
-  }'
+  -d '{"email":"user@example.com","password":"password123"}'
 ```
 
-### Refresh Access Token
-Get a new access token using the refresh token cookie.
-
-**POST** `/api/auth/refresh`
-
-#### Response (200 OK)
+### Refresh Token
+- **Endpoint**: `POST /api/auth/refresh`
+- **Description**: Refresh access token using refresh token
+- **Request Body**:
 ```json
 {
-  "success": true,
-  "message": "Token refreshed successfully",
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
+  "refreshToken": "refresh_token"
 }
 ```
-
-#### Example cURL
+- **Response**:
+```json
+{
+  "token": "new_jwt_token"
+}
+```
+- **Example**:
 ```bash
-curl -X POST http://localhost:3001/api/auth/refresh \
+curl -X POST http://localhost:5000/api/auth/refresh \
   -H "Content-Type: application/json" \
-  -H "Cookie: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  -d '{"refreshToken":"refresh_token"}'
 ```
 
 ### Verify Email
-Verify user's email address using verification token.
-
-**POST** `/api/auth/verify-email`
-
-#### Request Body
+- **Endpoint**: `POST /api/auth/verify-email`
+- **Description**: Verify user email with token
+- **Request Body**:
 ```json
 {
-  "token": "123456"
+  "token": "verification_token"
 }
 ```
-
-#### Response (200 OK)
-```json
-{
-  "success": true,
-  "message": "Email verified successfully"
-}
-```
-
-#### Example cURL
+- **Response**: `200 OK`
+- **Example**:
 ```bash
-curl -X POST http://localhost:3001/api/auth/verify-email \
+curl -X POST http://localhost:5000/api/auth/verify-email \
   -H "Content-Type: application/json" \
-  -d '{
-    "token": "123456"
-  }'
+  -d '{"token":"verification_token"}'
 ```
 
 ### Forgot Password
-Request password reset link.
-
-**POST** `/api/auth/forgot-password`
-
-#### Request Body
+- **Endpoint**: `POST /api/auth/forgot-password`
+- **Description**: Send password reset email
+- **Request Body**:
 ```json
 {
-  "email": "john@example.com"
+  "email": "user@example.com"
 }
 ```
-
-#### Response (200 OK)
-```json
-{
-  "success": true,
-  "message": "If an account with this email exists, a password reset link has been sent"
-}
-```
-
-#### Example cURL
+- **Response**: `200 OK`
+- **Example**:
 ```bash
-curl -X POST http://localhost:3001/api/auth/forgot-password \
+curl -X POST http://localhost:5000/api/auth/forgot-password \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com"
-  }'
+  -d '{"email":"user@example.com"}'
 ```
 
 ### Reset Password
-Reset password using reset token.
-
-**POST** `/api/auth/reset-password`
-
-#### Request Body
+- **Endpoint**: `POST /api/auth/reset-password`
+- **Description**: Reset password with token
+- **Request Body**:
 ```json
 {
-  "token": "123456",
-  "newPassword": "newpassword123"
+  "token": "reset_token",
+  "newPassword": "new_password123"
 }
 ```
-
-#### Response (200 OK)
-```json
-{
-  "success": true,
-  "message": "Password reset successfully"
-}
-```
-
-#### Example cURL
+- **Response**: `200 OK`
+- **Example**:
 ```bash
-curl -X POST http://localhost:3001/api/auth/reset-password \
+curl -X POST http://localhost:5000/api/auth/reset-password \
   -H "Content-Type: application/json" \
-  -d '{
-    "token": "123456",
-    "newPassword": "newpassword123"
-  }'
+  -d '{"token":"reset_token","newPassword":"new_password123"}'
 ```
 
-### Get Current User
-Get current authenticated user's profile.
+## Users
 
-**GET** `/api/auth/me`
-
-#### Response (200 OK)
+### Get Profile
+- **Endpoint**: `GET /api/users/profile`
+- **Description**: Get current user profile
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**:
 ```json
 {
-  "success": true,
-  "data": {
-    "user": {
-      "_id": "64a1b2c3d4e5f6a7b8c9d0e1",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "role": "customer",
-      "emailVerified": true,
-      "profilePictureUrl": "",
-      "phone": "",
-      "loyaltyPoints": 0,
-      "createdAt": "2023-07-01T10:00:00.000Z",
-      "updatedAt": "2023-07-01T10:00:00.000Z"
-    }
+  "user": {
+    "_id": "user_id",
+    "email": "user@example.com",
+    "name": "John Doe",
+    "phone": "+1234567890",
+    "profile_picture_url": "https://example.com/avatar.jpg",
+    "loyalty_points": 250,
+    "role": "customer"
   }
 }
 ```
-
-#### Example cURL
+- **Example**:
 ```bash
-curl -X GET http://localhost:3001/api/auth/me \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+curl -X GET http://localhost:5000/api/users/profile \
+  -H "Authorization: Bearer jwt_token"
 ```
 
-### Update User Profile
-Update current user's profile information.
-
-**PATCH** `/api/auth/me`
-
-#### Request Body
+### Update Profile
+- **Endpoint**: `PUT /api/users/profile`
+- **Description**: Update user profile
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**:
 ```json
 {
-  "name": "John Smith",
-  "phone": "+14155552671",
-  "profilePictureUrl": "https://example.com/images/profile.jpg"
+  "name": "John Doe",
+  "phone": "+1234567890"
 }
 ```
-
-#### Response (200 OK)
+- **Response**:
 ```json
 {
-  "success": true,
-  "message": "Profile updated successfully",
-  "data": {
-    "user": {
-      "_id": "64a1b2c3d4e5f6a7b8c9d0e1",
-      "name": "John Smith",
-      "email": "john@example.com",
-      "role": "customer",
-      "emailVerified": true,
-      "profilePictureUrl": "https://example.com/images/profile.jpg",
-      "phone": "+14155552671",
-      "loyaltyPoints": 0,
-      "createdAt": "2023-07-01T10:00:00.000Z",
-      "updatedAt": "2023-07-02T15:30:00.000Z"
-    }
+  "user": {
+    "_id": "user_id",
+    "email": "user@example.com",
+    "name": "John Doe",
+    "phone": "+1234567890",
+    "profile_picture_url": "https://example.com/avatar.jpg",
+    "loyalty_points": 250,
+    "role": "customer"
   }
 }
 ```
-
-#### Example cURL
+- **Example**:
 ```bash
-curl -X PATCH http://localhost:3001/api/auth/me \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+curl -X PUT http://localhost:5000/api/users/profile \
+  -H "Authorization: Bearer jwt_token" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Smith",
-    "phone": "+14155552671",
-    "profilePictureUrl": "https://example.com/images/profile.jpg"
-  }'
+  -d '{"name":"John Doe","phone":"+1234567890"}'
 ```
 
-## User Management Endpoints
-
-### List User Addresses
-Get all addresses for the current user.
-
-**GET** `/api/users/addresses`
-
-#### Response (200 OK)
+### Upload Profile Picture
+- **Endpoint**: `PUT /api/users/profile/picture`
+- **Description**: Upload profile picture to S3
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**: `multipart/form-data` with file
+- **Response**:
 ```json
 {
-  "success": true,
-  "data": [
+  "url": "https://s3.amazonaws.com/shopsphere-uploads/profiles/user_id.jpg"
+}
+```
+- **Example**:
+```bash
+curl -X PUT http://localhost:5000/api/users/profile/picture \
+  -H "Authorization: Bearer jwt_token" \
+  -F "file=@/path/to/image.jpg"
+```
+
+### List Addresses
+- **Endpoint**: `GET /api/users/addresses`
+- **Description**: Get user's saved addresses
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**:
+```json
+{
+  "addresses": [
     {
-      "_id": "64a1b2c3d4e5f6a7b8c9d0e2",
-      "user_id": "64a1b2c3d4e5f6a7b8c9d0e1",
+      "_id": "address_id",
       "type": "home",
-      "line1": "123 Main St",
+      "line1": "123 Main Street",
       "city": "New York",
       "state": "NY",
       "postal_code": "10001",
       "country": "USA",
-      "is_default": true,
-      "created_at": "2023-07-01T10:00:00.000Z"
-    },
-    {
-      "_id": "64a1b2c3d4e5f6a7b8c9d0e3",
-      "user_id": "64a1b2c3d4e5f6a7b8c9d0e1",
-      "type": "work",
-      "line1": "456 Office Ave",
-      "city": "New York",
-      "state": "NY",
-      "postal_code": "10002",
-      "country": "USA",
-      "is_default": false,
-      "created_at": "2023-07-02T14:20:00.000Z"
+      "is_default": true
     }
   ]
 }
 ```
-
-#### Example cURL
+- **Example**:
 ```bash
-curl -X GET http://localhost:3001/api/users/addresses \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+curl -X GET http://localhost:5000/api/users/addresses \
+  -H "Authorization: Bearer jwt_token"
 ```
 
-### Add User Address
-Add a new address for the current user.
-
-**POST** `/api/users/addresses`
-
-#### Request Body
+### Add Address
+- **Endpoint**: `POST /api/users/addresses`
+- **Description**: Add new address
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**:
 ```json
 {
   "type": "home",
-  "line1": "789 Park Ave",
+  "line1": "123 Main Street",
   "city": "New York",
   "state": "NY",
-  "postal_code": "10016",
+  "postal_code": "10001",
   "country": "USA",
-  "is_default": false
-}
-```
-
-#### Response (201 Created)
-```json
-{
-  "success": true,
-  "data": {
-    "_id": "64a1b2c3d4e5f6a7b8c9d0e4",
-    "user_id": "64a1b2c3d4e5f6a7b8c9d0e1",
-    "type": "home",
-    "line1": "789 Park Ave",
-    "city": "New York",
-    "state": "NY",
-    "postal_code": "10016",
-    "country": "USA",
-    "is_default": false,
-    "created_at": "2023-07-03T11:15:00.000Z"
-  }
-}
-```
-
-#### Example cURL
-```bash
-curl -X POST http://localhost:3001/api/users/addresses \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type": "home",
-    "line1": "789 Park Ave",
-    "city": "New York",
-    "state": "NY",
-    "postal_code": "10016",
-    "country": "USA",
-    "is_default": false
-  }'
-```
-
-### Update User Address
-Update an existing address.
-
-**PUT** `/api/users/addresses/:id`
-
-#### Request Body
-```json
-{
   "is_default": true
 }
 ```
-
-#### Response (200 OK)
+- **Response**:
 ```json
 {
-  "success": true,
-  "data": {
-    "_id": "64a1b2c3d4e5f6a7b8c9d0e2",
-    "user_id": "64a1b2c3d4e5f6a7b8c9d0e1",
+  "address": {
+    "_id": "address_id",
     "type": "home",
-    "line1": "123 Main St",
+    "line1": "123 Main Street",
     "city": "New York",
     "state": "NY",
     "postal_code": "10001",
     "country": "USA",
-    "is_default": true,
-    "created_at": "2023-07-01T10:00:00.000Z"
+    "is_default": true
   }
 }
 ```
-
-#### Example cURL
+- **Example**:
 ```bash
-curl -X PUT http://localhost:3001/api/users/addresses/64a1b2c3d4e5f6a7b8c9d0e2 \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+curl -X POST http://localhost:5000/api/users/addresses \
+  -H "Authorization: Bearer jwt_token" \
   -H "Content-Type: application/json" \
-  -d '{
-    "is_default": true
-  }'
+  -d '{"type":"home","line1":"123 Main Street","city":"New York","state":"NY","postal_code":"10001","country":"USA","is_default":true}'
 ```
 
-### Delete User Address
-Delete an address.
-
-**DELETE** `/api/users/addresses/:id`
-
-#### Response (200 OK)
+### Update Address
+- **Endpoint**: `PUT /api/users/addresses/:id`
+- **Description**: Update existing address
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**:
 ```json
 {
-  "success": true,
-  "message": "Address deleted successfully"
+  "type": "home",
+  "line1": "123 Main Street",
+  "city": "New York",
+  "state": "NY",
+  "postal_code": "10001",
+  "country": "USA",
+  "is_default": true
 }
 ```
-
-#### Example cURL
+- **Response**:
+```json
+{
+  "address": {
+    "_id": "address_id",
+    "type": "home",
+    "line1": "123 Main Street",
+    "city": "New York",
+    "state": "NY",
+    "postal_code": "10001",
+    "country": "USA",
+    "is_default": true
+  }
+}
+```
+- **Example**:
 ```bash
-curl -X DELETE http://localhost:3001/api/users/addresses/64a1b2c3d4e5f6a7b8c9d0e4 \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+curl -X PUT http://localhost:5000/api/users/addresses/address_id \
+  -H "Authorization: Bearer jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"home","line1":"123 Main Street","city":"New York","state":"NY","postal_code":"10001","country":"USA","is_default":true}'
 ```
 
-## Product Endpoints
+### Delete Address
+- **Endpoint**: `DELETE /api/users/addresses/:id`
+- **Description**: Delete address
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**: `204 No Content`
+- **Example**:
+```bash
+curl -X DELETE http://localhost:5000/api/users/addresses/address_id \
+  -H "Authorization: Bearer jwt_token"
+```
+
+## Products
 
 ### List Products
-Get a list of products with filtering and sorting.
-
-**GET** `/api/products`
-
-#### Query Parameters
-| Parameter | Type | Description |
-|---------|------|-------------|
-| `category_id` | string | Filter by category ID |
-| `brand` | string | Filter by brand |
-| `min_price` | number | Minimum price |
-| `max_price` | number | Maximum price |
-| `rating` | number | Minimum rating |
-| `in_stock` | boolean | Filter by stock availability |
-| `sort` | string | Sort by field (e.g., "-price" for descending price) |
-| `limit` | number | Number of results per page |
-| `page` | number | Page number |
-
-#### Response (200 OK)
+- **Endpoint**: `GET /api/products`
+- **Description**: Get list of products with filters and pagination
+- **Query Parameters**:
+  - `search`: Search term
+  - `category`: Category ID
+  - `brand`: Brand name
+  - `min_price`: Minimum price
+  - `max_price`: Maximum price
+  - `rating`: Minimum rating
+  - `sort`: Sort field (e.g., "price_asc", "price_desc", "created_at_desc")
+  - `page`: Page number
+  - `limit`: Items per page
+- **Response**:
 ```json
 {
-  "success": true,
-  "data": {
-    "products": [
-      {
-        "_id": "64a1b2c3d4e5f6a7b8c9d0e5",
-        "seller_id": "64a1b2c3d4e5f6a7b8c9d0e6",
-        "title": "iPhone 14 Pro",
-        "slug": "iphone-14-pro",
-        "description": "Latest iPhone with A16 chip and 48MP main camera.",
-        "category_id": "64a1b2c3d4e5f6a7b8c9d0e7",
-        "brand": "Apple",
-        "price": 999,
-        "original_price": 1099,
-        "discount_percent": 9,
-        "sku": "IP14P-256GB",
-        "stock_quantity": 50,
-        "images": [
-          "https://example.com/images/iphone14pro-1.jpg",
-          "https://example.com/images/iphone14pro-2.jpg"
-        ],
-        "variants": [
-          {
-            "name": "Color",
-            "values": ["Space Black", "Silver", "Gold", "Deep Purple"],
-            "price_modifier": 0
-          },
-          {
-            "name": "Storage",
-            "values": ["128GB", "256GB", "512GB", "1TB"],
-            "price_modifier": 0
-          }
-        ],
-        "tags": ["smartphone", "apple", "ios"],
-        "is_featured": true,
-        "is_sponsored": false,
-        "status": "active",
-        "views": 150,
-        "created_at": "2023-07-01T09:00:00.000Z",
-        "updated_at": "2023-07-01T09:00:00.000Z"
-      }
-    ],
-    "pagination": {
-      "total": 100,
-      "page": 1,
-      "pages": 5,
-      "limit": 20
+  "products": [
+    {
+      "_id": "product_id",
+      "title": "Wireless Headphones",
+      "price": 299.99,
+      "original_price": 399.99,
+      "discount_percent": 25,
+      "brand": "SoundMax",
+      "images": ["https://example.com/image.jpg"],
+      "rating": 4.5,
+      "review_count": 127,
+      "in_stock": true
     }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 100,
+    "totalPages": 10
   }
 }
 ```
-
-#### Example cURL
+- **Example**:
 ```bash
-curl -X GET "http://localhost:3001/api/products?category_id=64a1b2c3d4e5f6a7b8c9d0e7&min_price=500&max_price=1500&sort=-discount_percent&limit=10&page=1" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+curl -X GET "http://localhost:5000/api/products?search=headphones&min_price=100&max_price=500&sort=price_asc&page=1&limit=10"
 ```
 
-### Get Product by Slug
-Get a product by its slug.
-
-**GET** `/api/products/:slug`
-
-#### Response (200 OK)
+### Get Product Detail
+- **Endpoint**: `GET /api/products/:slug`
+- **Description**: Get product details by slug
+- **Response**:
 ```json
 {
-  "success": true,
-  "data": {
-    "_id": "64a1b2c3d4e5f6a7b8c9d0e5",
-    "seller_id": "64a1b2c3d4e5f6a7b8c9d0e6",
-    "title": "iPhone 14 Pro",
-    "slug": "iphone-14-pro",
-    "description": "Latest iPhone with A16 chip and 48MP main camera.",
-    "category_id": "64a1b2c3d4e5f6a7b8c9d0e7",
-    "brand": "Apple",
-    "price": 999,
-    "original_price": 1099,
-    "discount_percent": 9,
-    "sku": "IP14P-256GB",
+  "product": {
+    "_id": "product_id",
+    "title": "Wireless Headphones",
+    "slug": "wireless-headphones",
+    "description": "Premium wireless headphones with active noise cancellation.",
+    "category_id": "category_id",
+    "brand": "SoundMax",
+    "price": 299.99,
+    "original_price": 399.99,
+    "discount_percent": 25,
+    "sku": "SM-HD-001",
     "stock_quantity": 50,
     "images": [
-      "https://example.com/images/iphone14pro-1.jpg",
-      "https://example.com/images/iphone14pro-2.jpg"
+      "https://example.com/image1.jpg",
+      "https://example.com/image2.jpg"
     ],
     "variants": [
       {
         "name": "Color",
-        "values": ["Space Black", "Silver", "Gold", "Deep Purple"],
-        "price_modifier": 0
-      },
-      {
-        "name": "Storage",
-        "values": ["128GB", "256GB", "512GB", "1TB"],
+        "values": ["Black", "Silver", "Blue"],
         "price_modifier": 0
       }
     ],
-    "tags": ["smartphone", "apple", "ios"],
+    "tags": ["audio", "wireless"],
     "is_featured": true,
-    "is_sponsored": false,
+    "is_sponsored": true,
     "status": "active",
-    "views": 150,
-    "created_at": "2023-07-01T09:00:00.000Z",
-    "updated_at": "2023-07-01T09:00:00.000Z"
+    "rating": 4.5,
+    "review_count": 127,
+    "frequently_bought_together": [
+      {
+        "_id": "product_id",
+        "title": "Audio Cable",
+        "price": 19.99,
+        "image": "https://example.com/image.jpg"
+      }
+    ],
+    "customers_also_viewed": [
+      {
+        "_id": "product_id",
+        "title": "Earbuds",
+        "price": 149.99,
+        "image": "https://example.com/image.jpg"
+      }
+    ]
   }
 }
 ```
-
-#### Example cURL
+- **Example**:
 ```bash
-curl -X GET http://localhost:3001/api/products/iphone-14-pro \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+curl -X GET http://localhost:5000/api/products/wireless-headphones
 ```
 
 ### Get Product Reviews
-Get reviews for a product.
-
-**GET** `/api/products/:id/reviews`
-
-#### Query Parameters
-| Parameter | Type | Description |
-|---------|------|-------------|
-| `sort` | string | Sort by field (e.g., "-created_at" for newest first) |
-| `limit` | number | Number of results per page |
-| `page` | number | Page number |
-
-#### Response (200 OK)
+- **Endpoint**: `GET /api/products/:id/reviews`
+- **Description**: Get reviews for a product
+- **Query Parameters**:
+  - `page`: Page number
+  - `limit`: Reviews per page
+  - `rating`: Filter by rating
+- **Response**:
 ```json
 {
-  "success": true,
-  "data": {
-    "reviews": [
-      {
-        "_id": "64a1b2c3d4e5f6a7b8c9d0e8",
-        "product_id": "64a1b2c3d4e5f6a7b8c9d0e5",
-        "user_id": "64a1b2c3d4e5f6a7b8c9d0e1",
-        "order_id": "64a1b2c3d4e5f6a7b8c9d0e9",
-        "rating": 5,
-        "title": "Amazing phone!",
-        "comment": "Great product with excellent camera quality.",
-        "images": [],
-        "helpful_votes": 12,
-        "verified_purchase": true,
-        "created_at": "2023-07-02T14:30:00.000Z",
-        "updated_at": "2023-07-02T14:30:00.000Z"
+  "reviews": [
+    {
+      "_id": "review_id",
+      "user_id": "user_id",
+      "rating": 5,
+      "title": "Excellent Sound Quality",
+      "comment": "These headphones are amazing!",
+      "images": ["https://example.com/review_image.jpg"],
+      "helpful_votes": 12,
+      "verified_purchase": true,
+      "created_at": "2024-01-15T10:00:00Z",
+      "user": {
+        "name": "John Doe",
+        "profile_picture_url": "https://example.com/avatar.jpg"
       }
-    ],
-    "pagination": {
-      "total": 25,
-      "page": 1,
-      "pages": 3,
-      "limit": 10
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 127,
+    "totalPages": 13
+  },
+  "stats": {
+    "average_rating": 4.5,
+    "rating_breakdown": {
+      "5": 85,
+      "4": 30,
+      "3": 8,
+      "2": 3,
+      "1": 1
     },
-    "stats": {
-      "average_rating": 4.8,
-      "total_reviews": 25,
-      "rating_breakdown": {
-        "5": 20,
-        "4": 3,
-        "3": 1,
-        "2": 1,
-        "1": 0
+    "total_reviews": 127,
+    "verified_reviews": 112
+  }
+}
+```
+- **Example**:
+```bash
+curl -X GET "http://localhost:5000/api/products/product_id/reviews?page=1&limit=10"
+```
+
+### Get Product Q&A
+- **Endpoint**: `GET /api/products/:id/questions`
+- **Description**: Get questions and answers for a product
+- **Query Parameters**:
+  - `page`: Page number
+  - `limit`: Questions per page
+- **Response**:
+```json
+{
+  "questions": [
+    {
+      "_id": "question_id",
+      "user_id": "user_id",
+      "question": "Does this work with Android phones?",
+      "answer": "Yes, these headphones are compatible with all Bluetooth-enabled devices.",
+      "answered_by": "seller_id",
+      "created_at": "2024-01-10T09:00:00Z",
+      "answered_at": "2024-01-10T10:00:00Z",
+      "user": {
+        "name": "Jane Smith"
+      },
+      "answered_by_user": {
+        "name": "Seller User"
       }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 5,
+    "totalPages": 1
+  }
+}
+```
+- **Example**:
+```bash
+curl -X GET "http://localhost:5000/api/products/product_id/questions?page=1&limit=10"
+```
+
+### Ask Question
+- **Endpoint**: `POST /api/products/:id/questions`
+- **Description**: Ask a question about a product
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**:
+```json
+{
+  "question": "Does this work with Android phones?"
+}
+```
+- **Response**:
+```json
+{
+  "question": {
+    "_id": "question_id",
+    "user_id": "user_id",
+    "question": "Does this work with Android phones?",
+    "created_at": "2024-01-10T09:00:00Z",
+    "user": {
+      "name": "Jane Smith"
     }
   }
 }
 ```
-
-#### Example cURL
+- **Example**:
 ```bash
-curl -X GET "http://localhost:3001/api/products/64a1b2c3d4e5f6a7b8c9d0e5/reviews?sort=-created_at&limit=5" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+curl -X POST http://localhost:5000/api/products/product_id/questions \
+  -H "Authorization: Bearer jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Does this work with Android phones?"}'
 ```
 
-### Ask Product Question
-Ask a question about a product.
-
-**POST** `/api/products/:id/questions`
-
-#### Request Body
+### Answer Question
+- **Endpoint**: `PUT /api/products/questions/:id/answer`
+- **Description**: Answer a product question (seller only)
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**:
 ```json
 {
-  "question": "Does this phone come with a charger?"
+  "answer": "Yes, these headphones are compatible with all Bluetooth-enabled devices."
 }
 ```
-
-#### Response (201 Created)
+- **Response**:
 ```json
 {
-  "success": true,
-  "data": {
-    "_id": "64a1b2c3d4e5f6a7b8c9d0ea",
-    "product_id": "64a1b2c3d4e5f6a7b8c9d0e5",
-    "user_id": "64a1b2c3d4e5f6a7b8c9d0e1",
-    "question": "Does this phone come with a charger?",
-    "answer": null,
-    "answered_by": null,
-    "created_at": "2023-07-03T16:45:00.000
+  "question": {
+    "_id": "question_id",
+    "user_id": "user_id",
+    "question": "Does this work with Android phones?",
+    "answer": "Yes, these headphones are compatible with all Bluetooth-enabled devices.",
+    "answered_by": "seller_id",
+    "created_at": "2024-01-10T09:00:00Z",
+    "answered_at": "2024-01-10T10:00:00Z",
+    "user": {
+      "name": "Jane Smith"
+    },
+    "answered_by_user": {
+      "name": "Seller User"
+    }
+    }
+  }
+}
+```
+- **Example**:
+```bash
+curl -X PUT http://localhost:5000/api/products/questions/question_id/answer \
+  -H "Authorization: Bearer jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '{"answer":"Yes, these headphones are compatible with all Bluetooth-enabled devices."}'
+```
+
+### Get Recently Viewed Products
+- **Endpoint**: `GET /api/products/recently-viewed`
+- **Description**: Get user's recently viewed products
+- **Headers**: `Authorization: Bearer <token>`
+- **Query Parameters**:
+  - `limit`: Number of products to return (default: 10)
+- **Response**:
+```json
+{
+  "products": [
+    {
+      "_id": "product_id",
+      "title": "Wireless Headphones",
+      "price": 299.99,
+      "image": "https://example.com/image.jpg",
+      "viewed_at": "2024-01-15T10:00:00Z"
+    }
+  ]
+}
+```
+- **Example**:
+```bash
+curl -X GET "http://localhost:5000/api/products/recently-viewed?limit=5" \
+  -H "Authorization: Bearer jwt_token"
+```
+
+### Get Product Recommendations
+- **Endpoint**: `GET /api/products/recommendations`
+- **Description**: Get AI-powered product recommendations
+- **Headers**: `Authorization: Bearer <token>`
+- **Query Parameters**:
+  - `limit`: Number of recommendations (default: 10)
+- **Response**:
+```json
+{
+  "recommendations": [
+    {
+      "_id": "product_id",
+      "title": "Wireless Headphones",
+      "price": 299.99,
+      "image": "https://example.com/image.jpg",
+      "reason": "Based on your purchase history"
+    }
+  ]
+}
+```
+- **Example**:
+```bash
+curl -X GET "http://localhost:5000/api/products/recommendations?limit=5" \
+  -H "Authorization: Bearer jwt_token"
+```
+
+### Compare Products
+- **Endpoint**: `POST /api/products/compare`
+- **Description**: Compare multiple products
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**:
+```json
+{
+  "product_ids": ["product_id_1", "product_id_2", "product_id_3"]
+}
+```
+- **Response**:
+```json
+{
+  "products": [
+    {
+      "_id": "product_id_1",
+      "title": "Wireless Headphones",
+      "price": 299.99,
+      "brand": "SoundMax",
+      "specs": {
+        "Battery Life": "30 hours",
+        "Noise Cancellation": "Active",
+        "Connectivity": "Bluetooth 5.0"
+      }
+    },
+    {
+      "_id": "product_id_2",
+      "title": "Premium Earbuds",
+      "price": 199.99,
+      "brand": "AudioPro",
+      "specs": {
+        "Battery Life": "20 hours",
+        "Noise Cancellation": "Active",
+        "Connectivity": "Bluetooth 5.2"
+      }
+    }
+  ]
+}
+```
+- **Example**:
+```bash
+curl -X POST http://localhost:5000/api/products/compare \
+  -H "Authorization: Bearer jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '{"product_ids":["product_id_1","product_id_2"]}'
+```
+
+## Categories
+
+### List Categories
+- **Endpoint**: `GET /api/categories`
+- **Description**: Get list of categories
+- **Response**:
+```json
+{
+  "categories": [
+    {
+      "_id": "category_id",
+      "name": "Electronics",
+      "slug": "electronics",
+      "image_url": "https://example.com/category_image.jpg",
+      "order": 1,
+      "children": []
+    }
+  ]
+}
+```
+- **Example**:
+```bash
+curl -X GET http://localhost:5000/api/categories
+```
+
+## Cart
+
+### Get Cart
+- **Endpoint**: `GET /api/cart`
+- **Description**: Get user's cart
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**:
+```json
+{
+  "cart": {
+    "_id": "cart_id",
+    "user_id": "user_id",
+    "items": [
+      {
+        "product_id": "product_id",
+        "variant_id": "variant_id",
+        "quantity": 1,
+        "price_snapshot": 299.99,
+        "product": {
+          "title": "Wireless Headphones",
+          "price": 299.99,
+          "image": "https://example.com/image.jpg"
+        }
+      }
+    ],
+    "subtotal": 299.99,
+    "discount": 0,
+    "total": 299.99,
+    "coupon": null
+  }
+}
+```
+- **Example**:
+```bash
+curl -X GET http://localhost:5000/api/cart \
+  -H "Authorization: Bearer jwt_token"
+```
+
+### Add to Cart
+- **Endpoint**: `POST /api/cart/items`
+- **Description**: Add item to cart
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**:
+```json
+{
+  "product_id": "product_id",
+  "variant_id": "variant_id",
+  "quantity": 1
+}
+```
+- **Response**:
+```json
+{
+  "cart": {
+    "_id": "cart_id",
+    "user_id": "user_id",
+    "items": [
+      {
+        "product_id": "product_id",
+        "variant_id": "variant_id",
+        "quantity": 1,
+        "price_snapshot": 299.99,
+        "product": {
+          "title": "Wireless Headphones",
+          "price": 299.99,
+          "image": "https://example.com/image.jpg"
+        }
+      }
+    ],
+    "subtotal": 299.99,
+    "discount": 0,
+    "total": 299.99,
+    "coupon": null
+  }
+}
+```
+- **Example**:
+```bash
+curl -X POST http://localhost:5000/api/cart/items \
+  -H "Authorization: Bearer jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '{"product_id":"product_id","variant_id":"variant_id","quantity":1}'
+```
+
+### Update Cart Item
+- **Endpoint**: `PUT /api/cart/items/:id`
+- **Description**: Update cart item quantity
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**:
+```json
+{
+  "quantity": 2
+}
+```
+- **Response**:
+```json
+{
+  "cart": {
+    "_id": "cart_id",
+    "user_id": "user_id",
+    "items": [
+      {
+        "product_id": "product_id",
+        "variant_id": "variant_id",
+        "quantity": 2,
+        "price_snapshot": 299.99,
+        "product": {
+          "title": "Wireless Headphones",
+          "price": 299.99,
+          "image": "https://example.com/image.jpg"
+        }
+      }
+    ],
+    "subtotal": 599.98,
+    "discount": 0,
+    "total": 599.98,
+    "coupon": null
+  }
+}
+```
+- **Example**:
+```bash
+curl -X PUT http://localhost:5000/api/cart/items/item_id \
+  -H "Authorization: Bearer jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '{"quantity":2}'
+```
+
+### Remove from Cart
+- **Endpoint**: `DELETE /api/cart/items/:id`
+- **Description**: Remove item from cart
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**:
+```json
+{
+  "cart": {
+    "_id": "cart_id",
+    "user_id": "user_id",
+    "items": [],
+    "subtotal": 0,
+    "discount": 0,
+    "total": 0,
+    "coupon": null
+  }
+}
+```
+- **Example**:
+```bash
+curl -X DELETE http://localhost:5000/api/cart/items/item_id \
+  -H "Authorization: Bearer jwt_token"
+```
+
+### Apply Coupon
+- **Endpoint**: `POST /api/cart/apply-coupon`
+- **Description**: Apply coupon to cart
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**:
+```json
+{
+  "code": "WELCOME10"
+}
+```
+- **Response**:
+```json
+{
+  "cart": {
+    "_id": "cart_id",
+    "user_id": "user_id",
+    "items": [
+      {
+        "product_id": "product_id",
+        "variant_id": "variant_id",
+        "quantity": 1,
+        "price_snapshot": 299.99,
+        "product": {
+          "title": "Wireless Headphones",
+          "price": 299.99,
+          "image": "https://example.com/image.jpg"
+        }
+      }
+    ],
+    "subtotal": 299.99,
+    "discount": 29.99,
+    "total": 269.99,
+    "coupon": {
+      "code": "WELCOME10",
+      "type": "percentage",
+      "value": 10,
+      "discount": 29.99
+    }
+  }
+}
+```
+- **Example**:
+```bash
+curl -X POST http://localhost:5000/api/cart/apply-coupon \
+  -H "Authorization: Bearer jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '{"code":"WELCOME10"}'
+```
+
+## Wishlist
+
+### Get Wishlist
+- **Endpoint**: `GET /api/wishlist`
+- **Description**: Get user's wishlist
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**:
+```json
+{
+  "wishlist": [
+    {
+      "_id": "wishlist_id",
+      "product_id": "product_id",
+      "added_at": "2024-01-10T09:00:00Z",
+      "product": {
+        "title": "Organic Cotton T-Shirt",
+        "price": 29.99,
+        "image": "https://example.com/image.jpg",
+        "rating": 4.2
+      }
+    }
+  ]
+}
+```
+- **Example**:
+```bash
+curl -X GET http://localhost:5000/api/wishlist \
+  -H "Authorization: Bearer jwt_token"
+```
+
+### Add to Wishlist
+- **Endpoint**: `POST /api/wishlist/:product_id`
+- **Description**: Add product to wishlist
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**:
+```json
+{
+  "wishlist": [
+    {
+      "_id": "wishlist_id",
+      "product_id": "product_id",
+      "added_at": "2024-01-10T09:00:00Z",
+      "product": {
+        "title": "Organic Cotton T-Shirt",
+        "price": 29.99,
+        "image": "https://example.com/image.jpg",
+        "rating": 4.2
+      }
+    }
+  ]
+}
+```
+- **Example**:
+```bash
+curl -X POST http://localhost:5000/api/wishlist/product_id \
+  -H "Authorization: Bearer jwt_token"
+```
+
+### Remove from Wishlist
+- **Endpoint**: `DELETE /api/wishlist/:product_id`
+- **Description**: Remove product from wishlist
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**: `204 No Content`
+- **Example**:
+```bash
+curl -X DELETE http://localhost:5000/api/wishlist/product_id \
+  -H "Authorization: Bearer jwt_token"
+```
+
+## Orders
+
+### Create Order
+- **Endpoint**: `POST /api/orders`
+- **Description**: Create order (pre-Stripe checkout)
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**:
+```json
+{
+  "address": {
+    "line1": "123 Main Street",
+    "city": "New York",
+    "state": "NY",
+    "postal_code": "10001",
+    "country": "USA"
+  },
+  "delivery_speed": "standard",
+  "payment_method": "stripe"
+}
+```
+- **Response**:
+```json
+{
+  "order": {
+    "_id": "order_id",
+    "order_number": "ORD-12345",
+    "items": [
+      {
+        "product_id": "product_id",
+        "seller_id": "seller_id",
+        "variant": "Black",
+        "quantity": 1,
+        "price": 299.99,
+        "status": "placed"
+      }
+    ],
+    "address": {
+      "line1": "123 Main Street",
+      "city": "New York",
+      "state": "NY",
+      "postal_code": "10001",
+      "country": "USA"
+    },
+    "delivery_speed": "standard",
+    "payment_method": "stripe",
+    "payment_status": "pending",
+    "subtotal": 299.99,
+    "discount": 0,
+    "delivery_charge": 0,
+    "total": 299.99,
+    "status": "placed",
+    "estimated_delivery": "2024-01-20T00:00:00Z",
+    "created_at": "2024-01-15T10:00:00Z"
+  }
+}
+```
+- **Example**:
+```bash
+curl -X POST http://localhost:5000/api/orders \
+  -H "Authorization: Bearer jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '{"address":{"line1":"123 Main Street","city":"New York","state":"NY","postal_code":"10001","country":"USA"},"delivery_speed":"standard","payment_method":"stripe"}'
+```
+
+### List Orders
+- **Endpoint**: `GET /api/orders`
+- **Description**: Get user's order history
+- **Headers**: `Authorization: Bearer <token>`
+- **Query Parameters**:
+  - `page`: Page number
+  - `limit`: Orders per page
+  - `status`: Filter by status (e.g., "delivered", "shipped")
+- **Response**:
+```json
+{
+  "orders": [
+    {
+      "_id": "order_id",
+      "order_number": "ORD-12345",
+      "items": [
+        {
+          "product_id": "product_id",
+          "seller_id": "seller_id",
+          "variant": "Black",
+          "quantity": 1,
+          "price": 299.99,
+          "status": "delivered"
+        }
+      ],
+      "address": {
+        "line1": "123 Main Street",
+        "city": "New York",
+        "state": "NY",
+        "postal_code": "10001",
+        "country": "USA"
+      },
+      "delivery_speed": "standard",
+      "payment

@@ -2,24 +2,43 @@ import React from 'react';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { trackAuthEvent } from '../lib/analytics';
+import { usePageViewTracking } from '../hooks/useAnalytics';
+import analytics from '../lib/analytics';
+import { ANALYTICS_EVENTS } from '../lib/analyticsEvents';
 
 export default function Register() {
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const navigate = useNavigate();
+  
+  // Track page view
+  usePageViewTracking('REGISTER');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // In real app: call register API, redirect to verify email
-    trackAuthEvent('registration_started', 'email');
     navigate('/verify-email');
+    
+    // Track sign up event
+    analytics.track(ANALYTICS_EVENTS.SIGN_UP, {
+      method: 'email',
+      emailDomain: email.split('@')[1],
+    });
   };
 
   const handleGoogleRegister = () => {
-    trackAuthEvent('registration_started', 'google');
-    // In real app: initiate Google OAuth flow
+    // Track OAuth login
+    analytics.track(ANALYTICS_EVENTS.OAUTH_LOGIN, {
+      provider: 'google',
+    });
+  };
+
+  const handleFacebookRegister = () => {
+    // Track OAuth login
+    analytics.track(ANALYTICS_EVENTS.OAUTH_LOGIN, {
+      provider: 'facebook',
+    });
   };
 
   return (
@@ -43,6 +62,11 @@ export default function Register() {
       <div className="mt-6">
         <Button variant="outline" className="w-full" onClick={handleGoogleRegister}>
           Continue with Google
+        </Button>
+      </div>
+      <div className="mt-2">
+        <Button variant="outline" className="w-full" onClick={handleFacebookRegister}>
+          Continue with Facebook
         </Button>
       </div>
     </div>
