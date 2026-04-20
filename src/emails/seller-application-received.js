@@ -1,22 +1,41 @@
-export default function SellerApplicationReceivedEmail({ userName, businessName }) {
+export default function sellerApplicationReceivedTemplate({ businessName }) {
   return `
-    <table width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; font-family: 'Source Sans Pro', sans-serif; color: #F8FAFC; background-color: #1E293B; border-radius: 8px; overflow: hidden;">
-      <tr>
-        <td style="padding: 24px; background-color: #1E40AF; text-align: center;">
-          <h1 style="margin: 0; font-size: 2rem; color: #fff;">ShopSphere</h1>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding: 24px;">
-          <h2 style="color: #FF9900; margin-top: 0;">Seller Application Received</h2>
-          <p>Hi ${userName},</p>
-          <p>Thank you for applying to become a seller on ShopSphere. We've received your application for <strong>${businessName}</strong> and it's now under review.</p>
-          <p>Our team typically responds within 3-5 business days. You'll receive another email once your application has been approved or if we need additional information.</p>
-          <p>In the meantime, feel free to explore our <a href="https://shopsphere.com/seller-guidelines" style="color: #FF9900;">seller guidelines</a>.</p>
-          <hr style="border: 1px solid #334155; margin: 24px 0;" />
-          <p style="font-size: 0.9rem; color: #94A3B8;">This is an automated message. Please do not reply directly to this email.</p>
-        </td>
-      </tr>
-    </table>
+    <div style="font-family: 'Source Sans Pro', sans-serif; color: #F8FAFC; background-color: #0F172A; padding: 40px; max-width: 600px; margin: 0 auto; border-radius: 12px;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="font-family: 'Playfair Display', serif; font-size: 2.5rem; color: #FF9900; margin: 0;">ShopSphere</h1>
+        <p style="color: #94A3B8; margin-top: 8px;">Seller application received</p>
+      </div>
+
+      <div style="background-color: #1E293B; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
+        <h2 style="margin: 0 0 16px 0; color: #F8FAFC;">Application Received</h2>
+        <p style="color: #94A3B8; line-height: 1.6;">
+          Thank you for your interest in becoming a seller on ShopSphere. 
+          We've received your application for <strong>${businessName}</strong> and our team will review it shortly.
+        </p>
+      </div>
+
+      <div style="background-color: #1E293B; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
+        <h3 style="margin: 0 0 16px 0; color: #F8FAFC;">What Happens Next</h3>
+        <ol style="color: #94A3B8; line-height: 1.8; padding-left: 20px;">
+          <li style="margin-bottom: 12px;">Our team will review your application and business information</li>
+          <li style="margin-bottom: 12px;">We may contact you for additional documentation if needed</li>
+          <li style="margin-bottom: 12px;">You'll receive a decision email within 3-5 business days</li>
+          <li>If approved, you'll get instructions to set up your seller dashboard</li>
+        </ol>
+      </div>
+
+      <div style="background-color: #1E293B; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+        <h3 style="margin: 0 0 8px 0; color: #F8FAFC;">Need Help?</h3>
+        <p style="color: #94A3B8; margin: 0;">
+          If you have questions about your application, reply to this email or contact our seller support team at 
+          <a href="mailto:sellers@shopsphere.com" style="color: #FF9900; text-decoration: underline;">sellers@shopsphere.com</a>
+        </p>
+      </div>
+
+      <div style="text-align: center; color: #94A3B8; font-size: 0.9rem; margin-top: 30px; padding-top: 20px; border-top: 1px solid #334155;">
+        <p style="margin: 0 0 8px 0;">ShopSphere • Premium E-Commerce Experience</p>
+        <p style="margin: 0;">© ${new Date().getFullYear()} ShopSphere. All rights reserved.</p>
+      </div>
+    </div>
   `;
 }

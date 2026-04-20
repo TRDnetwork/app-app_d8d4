@@ -2,7 +2,7 @@ import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
-import { cn } from "../lib/utils"
+import { cn } from "@/lib/utils"
 
 const Select = SelectPrimitive.Root
 
@@ -116,16 +116,17 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     {...props}
   >
-    <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
         <Check className="h-4 w-4" />
       </SelectPrimitive.ItemIndicator>
     </span>
+
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
   </SelectPrimitive.Item>
 ))
@@ -143,43 +144,6 @@ const SelectSeparator = React.forwardRef<
 ))
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName
 
-// Enhanced Select with analytics tracking
-const TrackedSelect = React.forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
-    fieldName?: string;
-    formName?: string;
-  }
->(({ className, children, fieldName, formName, ...props }, ref) => {
-  const handleValueChange = (value: string) => {
-    import('../lib/analytics').then(({ analytics }) => {
-      analytics.track('form_field_change', {
-        field: fieldName || props.name,
-        form: formName,
-        fieldType: 'select',
-        value: value,
-      });
-    });
-    
-    if (props.onValueChange) {
-      props.onValueChange(value);
-    }
-  };
-
-  return (
-    <Select onValueChange={handleValueChange}>
-      <SelectTrigger ref={ref} className={className} {...props}>
-        <SelectValue placeholder={props.placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        {children}
-      </SelectContent>
-    </Select>
-  );
-});
-
-TrackedSelect.displayName = "TrackedSelect";
-
 export {
   Select,
   SelectGroup,
@@ -191,5 +155,7 @@ export {
   SelectSeparator,
   SelectScrollUpButton,
   SelectScrollDownButton,
-  TrackedSelect,
 }
+```
+
+```typescript
