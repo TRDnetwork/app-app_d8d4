@@ -1,30 +1,24 @@
 # ShopSphere API Documentation
 
-This document provides comprehensive details about the ShopSphere API endpoints, including request/response formats, authentication requirements, and example usage.
+This document provides comprehensive details of all API endpoints available in the ShopSphere e-commerce platform. The API follows REST conventions and uses JSON for request and response bodies.
 
 ## Authentication
 
-All API endpoints require authentication except for public routes. Authentication is performed using JWT tokens.
+All protected endpoints require a valid JWT token in the Authorization header or as an HTTP-only cookie.
 
-### Token Storage
-- Access tokens are returned in the response body
-- Refresh tokens are stored in httpOnly cookies
-- Access tokens should be included in the Authorization header for subsequent requests
-
-### Authentication Headers
+### Token Format
 ```
-Authorization: Bearer <access_token>
-Cookie: refreshToken=<refresh_token>
+Authorization: Bearer <token>
 ```
 
-## Public Endpoints
+## Authentication Endpoints
 
 ### Register User
 Create a new user account.
 
 - **URL**: `/api/auth/register`
 - **Method**: `POST`
-- **Authentication**: None
+- **Access**: Public
 - **Request Body**:
 ```json
 {
@@ -33,37 +27,45 @@ Create a new user account.
   "password": "password123"
 }
 ```
-- **Response (201 Created)**:
+- **Success Response**:
 ```json
 {
   "success": true,
   "message": "User registered. Please check your email to verify your account."
 }
 ```
-- **Response (400 Bad Request)**:
+- **Error Responses**:
+  - `400 Bad Request`: User already exists
+  - `500 Internal Server Error`: Email could not be sent
+
+### Verify Email
+Verify a user's email address using a verification token.
+
+- **URL**: `/api/auth/verify-email`
+- **Method**: `POST`
+- **Access**: Public
+- **Request Body**:
 ```json
 {
-  "success": false,
-  "message": "User already exists"
+  "token": "verification_token_here"
 }
 ```
-- **Example cURL**:
-```bash
-curl -X POST https://api.shopsphere.com/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Doe",
-    "email": "john@example.com",
-    "password": "password123"
-  }'
+- **Success Response**:
+```json
+{
+  "success": true,
+  "message": "Email verified successfully"
+}
 ```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid or expired token
 
 ### Login User
 Authenticate a user and receive JWT tokens.
 
 - **URL**: `/api/auth/login`
 - **Method**: `POST`
-- **Authentication**: None
+- **Access**: Public
 - **Request Body**:
 ```json
 {
@@ -71,13 +73,13 @@ Authenticate a user and receive JWT tokens.
   "password": "password123"
 }
 ```
-- **Response (200 OK)**:
+- **Success Response**:
 ```json
 {
   "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token": "jwt_access_token",
   "user": {
-    "_id": "60d214a1e9b9b92d8c4b1234",
+    "_id": "user_id",
     "name": "John Doe",
     "email": "john@example.com",
     "role": "customer",
@@ -86,56 +88,47 @@ Authenticate a user and receive JWT tokens.
   }
 }
 ```
-- **Response (401 Unauthorized)**:
-```json
-{
-  "success": false,
-  "message": "Invalid email or password"
-}
-```
-- **Example cURL**:
-```bash
-curl -X POST https://api.shopsphere.com/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com",
-    "password": "password123"
-  }'
-```
+- **Error Responses**:
+  - `401 Unauthorized`: Invalid email or password
+  - `401 Unauthorized`: Email not verified
 
-### Verify Email
-Verify a user's email address using a verification token.
+### Refresh Token
+Refresh an expired JWT access token using a refresh token cookie.
 
-- **URL**: `/api/auth/verify-email`
+- **URL**: `/api/auth/refresh-token`
 - **Method**: `POST`
-- **Authentication**: None
-- **Request Body**:
-```json
-{
-  "token": "verification_token_from_email"
-}
-```
-- **Response (200 OK)**:
+- **Access**: Public (requires refresh token cookie)
+- **Success Response**:
 ```json
 {
   "success": true,
-  "message": "Email verified successfully"
+  "token": "new_jwt_access_token",
+  "user": {
+    "_id": "user_id",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "customer",
+    "profilePictureUrl": null,
+    "phone": null
+  }
 }
 ```
-- **Response (400 Bad Request)**:
+- **Error Responses**:
+  - `401 Unauthorized`: No refresh token
+  - `401 Unauthorized`: Invalid refresh token
+
+### Logout User
+Clear the refresh token cookie.
+
+- **URL**: `/api/auth/logout`
+- **Method**: `POST`
+- **Access**: Private
+- **Success Response**:
 ```json
 {
-  "success": false,
-  "message": "Invalid or expired token"
+  "success": true,
+  "message": "Logged out successfully"
 }
-```
-- **Example cURL**:
-```bash
-curl -X POST https://api.shopsphere.com/api/auth/verify-email \
-  -H "Content-Type: application/json" \
-  -d '{
-    "token": "verification_token_from_email"
-  }'
 ```
 
 ### Forgot Password
@@ -143,135 +136,136 @@ Request a password reset link.
 
 - **URL**: `/api/auth/forgot-password`
 - **Method**: `POST`
-- **Authentication**: None
+- **Access**: Public
 - **Request Body**:
 ```json
 {
   "email": "john@example.com"
 }
 ```
-- **Response (200 OK)**:
+- **Success Response**:
 ```json
 {
   "success": true,
   "message": "Password reset email sent"
 }
 ```
-- **Response (404 Not Found)**:
-```json
-{
-  "success": false,
-  "message": "User not found"
-}
-```
-- **Example cURL**:
-```bash
-curl -X POST https://api.shopsphere.com/api/auth/forgot-password \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com"
-  }'
-```
+- **Error Responses**:
+  - `404 Not Found`: User not found
+  - `500 Internal Server Error`: Email could not be sent
 
 ### Reset Password
 Reset a user's password using a reset token.
 
 - **URL**: `/api/auth/reset-password`
 - **Method**: `POST`
-- **Authentication**: None
+- **Access**: Public
 - **Request Body**:
 ```json
 {
-  "token": "reset_token_from_email",
+  "token": "reset_token_here",
   "password": "new_password123"
 }
 ```
-- **Response (200 OK)**:
+- **Success Response**:
 ```json
 {
   "success": true,
   "message": "Password reset successful"
 }
 ```
-- **Response (400 Bad Request)**:
-```json
-{
-  "success": false,
-  "message": "Invalid or expired token"
-}
-```
-- **Example cURL**:
-```bash
-curl -X POST https://api.shopsphere.com/api/auth/reset-password \
-  -H "Content-Type: application/json" \
-  -d '{
-    "token": "reset_token_from_email",
-    "password": "new_password123"
-  }'
-```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid or expired token
+
+## OAuth Endpoints
+
+### Google OAuth Login
+Initiate Google OAuth login flow.
+
+- **URL**: `/api/auth/oauth/google`
+- **Method**: `GET`
+- **Access**: Public
+- **Redirects to**: Google OAuth consent screen
+
+### Google OAuth Callback
+Handle Google OAuth callback.
+
+- **URL**: `/api/auth/oauth/google/callback`
+- **Method**: `GET`
+- **Access**: Google OAuth
+- **Redirects to**: Frontend with token query parameter
+
+### Facebook OAuth Login
+Initiate Facebook OAuth login flow.
+
+- **URL**: `/api/auth/oauth/facebook`
+- **Method**: `GET`
+- **Access**: Public
+- **Redirects to**: Facebook OAuth consent screen
+
+### Facebook OAuth Callback
+Handle Facebook OAuth callback.
+
+- **URL**: `/api/auth/oauth/facebook/callback`
+- **Method**: `GET`
+- **Access**: Facebook OAuth
+- **Redirects to**: Frontend with token query parameter
 
 ## Product Endpoints
 
 ### List Products
-Get a list of products with filtering and pagination.
+Get a list of products with optional filtering and sorting.
 
 - **URL**: `/api/products`
 - **Method**: `GET`
-- **Authentication**: None (public), JWT for personalized recommendations
+- **Access**: Public
 - **Query Parameters**:
-  - `q`: Search query
-  - `category`: Category ID
-  - `brand`: Brand name
+  - `category`: Filter by category ID
+  - `brand`: Filter by brand
   - `minPrice`: Minimum price
   - `maxPrice`: Maximum price
-  - `rating`: Minimum rating (1-5)
-  - `sort`: Sort order (price-asc, price-desc, newest, best-seller, rating)
-  - `page`: Page number (default: 1)
-  - `limit`: Items per page (default: 20)
-- **Response (200 OK)**:
+  - `rating`: Minimum rating
+  - `sort`: Sort by (priceLowToHigh, priceHighToLow, newest, bestSeller, avgRating)
+  - `page`: Page number
+  - `limit`: Items per page
+- **Success Response**:
 ```json
 {
   "success": true,
   "data": [
     {
-      "_id": "60d214a1e9b9b92d8c4b1235",
-      "seller_id": "60d214a1e9b9b92d8c4b1234",
-      "title": "iPhone 15 Pro",
-      "description": "Latest Apple smartphone with A17 chip...",
-      "brand": "Apple",
-      "category_id": "60d214a1e9b9b92d8c4b1236",
-      "price": 999,
+      "_id": "product_id",
+      "seller_id": "seller_id",
+      "title": "Product Title",
+      "description": "Product description",
+      "brand": "Brand Name",
+      "category_id": "category_id",
+      "price": 99.99,
       "discount_percent": 10,
       "stock": 50,
-      "images": [
-        "https://example.com/iphone15pro-1.jpg",
-        "https://example.com/iphone15pro-2.jpg"
-      ],
+      "images": ["image_url_1", "image_url_2"],
       "variants": [
         {
-          "size": "6.1\"",
-          "color": "Titanium Blue",
-          "sku": "IP15P-TB-128",
-          "price": 999,
-          "stock": 20
+          "sku": "SKU001",
+          "size": "Large",
+          "color": "Blue",
+          "stock": 25
         }
       ],
-      "tags": ["smartphone", "ios", "camera", "apple"],
+      "tags": ["tag1", "tag2"],
       "status": "active",
-      "created_at": "2023-06-15T10:00:00.000Z"
+      "created_at": "2023-01-01T00:00:00.000Z",
+      "updated_at": "2023-01-01T00:00:00.000Z"
     }
   ],
   "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 150,
-    "pages": 8
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalProducts": 100,
+    "hasNext": true,
+    "hasPrev": false
   }
 }
-```
-- **Example cURL**:
-```bash
-curl -X GET "https://api.shopsphere.com/api/products?q=iphone&category=60d214a1e9b9b92d8c4b1236&minPrice=500&maxPrice=1500&sort=price-asc&page=1&limit=10"
 ```
 
 ### Get Product Details
@@ -279,278 +273,214 @@ Get detailed information about a specific product.
 
 - **URL**: `/api/products/:id`
 - **Method**: `GET`
-- **Authentication**: None (public), JWT for personalized recommendations
-- **Path Parameters**:
-  - `id`: Product ID
-- **Response (200 OK)**:
+- **Access**: Public
+- **Success Response**:
 ```json
 {
   "success": true,
   "data": {
-    "_id": "60d214a1e9b9b92d8c4b1235",
-    "seller_id": "60d214a1e9b9b92d8c4b1234",
-    "title": "iPhone 15 Pro",
-    "description": "Latest Apple smartphone with A17 chip...",
-    "brand": "Apple",
-    "category_id": "60d214a1e9b9b92d8c4b1236",
-    "subcategory_id": "60d214a1e9b9b92d8c4b1237",
-    "price": 999,
+    "_id": "product_id",
+    "seller_id": "seller_id",
+    "title": "Product Title",
+    "description": "Product description",
+    "brand": "Brand Name",
+    "category_id": "category_id",
+    "price": 99.99,
     "discount_percent": 10,
     "stock": 50,
-    "images": [
-      "https://example.com/iphone15pro-1.jpg",
-      "https://example.com/iphone15pro-2.jpg"
-    ],
+    "images": ["image_url_1", "image_url_2"],
     "variants": [
       {
-        "size": "6.1\"",
-        "color": "Titanium Blue",
-        "sku": "IP15P-TB-128",
-        "price": 999,
-        "stock": 20
+        "sku": "SKU001",
+        "size": "Large",
+        "color": "Blue",
+        "stock": 25
       }
     ],
-    "tags": ["smartphone", "ios", "camera", "apple"],
+    "tags": ["tag1", "tag2"],
     "status": "active",
-    "created_at": "2023-06-15T10:00:00.000Z",
-    "reviews": [
+    "created_at": "2023-01-01T00:00:00.000Z",
+    "updated_at": "2023-01-01T00:00:00.000Z",
+    "seller": {
+      "_id": "seller_id",
+      "name": "Seller Name",
+      "profilePictureUrl": "seller_image_url"
+    },
+    "averageRating": 4.5,
+    "totalReviews": 124,
+    "frequentlyBoughtTogether": [
       {
-        "_id": "60d214a1e9b9b92d8c4b1238",
-        "user_id": "60d214a1e9b9b92d8c4b1239",
-        "rating": 5,
-        "title": "Amazing phone!",
-        "comment": "The camera quality is incredible...",
-        "images": [],
-        "helpful_votes": [],
-        "created_at": "2023-06-16T14:30:00.000Z"
+        "_id": "product_id_2",
+        "title": "Related Product",
+        "price": 49.99,
+        "image": "related_product_image_url"
       }
     ],
-    "questions": [
+    "customersAlsoViewed": [
       {
-        "_id": "60d214a1e9b9b92d8c4b1240",
-        "user_id": "60d214a1e9b9b92d8c4b1241",
-        "question": "Does it come with a charger?",
-        "answer": "No, Apple no longer includes chargers with iPhones.",
-        "answered_at": "2023-06-17T09:15:00.000Z",
-        "created_at": "2023-06-17T08:30:00.000Z"
+        "_id": "product_id_3",
+        "title": "Similar Product",
+        "price": 79.99,
+        "image": "similar_product_image_url"
       }
     ]
   }
 }
 ```
-- **Response (404 Not Found)**:
-```json
-{
-  "success": false,
-  "message": "Product not found"
-}
-```
-- **Example cURL**:
-```bash
-curl -X GET https://api.shopsphere.com/api/products/60d214a1e9b9b92d8c4b1235
-```
+- **Error Responses**:
+  - `404 Not Found`: Product not found
 
-### Create Product (Seller)
+### Create Product
 Create a new product (seller only).
 
 - **URL**: `/api/products`
 - **Method**: `POST`
-- **Authentication**: JWT (seller role)
+- **Access**: Private (seller role)
 - **Request Body**:
 ```json
 {
-  "title": "MacBook Air M2",
-  "description": "Ultrafast Apple laptop with M2 chip...",
-  "brand": "Apple",
-  "category_id": "60d214a1e9b9b92d8c4b1236",
-  "price": 1199,
-  "stock": 30,
-  "images": [
-    "https://example.com/macbookair-1.jpg",
-    "https://example.com/macbookair-2.jpg"
+  "title": "Product Title",
+  "description": "Product description",
+  "brand": "Brand Name",
+  "category_id": "category_id",
+  "price": 99.99,
+  "discount_percent": 10,
+  "stock": 50,
+  "images": ["image_url_1", "image_url_2"],
+  "variants": [
+    {
+      "sku": "SKU001",
+      "size": "Large",
+      "color": "Blue",
+      "stock": 25
+    }
   ],
-  "tags": ["laptop", "mac", "apple", "m2"],
-  "status": "active"
+  "tags": ["tag1", "tag2"]
 }
 ```
-- **Response (201 Created)**:
+- **Success Response**:
 ```json
 {
   "success": true,
   "data": {
-    "_id": "60d214a1e9b9b92d8c4b1242",
-    "seller_id": "60d214a1e9b9b92d8c4b1234",
-    "title": "MacBook Air M2",
-    "description": "Ultrafast Apple laptop with M2 chip...",
-    "brand": "Apple",
-    "category_id": "60d214a1e9b9b92d8c4b1236",
-    "price": 1199,
-    "stock": 30,
-    "images": [
-      "https://example.com/macbookair-1.jpg",
-      "https://example.com/macbookair-2.jpg"
+    "_id": "new_product_id",
+    "seller_id": "seller_id",
+    "title": "Product Title",
+    "description": "Product description",
+    "brand": "Brand Name",
+    "category_id": "category_id",
+    "price": 99.99,
+    "discount_percent": 10,
+    "stock": 50,
+    "images": ["image_url_1", "image_url_2"],
+    "variants": [
+      {
+        "sku": "SKU001",
+        "size": "Large",
+        "color": "Blue",
+        "stock": 25
+      }
     ],
-    "tags": ["laptop", "mac", "apple", "m2"],
+    "tags": ["tag1", "tag2"],
     "status": "active",
-    "created_at": "2023-06-18T11:20:00.000Z"
+    "created_at": "2023-01-01T00:00:00.000Z",
+    "updated_at": "2023-01-01T00:00:00.000Z"
   }
 }
 ```
-- **Response (400 Bad Request)**:
-```json
-{
-  "success": false,
-  "message": "Title is required"
-}
-```
-- **Response (403 Forbidden)**:
-```json
-{
-  "success": false,
-  "message": "User role customer is not authorized to access this route"
-}
-```
-- **Example cURL**:
-```bash
-curl -X POST https://api.shopsphere.com/api/products \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "MacBook Air M2",
-    "description": "Ultrafast Apple laptop with M2 chip...",
-    "brand": "Apple",
-    "category_id": "60d214a1e9b9b92d8c4b1236",
-    "price": 1199,
-    "stock": 30,
-    "images": [
-      "https://example.com/macbookair-1.jpg",
-      "https://example.com/macbookair-2.jpg"
-    ],
-    "tags": ["laptop", "mac", "apple", "m2"],
-    "status": "active"
-  }'
-```
+- **Error Responses**:
+  - `400 Bad Request`: Validation errors
+  - `403 Forbidden`: Insufficient permissions
 
-### Update Product (Seller)
+### Update Product
 Update an existing product (seller only).
 
 - **URL**: `/api/products/:id`
 - **Method**: `PUT`
-- **Authentication**: JWT (seller role, must be the product's seller)
-- **Path Parameters**:
-  - `id`: Product ID
+- **Access**: Private (seller role, must own product)
 - **Request Body**:
 ```json
 {
-  "price": 1099,
-  "stock": 25,
-  "status": "active"
+  "title": "Updated Product Title",
+  "price": 89.99,
+  "stock": 45
 }
 ```
-- **Response (200 OK)**:
+- **Success Response**:
 ```json
 {
   "success": true,
   "data": {
-    "_id": "60d214a1e9b9b92d8c4b1242",
-    "seller_id": "60d214a1e9b9b92d8c4b1234",
-    "title": "MacBook Air M2",
-    "description": "Ultrafast Apple laptop with M2 chip...",
-    "brand": "Apple",
-    "category_id": "60d214a1e9b9b92d8c4b1236",
-    "price": 1099,
-    "stock": 25,
-    "images": [
-      "https://example.com/macbookair-1.jpg",
-      "https://example.com/macbookair-2.jpg"
+    "_id": "product_id",
+    "seller_id": "seller_id",
+    "title": "Updated Product Title",
+    "description": "Product description",
+    "brand": "Brand Name",
+    "category_id": "category_id",
+    "price": 89.99,
+    "discount_percent": 10,
+    "stock": 45,
+    "images": ["image_url_1", "image_url_2"],
+    "variants": [
+      {
+        "sku": "SKU001",
+        "size": "Large",
+        "color": "Blue",
+        "stock": 25
+      }
     ],
-    "tags": ["laptop", "mac", "apple", "m2"],
+    "tags": ["tag1", "tag2"],
     "status": "active",
-    "created_at": "2023-06-18T11:20:00.000Z",
-    "updated_at": "2023-06-19T14:45:00.000Z"
+    "created_at": "2023-01-01T00:00:00.000Z",
+    "updated_at": "2023-01-02T00:00:00.000Z"
   }
 }
 ```
-- **Response (403 Forbidden)**:
-```json
-{
-  "success": false,
-  "message": "You can only update your own products"
-}
-```
-- **Example cURL**:
-```bash
-curl -X PUT https://api.shopsphere.com/api/products/60d214a1e9b9b92d8c4b1242 \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -H "Content-Type: application/json" \
-  -d '{
-    "price": 1099,
-    "stock": 25,
-    "status": "active"
-  }'
-```
+- **Error Responses**:
+  - `400 Bad Request`: Validation errors
+  - `403 Forbidden`: Insufficient permissions
+  - `404 Not Found`: Product not found
 
-### Delete Product (Seller)
+### Delete Product
 Delete a product (seller only).
 
 - **URL**: `/api/products/:id`
 - **Method**: `DELETE`
-- **Authentication**: JWT (seller role, must be the product's seller)
-- **Path Parameters**:
-  - `id`: Product ID
-- **Response (200 OK)**:
+- **Access**: Private (seller role, must own product)
+- **Success Response**:
 ```json
 {
   "success": true,
   "message": "Product deleted successfully"
 }
 ```
-- **Response (403 Forbidden)**:
-```json
-{
-  "success": false,
-  "message": "You can only delete your own products"
-}
-```
-- **Example cURL**:
-```bash
-curl -X DELETE https://api.shopsphere.com/api/products/60d214a1e9b9b92d8c4b1242 \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
+- **Error Responses**:
+  - `403 Forbidden`: Insufficient permissions
+  - `404 Not Found`: Product not found
 
 ## Category Endpoints
 
 ### List Categories
-Get a list of all categories.
+Get all categories.
 
 - **URL**: `/api/categories`
 - **Method**: `GET`
-- **Authentication**: None
-- **Response (200 OK)**:
+- **Access**: Public
+- **Success Response**:
 ```json
 {
   "success": true,
   "data": [
     {
-      "_id": "60d214a1e9b9b92d8c4b1236",
+      "_id": "category_id",
       "name": "Electronics",
       "slug": "electronics",
       "parent_id": null,
-      "image_url": "https://example.com/electronics.jpg"
-    },
-    {
-      "_id": "60d214a1e9b9b92d8c4b1237",
-      "name": "Smartphones",
-      "slug": "smartphones",
-      "parent_id": "60d214a1e9b9b92d8c4b1236",
-      "image_url": "https://example.com/smartphones.jpg"
+      "image_url": "category_image_url",
+      "created_at": "2023-01-01T00:00:00.000Z"
     }
   ]
 }
-```
-- **Example cURL**:
-```bash
-curl -X GET https://api.shopsphere.com/api/categories
 ```
 
 ## Cart Endpoints
@@ -560,164 +490,343 @@ Get the authenticated user's cart.
 
 - **URL**: `/api/cart`
 - **Method**: `GET`
-- **Authentication**: JWT
-- **Response (200 OK)**:
+- **Access**: Private
+- **Success Response**:
 ```json
 {
   "success": true,
   "data": {
-    "_id": "60d214a1e9b9b92d8c4b1243",
-    "user_id": "60d214a1e9b9b92d8c4b1234",
+    "_id": "cart_id",
+    "user_id": "user_id",
     "items": [
       {
-        "product_id": "60d214a1e9b9b92d8c4b1235",
-        "quantity": 1,
+        "product_id": {
+          "_id": "product_id",
+          "title": "Product Title",
+          "price": 99.99,
+          "discount_percent": 10,
+          "images": ["product_image_url"]
+        },
+        "quantity": 2,
         "variant": {
-          "size": "6.1\"",
-          "color": "Titanium Blue"
+          "size": "Large",
+          "color": "Blue"
         }
       }
     ],
-    "updated_at": "2023-06-20T10:30:00.000Z"
+    "updated_at": "2023-01-01T00:00:00.000Z"
   }
 }
-```
-- **Example cURL**:
-```bash
-curl -X GET https://api.shopsphere.com/api/cart \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 ### Add to Cart
-Add an item to the authenticated user's cart.
+Add an item to the cart.
 
 - **URL**: `/api/cart`
 - **Method**: `POST`
-- **Authentication**: JWT
+- **Access**: Private
 - **Request Body**:
 ```json
 {
-  "product_id": "60d214a1e9b9b92d8c4b1235",
+  "product_id": "product_id",
   "quantity": 2,
   "variant": {
-    "size": "6.1\"",
-    "color": "Titanium Blue"
+    "size": "Large",
+    "color": "Blue"
   }
 }
 ```
-- **Response (200 OK)**:
+- **Success Response**:
 ```json
 {
   "success": true,
   "data": {
-    "_id": "60d214a1e9b9b92d8c4b1243",
-    "user_id": "60d214a1e9b9b92d8c4b1234",
+    "_id": "cart_id",
+    "user_id": "user_id",
     "items": [
       {
-        "product_id": "60d214a1e9b9b92d8c4b1235",
+        "product_id": {
+          "_id": "product_id",
+          "title": "Product Title",
+          "price": 99.99,
+          "discount_percent": 10,
+          "images": ["product_image_url"]
+        },
         "quantity": 2,
         "variant": {
-          "size": "6.1\"",
-          "color": "Titanium Blue"
+          "size": "Large",
+          "color": "Blue"
         }
       }
     ],
-    "updated_at": "2023-06-20T10:35:00.000Z"
+    "updated_at": "2023-01-01T00:00:00.000Z"
   }
 }
 ```
-- **Response (400 Bad Request)**:
-```json
-{
-  "success": false,
-  "message": "Product not found or out of stock"
-}
-```
-- **Example cURL**:
-```bash
-curl -X POST https://api.shopsphere.com/api/cart \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -H "Content-Type: application/json" \
-  -d '{
-    "product_id": "60d214a1e9b9b92d8c4b1235",
-    "quantity": 2,
-    "variant": {
-      "size": "6.1\"",
-      "color": "Titanium Blue"
-    }
-  }'
-```
+- **Error Responses**:
+  - `400 Bad Request`: Product not found or out of stock
 
 ### Remove from Cart
-Remove an item from the authenticated user's cart.
+Remove an item from the cart.
 
 - **URL**: `/api/cart/:itemId`
 - **Method**: `DELETE`
-- **Authentication**: JWT
-- **Path Parameters**:
-  - `itemId`: The ID of the cart item to remove
-- **Response (200 OK)**:
+- **Access**: Private
+- **Success Response**:
 ```json
 {
   "success": true,
-  "message": "Item removed from cart"
+  "data": {
+    "_id": "cart_id",
+    "user_id": "user_id",
+    "items": [],
+    "updated_at": "2023-01-01T00:00:00.000Z"
+  }
 }
-```
-- **Example cURL**:
-```bash
-curl -X DELETE https://api.shopsphere.com/api/cart/60d214a1e9b9b92d8c4b1235 \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 ## Order Endpoints
 
-### Create Order
-Create a new order from the user's cart.
+### Place Order
+Create a new order from the cart.
 
 - **URL**: `/api/orders`
 - **Method**: `POST`
-- **Authentication**: JWT
+- **Access**: Private
 - **Request Body**:
 ```json
 {
-  "address_id": "60d214a1e9b9b92d8c4b1244",
+  "address_id": "address_id",
   "delivery_method": "standard",
   "payment_method": "card",
-  "coupon_code": "SUMMER20"
+  "coupon_code": "DISCOUNT10"
 }
 ```
-- **Response (201 Created)**:
+- **Success Response**:
 ```json
 {
   "success": true,
   "data": {
-    "_id": "60d214a1e9b9b92d8c4b1245",
-    "user_id": "60d214a1e9b9b92d8c4b1234",
+    "_id": "order_id",
+    "user_id": "user_id",
     "items": [
       {
-        "product_id": "60d214a1e9b9b92d8c4b1235",
-        "quantity": 1,
-        "price_at_purchase": 899.1
+        "product_id": "product_id",
+        "quantity": 2,
+        "price_at_purchase": 89.99
       }
     ],
-    "subtotal": 899.1,
-    "tax": 71.93,
+    "subtotal": 179.98,
+    "tax": 14.40,
     "shipping_cost": 0,
-    "total": 971.03,
-    "address_id": "60d214a1e9b9b92d8c4b1244",
+    "total": 194.38,
+    "address_id": "address_id",
     "payment_method": "card",
     "payment_status": "succeeded",
     "order_status": "placed",
+    "tracking_number": "TRK123456789",
     "stripe_payment_intent_id": "pi_123456789",
-    "created_at": "2023-06-21T15:20:00.000Z"
+    "created_at": "2023-01-01T00:00:00.000Z"
   }
 }
 ```
-- **Response (400 Bad Request)**:
+- **Error Responses**:
+  - `400 Bad Request`: Cart is empty or invalid data
+  - `404 Not Found`: Address not found
+
+### Get Order Details
+Get details of a specific order.
+
+- **URL**: `/api/orders/:id`
+- **Method**: `GET`
+- **Access**: Private (must own order)
+- **Success Response**:
 ```json
 {
-  "success": false,
-  "message": "Cart is empty"
+  "success": true,
+  "data": {
+    "_id": "order_id",
+    "user_id": "user_id",
+    "items": [
+      {
+        "product_id": {
+          "_id": "product_id",
+          "title": "Product Title",
+          "images": ["product_image_url"]
+        },
+        "quantity": 2,
+        "price_at_purchase": 89.99
+      }
+    ],
+    "subtotal": 179.98,
+    "tax": 14.40,
+    "shipping_cost": 0,
+    "total": 194.38,
+    "address_id": "address_id",
+    "payment_method": "card",
+    "payment_status": "succeeded",
+    "order_status": "placed",
+    "tracking_number": "TRK123456789",
+    "stripe_payment_intent_id": "pi_123456789",
+    "created_at": "2023-01-01T00:00:00.000Z",
+    "address": {
+      "address_line1": "123 Main St",
+      "city": "Anytown",
+      "state": "CA",
+      "zip": "12345",
+      "country": "US"
+    }
+  }
 }
 ```
-- **Example cURL
+- **Error Responses**:
+  - `403 Forbidden`: Insufficient permissions
+  - `404 Not Found`: Order not found
+
+### Cancel Order
+Cancel an order (before dispatch).
+
+- **URL**: `/api/orders/:id/cancel`
+- **Method**: `PUT`
+- **Access**: Private (must own order)
+- **Success Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "order_id",
+    "order_status": "cancelled",
+    "updated_at": "2023-01-02T00:00:00.000Z"
+  }
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Order cannot be cancelled
+  - `403 Forbidden`: Insufficient permissions
+
+### Request Return
+Request a return for an order.
+
+- **URL**: `/api/orders/:id/return`
+- **Method**: `PUT`
+- **Access**: Private (must own order)
+- **Request Body**:
+```json
+{
+  "reason": "Item damaged",
+  "comments": "Box was crushed during shipping"
+}
+```
+- **Success Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "order_id",
+    "order_status": "returned",
+    "return_requested_at": "2023-01-02T00:00:00.000Z",
+    "return_reason": "Item damaged",
+    "return_comments": "Box was crushed during shipping",
+    "updated_at": "2023-01-02T00:00:00.000Z"
+  }
+}
+```
+
+### List User Orders
+Get all orders for the authenticated user.
+
+- **URL**: `/api/orders`
+- **Method**: `GET`
+- **Access**: Private
+- **Query Parameters**:
+  - `status`: Filter by order status
+  - `page`: Page number
+  - `limit`: Items per page
+- **Success Response**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "order_id",
+      "items": [
+        {
+          "product_id": {
+            "_id": "product_id",
+            "title": "Product Title",
+            "images": ["product_image_url"]
+          },
+          "quantity": 2,
+          "price_at_purchase": 89.99
+        }
+      ],
+      "total": 194.38,
+      "order_status": "delivered",
+      "created_at": "2023-01-01T00:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 3,
+    "totalOrders": 25,
+    "hasNext": true,
+    "hasPrev": false
+  }
+}
+```
+
+## Review Endpoints
+
+### Create Review
+Create a review for a product.
+
+- **URL**: `/api/reviews`
+- **Method**: `POST`
+- **Access**: Private (must have purchased the product)
+- **Request Body**:
+```json
+{
+  "product_id": "product_id",
+  "rating": 5,
+  "title": "Excellent product!",
+  "comment": "This product exceeded my expectations.",
+  "images": ["review_image_url_1"]
+}
+```
+- **Success Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "review_id",
+    "product_id": "product_id",
+    "user_id": "user_id",
+    "rating": 5,
+    "title": "Excellent product!",
+    "comment": "This product exceeded my expectations.",
+    "images": ["review_image_url_1"],
+    "helpful_votes": [],
+    "created_at": "2023-01-01T00:00:00.000Z"
+  }
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Validation errors
+  - `403 Forbidden`: User has not purchased the product
+
+### Get Product Reviews
+Get all reviews for a product.
+
+- **URL**: `/api/reviews/:productId`
+- **Method**: `GET`
+- **Access**: Public
+- **Query Parameters**:
+  - `sort`: Sort by (newest, oldest, highestRating, lowestRating)
+  - `page`: Page number
+  - `limit`: Items per page
+- **Success Response**:
+```json
+{
+  "success": true,
+  "data": [
+    {
