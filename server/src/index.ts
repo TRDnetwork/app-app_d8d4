@@ -15,9 +15,12 @@ import adminRoutes from './routes/admin';
 import stripeRoutes from './routes/stripe';
 import emailRoutes from './routes/email';
 import analyticsRoutes from './routes/analytics';
+import healthRoutes from './routes/health';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimit } from './middleware/rateLimit';
 import { securityHeaders } from './middleware/securityHeaders';
+import { requestLogger, correlationId } from './middleware/logging';
+import Sentry from './config/sentry';
 
 // Load environment variables
 dotenv.config();
@@ -33,7 +36,8 @@ const requiredEnvVars = [
   'AWS_SECRET_ACCESS_KEY',
   'AWS_S3_BUCKET',
   'AWS_REGION',
-  'NODE_ENV'
+  'NODE_ENV',
+  'SENTRY_DSN'
 ];
 
 requiredEnvVars.forEach(varName => {
@@ -45,7 +49,15 @@ requiredEnvVars.forEach(varName => {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Initialize Sentry Express integration
+Sentry.Handlers.requestHandler();
+Sentry.Handlers.tracingHandler();
+
 // Middleware
+app.use(correlationId);
+app.use(requestLogger);
+app.use(Sentry.Handlers.requestHandler());
+app.use(Sentry.Handlers.tracingHandler());
 app.use(securityHeaders);
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -69,6 +81,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/health', healthRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -79,7 +92,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Error handling
+// Error handling - must be after all routes
+app.use(Sentry.Handlers.errorHandler());
 app.use(errorHandler);
 
 // Connect to database and start server
@@ -93,3 +107,7 @@ connectDB().then(() => {
 });
 
 export default app;
+```
+
+```typescript
+// SECURITY FIX: Use environment variables for monitoring

@@ -1,81 +1,116 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { apiClient } from '../lib/api';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
+import { useCheckoutStore } from '../stores/checkoutStore';
+import { useCartStore } from '../stores/cartStore';
+import { formatCurrency } from '../lib/utils';
+import { analytics } from '../lib/analytics';
 
-const OrderConfirmation = () => {
+const OrderConfirmation: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const session_id = searchParams.get('session_id');
-  const navigate = useNavigate();
-  const [order, setOrder] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { selectedAddress, deliveryOption } = useCheckoutStore();
+  const { items, total, clearCart } = useCartStore();
 
-  useEffect(() => {
-    if (!session_id) {
-      navigate('/cart');
-      return;
+  // Generate order ID
+  const orderId = `ORD-${Date.now().toString().slice(-6).toUpperCase()}`;
+
+  // Track purchase on successful order
+  React.useEffect(() => {
+    if (session_id && items.length > 0) {
+      analytics.trackPurchase(orderId, total + (deliveryOption?.price || 0), items);
+      clearCart();
     }
-
-    const fetchOrder = async () => {
-      try {
-        const data = await apiClient(`/stripe/payment-status/${session_id}`);
-        if (data.status === 'complete') {
-          setOrder(data.order);
-        } else {
-          throw new Error('Payment not completed');
-        }
-      } catch (err) {
-        console.error('Failed to fetch order:', err);
-        navigate('/cart');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrder();
-  }, [session_id, navigate]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p>Loading order confirmation...</p>
-      </div>
-    );
-  }
-
-  if (!order) {
-    return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-destructive mb-4">Order Not Found</h2>
-        <p className="text-muted-foreground mb-6">We couldn't find your order. Please contact support.</p>
-        <Button onClick={() => navigate('/')}>Go to Home</Button>
-      </div>
-    );
-  }
+  }, [session_id, items, total, deliveryOption, clearCart, orderId]);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <Card className="border-success">
-        <CardHeader>
-          <CardTitle className="text-2xl text-success">Order Confirmed!</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-muted-foreground">
-            Thank you for your purchase, <span className="font-medium">{order.user.name}</span>!
-          </p>
-          <div className="bg-muted p-4 rounded-md">
-            <p className="text-sm text-muted-foreground">Order Number</p>
-            <p className="font-mono font-bold text-lg">{order.order_number}</p>
+    <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <Card className="border-accent shadow-lg">
+        <CardHeader className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-success/20 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
           </div>
-          <p className="text-sm text-muted-foreground">
-            We've sent a confirmation email to <span className="font-medium">{order.user.email}</span>.
-          </p>
-          <div className="flex space-x-4 pt-4">
-            <Button onClick={() => navigate('/orders')}>View Order History</Button>
-            <Button variant="outline" onClick={() => navigate('/')}>Continue Shopping</Button>
+          <CardTitle className="text-2xl">Thank you for your order!</CardTitle>
+          <CardDescription>
+            Your order has been confirmed and will be processed shortly.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <h3 className="font-medium mb-2">Order Number</h3>
+            <p className="text-2xl font-bold text-accent">{orderId}</p>
+          </div>
+
+          <div>
+            <h3 className="font-medium mb-2">Delivery Address</h3>
+            <p>{selectedAddress?.line1}</p>
+            {selectedAddress?.line2 && <p>{selectedAddress.line2}</p>}
+            <p>
+              {selectedAddress?.city}, {selectedAddress?.state} {selectedAddress?.postal_code}
+            </p>
+            <p>{selectedAddress?.country}</p>
+          </div>
+
+          <div>
+            <h3 className="font-medium mb-2">Estimated Delivery</h3>
+            <p>{deliveryOption?.estimated}</p>
+          </div>
+
+          <div>
+            <h3 className="font-medium mb-2">Order Summary</h3>
+            <div className="space-y-2">
+              {items.map((item) => (
+                <div key={item.id} className="flex justify-between">
+                  <span>
+                    {item.name} x{item.quantity}
+                  </span>
+                  <span>{formatCurrency(item.price * item.quantity)}</span>
+                </div>
+              ))}
+              <div className="border-t pt-2 flex justify-between">
+                <span>Subtotal</span>
+                <span>{formatCurrency(total)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Delivery</span>
+                <span>{deliveryOption?.price === 0 ? 'Free' : formatCurrency(deliveryOption?.price)}</span>
+              </div>
+              <div className="border-t pt-2 font-bold flex justify-between">
+                <span>Total</span>
+                <span>
+                  {formatCurrency(total + (deliveryOption?.price || 0))}
+                </span>
+              </div>
+            </div>
           </div>
         </CardContent>
+        <CardFooter className="flex flex-col space-y-3">
+          <Button
+            onClick={() => {
+              // Track order status click
+              analytics.trackCTAClick('view_order_status', 'confirmation');
+              navigate('/orders');
+            }}
+            className="w-full bg-accent hover:bg-orange-600"
+          >
+            View Order Status
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              // Track continue shopping click
+              analytics.trackCTAClick('continue_shopping', 'confirmation');
+              navigate('/');
+            }}
+            className="w-full"
+          >
+            Continue Shopping
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );
