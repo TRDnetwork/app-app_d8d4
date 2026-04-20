@@ -11,79 +11,78 @@ const SwipeableCard: React.FC<SwipeableCardProps> = ({
   children, 
   onSwipeLeft, 
   onSwipeRight, 
-  className = '' 
+  className 
 }) => {
-  const [startX, setStartX] = useState(0);
-  const [currentX, setCurrentX] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isSwiping, setIsSwiping] = useState(false);
+  const [swipeOffset, setSwipeOffset] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Only enable on mobile devices
-  const isMobile = window.innerWidth <= 768;
+  // Minimum distance required for a swipe
+  const minSwipeDistance = 50;
 
-  useEffect(() => {
-    if (!isMobile) return;
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+    setIsSwiping(true);
+  };
 
-    const handleTouchStart = (e: TouchEvent) => {
-      setStartX(e.touches[0].clientX);
-      setCurrentX(e.touches[0].clientX);
-      setIsSwiping(true);
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isSwiping) return;
-      
-      const diffX = e.touches[0].clientX - startX;
-      
-      // Limit swipe distance
-      if (Math.abs(diffX) < 100) {
-        setCurrentX(e.touches[0].clientX);
-      }
-    };
-
-    const handleTouchEnd = () => {
-      if (!isSwiping) return;
-      
-      const diffX = currentX - startX;
-      
-      if (Math.abs(diffX) > 50) {
-        if (diffX > 0 && onSwipeRight) {
-          onSwipeRight();
-        } else if (diffX < 0 && onSwipeLeft) {
-          onSwipeLeft();
-        }
-      }
-      
-      setIsSwiping(false);
-      setCurrentX(startX);
-    };
-
-    const card = cardRef.current;
-    if (card) {
-      card.addEventListener('touchstart', handleTouchStart, { passive: true });
-      card.addEventListener('touchmove', handleTouchMove, { passive: true });
-      card.addEventListener('touchend', handleTouchEnd);
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart || !isSwiping) return;
+    
+    const currentTouch = e.targetTouches[0].clientX;
+    setTouchEnd(currentTouch);
+    
+    // Calculate swipe offset for visual feedback
+    const offset = currentTouch - touchStart;
+    setSwipeOffset(offset);
+    
+    // Prevent scrolling when swiping horizontally
+    if (Math.abs(offset) > 20) {
+      e.preventDefault();
     }
+  };
 
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd || !isSwiping) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe && onSwipeLeft) {
+      onSwipeLeft();
+    }
+    
+    if (isRightSwipe && onSwipeRight) {
+      onSwipeRight();
+    }
+    
+    // Reset states
+    setIsSwiping(false);
+    setSwipeOffset(0);
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+  // Reset swipe offset when component unmounts or touchStart changes
+  useEffect(() => {
     return () => {
-      if (card) {
-        card.removeEventListener('touchstart', handleTouchStart);
-        card.removeEventListener('touchmove', handleTouchMove);
-        card.removeEventListener('touchend', handleTouchEnd);
-      }
+      setSwipeOffset(0);
     };
-  }, [isSwiping, startX, currentX, onSwipeLeft, onSwipeRight, isMobile]);
-
-  const translateX = isSwiping ? currentX - startX : 0;
+  }, [touchStart]);
 
   return (
     <div
       ref={cardRef}
-      className={`relative ${className}`}
+      className={className}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
       style={{
-        transform: `translateX(${translateX}px)`,
-        transition: isSwiping ? 'none' : 'transform 0.3s ease-out',
-        touchAction: 'pan-y'
+        transform: `translateX(${swipeOffset}px)`,
+        transition: isSwiping ? 'none' : 'transform 0.2s ease-out'
       }}
     >
       {children}

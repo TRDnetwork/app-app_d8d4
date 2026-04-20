@@ -1,10 +1,20 @@
 import mongoose from 'mongoose';
-import { redisClient } from '../middleware/rateLimiter';
+import { cleanEnv, str, num } from 'envalid';
 
-// Connect to MongoDB
-export const connectDB = async (): Promise<void> => {
+// Validate required environment variables
+const env = cleanEnv(process.env, {
+  MONGODB_URI: str(),
+  MONGODB_CONNECTION_TIMEOUT: num({ default: 5000 }),
+  MONGODB_SOCKET_TIMEOUT: num({ default: 45000 }),
+});
+
+const connectDB = async (): Promise<void> => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/shopsphere');
+    const conn = await mongoose.connect(env.MONGODB_URI, {
+      serverSelectionTimeoutMS: env.MONGODB_CONNECTION_TIMEOUT,
+      socketTimeoutMS: env.MONGODB_SOCKET_TIMEOUT,
+    });
+
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error('Database connection error:', error);
@@ -12,10 +22,7 @@ export const connectDB = async (): Promise<void> => {
   }
 };
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('Gracefully shutting down...');
-  await mongoose.connection.close();
-  await redisClient.quit();
-  process.exit(0);
-});
+export default connectDB;
+```
+
+```typescript

@@ -2,57 +2,34 @@
 
 ## Deploy to Vercel
 
-1. Push code to GitHub repository
-2. Log in to Vercel dashboard (vercel.com)
-3. Click "New Project" and import the repository
-4. Set framework preset to "Vite" (auto-detected)
-5. Add environment variables from `.env.example` (see below)
-6. Set build command: `cd client && npm run build`
-7. Set output directory: `client/dist`
-8. Deploy
+1. Push code to a GitHub repository.
+2. Log in to [Vercel](https://vercel.com) and click "New Project".
+3. Import your GitHub repository.
+4. Set the project name and ensure the root directory is correct.
+5. Click "Deploy".
 
 ## Environment Variables
 
-Required environment variables:
+Add the following environment variables in the Vercel project settings under "Environment Variables":
 
-- `MONGODB_URI`: MongoDB connection string (from Atlas)
-- `JWT_SECRET`: JWT signing secret (32+ characters)
-- `JWT_REFRESH_SECRET`: JWT refresh token secret (32+ characters)
-- `STRIPE_SECRET_KEY`: Stripe secret key (from Stripe dashboard)
-- `STRIPE_PUBLISHABLE_KEY`: Stripe publishable key
-- `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret
-- `RESEND_API_KEY`: Resend API key (from resend.com)
-- `EMAIL_FROM`: Email sender address
-- `FRONTEND_URL`: Production frontend URL (e.g., https://shopsphere.vercel.app)
-- `API_BASE_URL`: Production API base URL (e.g., https://shopsphere-api.onrender.com/api)
-- `GOOGLE_CLIENT_ID`: Google OAuth client ID
-- `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
-- `FACEBOOK_APP_ID`: Facebook app ID
-- `FACEBOOK_APP_SECRET`: Facebook app secret
-- `AWS_ACCESS_KEY_ID`: AWS access key for S3
-- `AWS_SECRET_ACCESS_KEY`: AWS secret key for S3
-- `S3_BUCKET`: S3 bucket name for product images
-- `S3_REGION`: AWS region for S3 bucket
-- `ALGOLIA_APP_ID`: Algolia application ID
-- `ALGOLIA_API_KEY`: Algolia admin API key
-- `ALGOLIA_SEARCH_KEY`: Algolia search-only API key
-- `ALGOLIA_INDEX_NAME`: Algolia index name for products
+| Key | Value |
+|-----|-------|
+| `VITE_STRIPE_PUBLISHABLE_KEY` | From Stripe Dashboard |
+| `VITE_ALGOLIA_APP_ID` | From Algolia Dashboard |
+| `VITE_ALGOLIA_SEARCH_KEY` | From Algolia Dashboard |
 
 ## First-time Setup
 
-1. Deploy backend to Railway/Render first to get API base URL
-2. Run database migrations:
+1. Deploy the Express backend to Railway or Render using the same GitHub repo and `server/` directory.
+2. Set backend environment variables on Railway/Render:
+   - All keys from `.env.example` except the `VITE_` prefixed ones
+   - Ensure `MONGODB_URI` points to your MongoDB instance
+3. Run database migrations and seed data:
    ```bash
-   cd server && node db/migrate.js
+   node server/src/db/seed.js
    ```
-3. Seed database with sample data:
-   ```bash
-   cd server && node db/seed.js
-   ```
-4. Configure Stripe webhooks:
-   - Set webhook URL to `https://shopsphere-api.onrender.com/api/stripe/webhook`
-   - Copy webhook signing secret to `STRIPE_WEBHOOK_SECRET`
-5. Set up OAuth providers:
-   - Google: Add authorized redirect URI `https://shopsphere.vercel.app/api/auth/oauth/google/callback`
-   - Facebook: Add authorized redirect URI `https://shopsphere.vercel.app/api/auth/oauth/facebook/callback`
-6. Configure CORS in backend to allow `https://shopsphere.vercel.app`
+4. Configure Stripe:
+   - Set webhook endpoint to `https://your-backend.onrender.com/api/stripe/webhook`
+   - Verify and copy the webhook signing secret
+5. Enable CORS in backend to allow your Vercel frontend URL.
+6. Start the backend and ensure health check at `/api/health` returns 200.

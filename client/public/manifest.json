@@ -6,6 +6,7 @@
   "display": "standalone",
   "background_color": "#0F172A",
   "theme_color": "#FF9900",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "/icons/icon-72x72.png",
@@ -48,5 +49,27 @@
       "type": "image/png"
     }
   ],
-  "orientation": "portrait"
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "type": "image/png",
+      "sizes": "1280x720",
+      "form_factor": "wide",
+      "label": "Home Screen"
+    },
+    {
+      "src": "/screenshots/product.png",
+      "type": "image/png",
+      "sizes": "1280x720",
+      "form_factor": "wide",
+      "label": "Product Detail"
+    },
+    {
+      "src": "/screenshots/cart.png",
+      "type": "image/png",
+      "sizes": "1280x720",
+      "form_factor": "wide",
+      "label": "Shopping Cart"
+    }
+  ]
 }
