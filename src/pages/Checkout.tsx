@@ -1,42 +1,30 @@
-import React, { lazy, Suspense } from 'react';
-import { useAuthStore } from '../stores/authStore';
-import { trackCTAClick } from '../lib/analytics';
+import React from 'react';
+import { AddressSelector } from '../components/checkout/AddressSelector';
+import { DeliveryOptions } from '../components/checkout/DeliveryOptions';
+import { PaymentMethods } from '../components/checkout/PaymentMethods';
+import { OrderReview } from '../components/checkout/OrderReview';
+import { Button } from '../components/ui/button';
+import { Link } from 'react-router-dom';
 
-// Lazy load Stripe Elements to reduce bundle size
-const Elements = lazy(() => import('@stripe/react-stripe-js').then(m => ({ default: m.Elements })));
-const loadStripe = lazy(() => import('@stripe/stripe-js').then(m => ({ default: m.loadStripe })));
-
-const CheckoutPage: React.FC = () => {
-  const { isAuthenticated } = useAuthStore();
-
-  if (!isAuthenticated) {
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-2xl font-bold mb-4">Checkout</h1>
-        <p className="text-text_dim mb-4">Please log in to continue with checkout.</p>
-        <button
-          onClick={() => {
-            trackCTAClick('login_to_checkout', 'checkout_page');
-            window.location.href = '/login';
-          }}
-          className="px-6 py-2 bg-accent text-background rounded hover:bg-orange-600"
-        >
-          Log In
-        </button>
-      </div>
-    );
-  }
-
+const Checkout = () => {
   return (
-    <Suspense fallback={<div className="skeleton h-96 w-full"></div>}>
-      <Elements stripe={loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)}>
-        <CheckoutForm />
-      </Elements>
-    </Suspense>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="mb-8 text-3xl font-bold">Checkout</h1>
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+        <div className="md:col-span-2 space-y-8">
+          <AddressSelector />
+          <DeliveryOptions />
+          <PaymentMethods />
+        </div>
+        <div>
+          <OrderReview />
+          <Button asChild className="mt-4 w-full">
+            <Link to="/order-confirmation">Place Order</Link>
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
 
-// Lazy load CheckoutForm to enable code splitting
-const CheckoutForm = lazy(() => import('../components/Checkout/CheckoutForm'));
-
-export default CheckoutPage;
+export default Checkout;

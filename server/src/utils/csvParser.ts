@@ -1,274 +1,380 @@
 import * as csv from 'csv-parser';
 import * as fs from 'fs';
-import * as path from 'path';
-import { Readable } from 'stream';
-import { Product } from '../models/Product';
+import { pipeline } from 'stream/promises';
 
-interface CSVRow {
-  title: string;
-  description: string;
-  category: string;
-  brand: string;
-  price: string;
-  original_price: string;
-  discount_percent: string;
-  stock: string;
-  status: string;
-  tags: string;
-}
-
-interface CSVImportResult {
-  success: boolean;
-  processed: number;
-  created: number;
-  updated: number;
-  errors: Array<{
-    row: number;
-    error: string;
-    data: Record<string, any>;
-  }>;
-}
-
+/**
+ * CSV Parser utility for import operations
+ * Handles CSV file parsing with validation and column mapping
+ */
 export class CSVParser {
+  private readonly MAX_ROWS = 100000; // Maximum rows to process
+  private readonly BATCH_SIZE = 1000; // Rows to process in each batch
+
   /**
-   * Parse CSV file and validate data
+   * Parse CSV file and return first N rows for preview
    */
-  static async parseCSV(
-    filePath: string | Buffer | Readable,
-    options: {
-      delimiter?: string;
-      headers?: boolean;
-    } = {}
-  ): Promise<CSVImportResult> {
-    const result: CSVImportResult = {
-      success: true,
-      processed: 0,
-      created: 0,
-      updated: 0,
-      errors: []
-    };
+  async parseCSV(filePath: string, maxRows: number = 5): Promise<any[]> {
+    const results: any[] = [];
+    let rowCount = 0;
 
-    // Create readable stream from different input types
-    let stream: Readable;
-    
-    if (typeof filePath === 'string') {
-      if (!fs.existsSync(filePath)) {
-        throw new Error(`File not found: ${filePath}`);
-      }
-      stream = fs.createReadStream(filePath);
-    } else if (Buffer.isBuffer(filePath)) {
-      stream = new Readable();
-      stream.push(filePath);
-      stream.push(null);
-    } else {
-      stream = filePath;
-    }
-
-    return new Promise((resolve, reject) => {
-      const results: CSVRow[] = [];
-      
-      stream
-        .pipe(csv({
-          separator: options.delimiter || ',',
-          headers: options.headers !== false, // Default to true
-        }))
-        .on('data', (data) => {
-          results.push(data);
-        })
-        .on('error', (error) => {
-          reject(error);
-        })
-        .on('end', async () => {
-          try {
-            // Process each row
-            for (let i = 0; i < results.length; i++) {
-              const row = results[i];
-              result.processed++;
-              
-              try {
-                // Validate and transform data
-                const productData = await this.validateAndTransformRow(row, i + 1);
-                
-                // Check if product exists (by title and brand)
-                const existingProduct = await Product.findOne({
-                  title: productData.title,
-                  brand: productData.brand
-                });
-                
-                if (existingProduct) {
-                  // Update existing product
-                  Object.assign(existingProduct, productData);
-                  await existingProduct.save();
-                  result.updated++;
-                } else {
-                  // Create new product
-                  await Product.create(productData);
-                  result.created++;
-                }
-              } catch (error: any) {
-                result.errors.push({
-                  row: i + 1,
-                  error: error.message,
-                  data: row
-                });
-                result.success = false;
-              }
+    try {
+      await pipeline(
+        fs.createReadStream(filePath),
+        csv({
+          separator: ',',
+          strict: false,
+          skipEmptyLines: true
+        }),
+        async function* (source) {
+          for await (const chunk of source) {
+            if (rowCount >= maxRows) {
+              return;
             }
             
-            resolve(result);
-          } catch (error) {
-            reject(error);
+            // Clean and validate row
+            const cleanedRow = this.cleanRow(chunk);
+            if (Object.keys(cleanedRow).length > 0) {
+              results.push(cleanedRow);
+              rowCount++;
+            }
           }
-        });
-    });
-  }
-
-  /**
-   * Validate and transform a CSV row into product data
-   */
-  private static async validateAndTransformRow(row: CSVRow, rowIndex: number): Promise<any> {
-    const errors: string[] = [];
-    
-    // Required fields validation
-    if (!row.title?.trim()) {
-      errors.push('Title is required');
-    }
-    
-    if (!row.description?.trim()) {
-      errors.push('Description is required');
-    }
-    
-    if (!row.category?.trim()) {
-      errors.push('Category is required');
-    }
-    
-    if (!row.brand?.trim()) {
-      errors.push('Brand is required');
-    }
-    
-    // Price validation
-    const price = parseFloat(row.price);
-    if (isNaN(price) || price <= 0) {
-      errors.push('Price must be a positive number');
-    }
-    
-    // Original price validation (if provided)
-    let originalPrice = null;
-    if (row.original_price?.trim()) {
-      originalPrice = parseFloat(row.original_price);
-      if (isNaN(originalPrice) || originalPrice <= 0) {
-        errors.push('Original price must be a positive number');
-      }
-    }
-    
-    // Discount percent validation
-    let discountPercent = 0;
-    if (row.discount_percent?.trim()) {
-      discountPercent = parseFloat(row.discount_percent);
-      if (isNaN(discountPercent) || discountPercent < 0 || discountPercent > 100) {
-        errors.push('Discount percent must be between 0 and 100');
-      }
-    }
-    
-    // Stock validation
-    const stock = parseInt(row.stock || '0', 10);
-    if (isNaN(stock) || stock < 0) {
-      errors.push('Stock must be a non-negative integer');
-    }
-    
-    // Status validation
-    const status = (row.status || 'draft').toLowerCase();
-    if (!['active', 'draft', 'archived'].includes(status)) {
-      errors.push('Status must be one of: active, draft, archived');
-    }
-    
-    // Tags parsing
-    let tags: string[] = [];
-    if (row.tags?.trim()) {
-      tags = row.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-    }
-    
-    // If we have validation errors, throw them
-    if (errors.length > 0) {
-      throw new Error(`Validation failed for row ${rowIndex}: ${errors.join(', ')}`);
-    }
-    
-    // Calculate discount percent if not provided
-    if (originalPrice && !discountPercent) {
-      discountPercent = Math.round(((originalPrice - price) / originalPrice) * 100);
-    }
-    
-    return {
-      title: row.title.trim(),
-      description: row.description.trim(),
-      category: row.category.trim(),
-      brand: row.brand.trim(),
-      price,
-      original_price: originalPrice,
-      discount_percent: discountPercent,
-      stock_total: stock,
-      status,
-      tags,
-      variants: [
-        {
-          sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          stock: stock,
-          color: 'Default',
-          size: 'Default'
         }
-      ]
-    };
+      );
+
+      return results;
+    } catch (error) {
+      throw new Error(`Failed to parse CSV file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   /**
-   * Preview first N rows of a CSV file
+   * Process CSV file in batches for import
    */
-  static async previewCSV(
-    filePath: string | Buffer | Readable,
-    limit: number = 5
-  ): Promise<{ headers: string[]; rows: Record<string, any>[] }> {
-    const headers: string[] = [];
-    const rows: Record<string, any>[] = [];
-    
-    // Create readable stream
-    let stream: Readable;
-    
-    if (typeof filePath === 'string') {
-      if (!fs.existsSync(filePath)) {
-        throw new Error(`File not found: ${filePath}`);
+  async processCSV(filePath: string, columnMapping: Record<string, string>, batchSize: number = this.BATCH_SIZE): Promise<AsyncGenerator<any[]>> {
+    return this.createBatchGenerator(filePath, columnMapping, batchSize);
+  }
+
+  /**
+   * Create async generator for batch processing
+   */
+  private async *createBatchGenerator(filePath: string, columnMapping: Record<string, string>, batchSize: number) {
+    let batch: any[] = [];
+    let rowCount = 0;
+
+    try {
+      await pipeline(
+        fs.createReadStream(filePath),
+        csv({
+          separator: ',',
+          strict: false,
+          skipEmptyLines: true
+        }),
+        async function* (source) {
+          for await (const chunk of source) {
+            if (rowCount >= this.MAX_ROWS) {
+              throw new Error(`Maximum row limit of ${this.MAX_ROWS} exceeded`);
+            }
+
+            // Clean and map row
+            const mappedRow = this.mapRow(chunk, columnMapping);
+            if (mappedRow) {
+              batch.push(mappedRow);
+              rowCount++;
+
+              // Yield batch when full
+              if (batch.length >= batchSize) {
+                yield batch;
+                batch = [];
+              }
+            }
+          }
+
+          // Yield remaining rows
+          if (batch.length > 0) {
+            yield batch;
+          }
+        }.bind(this)
+      );
+    } catch (error) {
+      throw new Error(`Failed to process CSV file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Clean row data - remove empty values, trim whitespace
+   */
+  private cleanRow(row: Record<string, any>): Record<string, any> {
+    const cleaned: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(row)) {
+      // Skip empty keys or values
+      if (!key || value === null || value === undefined || value === '') {
+        continue;
       }
-      stream = fs.createReadStream(filePath);
-    } else if (Buffer.isBuffer(filePath)) {
-      stream = new Readable();
-      stream.push(filePath);
-      stream.push(null);
-    } else {
-      stream = filePath;
+
+      // Trim whitespace
+      const trimmedValue = String(value).trim();
+      if (trimmedValue === '') {
+        continue;
+      }
+
+      // Clean column name
+      const cleanedKey = this.cleanColumnName(key);
+      if (cleanedKey) {
+        cleaned[cleanedKey] = trimmedValue;
+      }
     }
 
-    return new Promise((resolve, reject) => {
-      let rowCount = 0;
-      
-      stream
-        .pipe(csv())
-        .on('headers', (headerList) => {
-          headers.push(...headerList);
-        })
-        .on('data', (data) => {
-          if (rowCount < limit) {
-            rows.push(data);
+    return cleaned;
+  }
+
+  /**
+   * Map row according to column mapping
+   */
+  private mapRow(row: Record<string, any>, columnMapping: Record<string, string>): Record<string, any> | null {
+    const mapped: Record<string, any> = {};
+    let hasData = false;
+
+    const cleanedRow = this.cleanRow(row);
+
+    for (const [fileColumn, entityColumn] of Object.entries(columnMapping)) {
+      if (cleanedRow[fileColumn] !== undefined) {
+        // Convert data types based on target column
+        mapped[entityColumn] = this.convertDataType(cleanedRow[fileColumn], entityColumn);
+        hasData = true;
+      }
+    }
+
+    return hasData ? mapped : null;
+  }
+
+  /**
+   * Suggest column mapping based on header analysis
+   */
+  suggestColumnMapping(headers: Record<string, any>, entityType: string): Record<string, string> {
+    const suggestions: Record<string, string> = {};
+    const mappingConfig = COLUMN_MAPPINGS[entityType];
+
+    if (!mappingConfig) {
+      return suggestions;
+    }
+
+    const headerKeys = Object.keys(headers).map(key => this.cleanColumnName(key));
+
+    for (const header of headerKeys) {
+      if (!header) continue;
+
+      // Find best match from mapping configuration
+      const bestMatch = this.findBestColumnMatch(header, mappingConfig.mapping);
+      if (bestMatch) {
+        suggestions[header] = bestMatch;
+      }
+    }
+
+    return suggestions;
+  }
+
+  /**
+   * Find best column match using fuzzy matching
+   */
+  private findBestColumnMatch(header: string, mapping: Record<string, string>): string | null {
+    const headerLower = header.toLowerCase();
+    
+    // Exact match
+    for (const [fileCol, entityCol] of Object.entries(mapping)) {
+      if (fileCol.toLowerCase() === headerLower) {
+        return entityCol;
+      }
+    }
+
+    // Partial match
+    for (const [fileCol, entityCol] of Object.entries(mapping)) {
+      const fileColLower = fileCol.toLowerCase();
+      if (headerLower.includes(fileColLower) || fileColLower.includes(headerLower)) {
+        return entityCol;
+      }
+    }
+
+    // Keyword match
+    const keywords: Record<string, string[]> = {
+      'title': ['title', 'name', 'product'],
+      'price': ['price', 'cost', 'amount'],
+      'description': ['description', 'desc', 'details'],
+      'category': ['category', 'type', 'group'],
+      'brand': ['brand', 'manufacturer', 'maker'],
+      'sku': ['sku', 'code', 'id'],
+      'stock': ['stock', 'quantity', 'count', 'available'],
+      'email': ['email', 'mail', 'address'],
+      'name': ['name', 'full', 'first', 'last'],
+      'phone': ['phone', 'mobile', 'contact'],
+      'role': ['role', 'type', 'access']
+    };
+
+    for (const [entityCol, words] of Object.entries(keywords)) {
+      if (mappingConfig.mapping[entityCol]) {
+        for (const word of words) {
+          if (headerLower.includes(word)) {
+            return mappingConfig.mapping[entityCol];
           }
-          rowCount++;
-        })
-        .on('error', (error) => {
-          reject(error);
-        })
-        .on('end', () => {
-          resolve({ headers, rows });
-        });
-    });
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Clean column name - remove special characters, normalize
+   */
+  private cleanColumnName(name: string): string {
+    if (!name) return '';
+
+    return name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-zA-Z0-9_]/g, '_')  // Replace special chars with underscore
+      .replace(/_{2,}/g, '_')          // Replace multiple underscores
+      .replace(/^_+|_+$/g, '');        // Remove leading/trailing underscores
+  }
+
+  /**
+   * Convert data type based on target column
+   */
+  private convertDataType(value: string, column: string): any {
+    // Handle specific column types
+    switch (column) {
+      case 'price':
+      case 'original_price':
+      case 'subtotal':
+      case 'total':
+      case 'delivery_charge':
+        return this.parseNumber(value);
+      
+      case 'stock_quantity':
+      case 'quantity':
+        return this.parseInteger(value);
+      
+      case 'images':
+      case 'tags':
+        return this.parseArray(value);
+      
+      case 'emailVerified':
+      case 'is_default':
+      case 'is_featured':
+      case 'is_sponsored':
+        return this.parseBoolean(value);
+      
+      case 'created_at':
+      case 'updated_at':
+      case 'order_date':
+        return this.parseDate(value);
+      
+      default:
+        return value;
+    }
+  }
+
+  /**
+   * Parse number with error handling
+   */
+  private parseNumber(value: string): number | null {
+    const num = Number(value.replace(/[^0-9.-]/g, ''));
+    return isNaN(num) ? null : num;
+  }
+
+  /**
+   * Parse integer
+   */
+  private parseInteger(value: string): number | null {
+    const int = parseInt(value.replace(/[^0-9-]/g, ''), 10);
+    return isNaN(int) ? null : int;
+  }
+
+  /**
+   * Parse boolean values
+   */
+  private parseBoolean(value: string): boolean {
+    const lowerValue = value.toLowerCase().trim();
+    return ['true', '1', 'yes', 'on'].includes(lowerValue);
+  }
+
+  /**
+   * Parse date string
+   */
+  private parseDate(value: string): Date | null {
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  /**
+   * Parse array from comma-separated string
+   */
+  private parseArray(value: string): string[] {
+    return value
+      .split(',')
+      .map(item => item.trim())
+      .filter(item => item.length > 0);
   }
 }
+
+// Column mappings for different entity types
+const COLUMN_MAPPINGS = {
+  products: {
+    mapping: {
+      'title': 'title',
+      'name': 'title',
+      'price': 'price',
+      'cost': 'price',
+      'original_price': 'original_price',
+      'discount_percent': 'discount_percent',
+      'description': 'description',
+      'desc': 'description',
+      'category': 'category',
+      'category_id': 'category_id',
+      'brand': 'brand',
+      'sku': 'sku',
+      'stock': 'stock_quantity',
+      'stock_quantity': 'stock_quantity',
+      'images': 'images',
+      'image_urls': 'images',
+      'status': 'status'
+    }
+  },
+  users: {
+    mapping: {
+      'email': 'email',
+      'name': 'name',
+      'full_name': 'name',
+      'first_name': 'name',
+      'phone': 'phone',
+      'mobile': 'phone',
+      'role': 'role',
+      'user_role': 'role'
+    }
+  },
+  orders: {
+    mapping: {
+      'user_id': 'user_id',
+      'customer_id': 'user_id',
+      'total': 'total',
+      'subtotal': 'subtotal',
+      'delivery_charge': 'delivery_charge',
+      'items': 'items',
+      'order_items': 'items',
+      'status': 'status',
+      'delivery_speed': 'delivery_speed'
+    }
+  },
+  categories: {
+    mapping: {
+      'name': 'name',
+      'slug': 'slug',
+      'description': 'description',
+      'parent_id': 'parent_id',
+      'parent_category': 'parent_id'
+    }
+  }
+};
 ```
 
 ```typescript

@@ -1,27 +1,25 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { Product } from '../types';
 
 interface CartItem {
-  product_id: string;
-  variant_id?: string;
+  product: Product;
+  variantId?: string;
   quantity: number;
-  price_snapshot: number;
-  title: string;
-  image: string;
+  price: number;
 }
 
 interface CartState {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, 'price_snapshot'> & { price: number }) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  removeItem: (productId: string) => void;
-  clearCart: () => void;
-  getTotalItems: () => number;
-  getSubtotal: () => number;
   couponCode: string | null;
   discount: number;
+  add: (product: Product, variantId?: string, quantity?: number) => void;
+  update: (productId: string, quantity: number) => void;
+  remove: (productId: string) => void;
+  clear: () => void;
   applyCoupon: (code: string, discount: number) => void;
-  removeCoupon: () => void;
+  subtotal: () => number;
+  total: () => number;
 }
 
 export const cartStore = create<CartState>()(
@@ -30,48 +28,42 @@ export const cartStore = create<CartState>()(
       items: [],
       couponCode: null,
       discount: 0,
-      addItem: (item) => {
-        const existing = get().items.find((i) => i.product_id === item.product_id);
-        if (existing) {
+      add: (product, variantId, quantity = 1) => {
+        const current = get().items.find((i) => i.product._id === product._id && i.variantId === variantId);
+        if (current) {
           set({
             items: get().items.map((i) =>
-              i.product_id === item.product_id
-                ? { ...i, quantity: i.quantity + item.quantity }
+              i.product._id === product._id && i.variantId === variantId
+                ? { ...i, quantity: i.quantity + quantity }
                 : i
             ),
           });
         } else {
           set({
-            items: [
-              ...get().items,
-              {
-                ...item,
-                price_snapshot: item.price,
-              },
-            ],
+            items: [...get().items, { product, variantId, quantity, price: product.price }],
           });
         }
       },
-      updateQuantity: (productId, quantity) => {
+      update: (productId, quantity) => {
         if (quantity === 0) {
-          get().removeItem(productId);
+          get().remove(productId);
           return;
         }
         set({
           items: get().items.map((i) =>
-            i.product_id === productId ? { ...i, quantity } : i
+            i.product._id === productId ? { ...i, quantity } : i
           ),
         });
       },
-      removeItem: (productId) => {
-        set({ items: get().items.filter((i) => i.product_id !== productId) });
+      remove: (productId) => {
+        set({
+          items: get().items.filter((i) => i.product._id !== productId),
+        });
       },
-      clearCart: () => set({ items: [], couponCode: null, discount: 0 }),
-      getTotalItems: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
-      getSubtotal: () =>
-        get().items.reduce((sum, item) => sum + item.price_snapshot * item.quantity, 0),
+      clear: () => set({ items: [], couponCode: null, discount: 0 }),
       applyCoupon: (code, discount) => set({ couponCode: code, discount }),
-      removeCoupon: () => set({ couponCode: null, discount: 0 }),
+      subtotal: () => get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      total: () => get().subtotal() - get().discount,
     }),
     {
       name: 'cart-storage',

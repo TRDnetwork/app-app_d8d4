@@ -1,20 +1,10 @@
 import { create } from 'zustand';
-
-interface Address {
-  _id: string;
-  line1: string;
-  line2?: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  country: string;
-  type: 'home' | 'work' | 'other';
-}
+import { Address } from '../types';
 
 interface CheckoutState {
   address: Address | null;
-  deliverySpeed: 'standard' | 'express' | 'same_day' | null;
-  paymentMethod: 'stripe' | 'upi' | 'cod' | null;
+  deliverySpeed: 'standard' | 'express' | 'same_day';
+  paymentMethod: 'stripe' | 'upi' | 'cod';
   setAddress: (address: Address) => void;
   setDeliverySpeed: (speed: 'standard' | 'express' | 'same_day') => void;
   setPaymentMethod: (method: 'stripe' | 'upi' | 'cod') => void;
@@ -23,10 +13,15 @@ interface CheckoutState {
 
 export const checkoutStore = create<CheckoutState>((set) => ({
   address: null,
-  deliverySpeed: null,
-  paymentMethod: null,
+  deliverySpeed: 'standard',
+  paymentMethod: 'stripe',
   setAddress: (address) => set({ address }),
   setDeliverySpeed: (speed) => set({ deliverySpeed: speed }),
   setPaymentMethod: (method) => set({ paymentMethod: method }),
-  reset: () => set({ address: null, deliverySpeed: null, paymentMethod: null }),
+  reset: () =>
+    set({
+      address: null,
+      deliverySpeed: 'standard',
+      paymentMethod: 'stripe',
+    }),
 }));

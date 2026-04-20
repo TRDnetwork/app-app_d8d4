@@ -1,175 +1,122 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { fetchWithAuth } from '../lib/api';
 import { ImageGallery } from '../components/product/ImageGallery';
 import { VariantSelector } from '../components/product/VariantSelector';
 import { ReviewList } from '../components/product/ReviewList';
 import { QASection } from '../components/product/QASection';
+import { Button } from '../components/ui/button';
 import { formatCurrency } from '../lib/formatters';
-import { fetchWithAuth } from '../lib/api';
-import { cartStore } from '../stores/cartStore';
+import { Skeleton } from '../components/ui/skeleton';
 import { wishlistStore } from '../stores/wishlistStore';
-import { Heart, ShoppingCart, Share2 } from 'lucide-react';
-import { trackProductView, trackAddToCart, trackWishlistEvent } from '../lib/analytics';
 
-const ProductDetail: React.FC = () => {
+const ProductDetail = () => {
   const { slug } = useParams();
-  const navigate = useNavigate();
   const [product, setProduct] = useState<any>(null);
-  const [selectedVariant, setSelectedVariant] = useState<any>(null);
-  const [quantity, setQuantity] = useState(1);
-  const { addItem } = cartStore();
-  const { toggle, has } = wishlistStore();
+  const [loading, setLoading] = useState(true);
+  const [selectedVariant, setSelectedVariant] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const loadProduct = async () => {
       try {
-        const res = await fetchWithAuth(`/api/products/${slug}`);
+        const res = await fetchWithAuth(`/products/${slug}`);
         setProduct(res.data);
-        if (res.data.variants?.length > 0) {
-          setSelectedVariant(res.data.variants[0]);
-        }
-        
-        // Track product view
-        if (res.data) {
-          trackProductView(res.data._id, res.data.title);
-        }
       } catch (err) {
-        console.error('Failed to load product:', err);
-        navigate('/products');
+        console.error('Failed to load product');
+      } finally {
+        setLoading(false);
       }
     };
     loadProduct();
   }, [slug]);
 
-  const handleAddToCart = () => {
-    if (!product) return;
-    addItem({
-      product_id: product._id,
-      title: product.title,
-      image: product.images[0],
-      price: selectedVariant?.price || product.price,
-      quantity,
-    });
-    
-    // Track add to cart event
-    trackAddToCart(
-      product._id, 
-      product.title, 
-      selectedVariant?.price || product.price, 
-      quantity
-    );
-  };
-
-  const handleWishlistToggle = () => {
-    toggle(product._id);
-    trackWishlistEvent(has(product._id) ? 'remove' : 'add', product._id);
-  };
-
-  if (!product) {
+  if (loading) {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="skeleton h-96 rounded-lg mb-6"></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            <div className="skeleton h-12 w-3/4 mb-4"></div>
-            <div className="skeleton h-4 w-1/2 mb-2"></div>
-            <div className="skeleton h-4 w-full mb-2"></div>
-            <div className="skeleton h-4 w-5/6"></div>
-          </div>
-          <div>
-            <div className="skeleton h-32 mb-4"></div>
-            <div className="skeleton h-12 w-full"></div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          <Skeleton className="h-96 w-full" />
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-12 w-32" />
           </div>
         </div>
       </div>
     );
   }
 
-  const finalPrice = selectedVariant?.price || product.price;
-  const originalPrice = selectedVariant?.original_price || product.original_price || finalPrice;
+  if (!product) return <div>Product not found</div>;
+
+  const isInWishlist = wishlistStore((s) => s.has(product._id));
+  const toggleWishlist = () => {
+    if (isInWishlist) {
+      wishlistStore.getState().remove(product._id);
+    } else {
+      wishlistStore.getState().add(product);
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         <ImageGallery images={product.images} />
-
         <div>
-          <h1 className="text-3xl font-bold mb-2 font-display">{product.title}</h1>
-          <p className="text-text-dim mb-4">by {product.brand}</p>
-
-          <div className="flex items-center mb-4">
-            <div className="text-accent font-bold text-2xl">{formatCurrency(finalPrice)}</div>
-            {originalPrice > finalPrice && (
-              <div className="ml-2 text-text-dim line-through">{formatCurrency(originalPrice)}</div>
+          <h1 className="mb-2 text-2xl font-bold">{product.title}</h1>
+          <p className="mb-4 text-text_dim">{product.brand}</p>
+          <div className="mb-4">
+            <span className="text-2xl font-bold text-accent">{formatCurrency(product.price)}</span>
+            {product.original_price > product.price && (
+              <span className="ml-2 text-lg text-text_dim line-through">{formatCurrency(product.original_price)}</span>
             )}
-            {originalPrice > finalPrice && (
-              <div className="ml-2 text-warning font-semibold">
-                Save {Math.round(((originalPrice - finalPrice) / originalPrice) * 100)}%
-              </div>
+            {product.discount_percent > 0 && (
+              <span className="ml-2 rounded bg-warning px-2 py-1 text-sm text-white">-{product.discount_percent}%</span>
             )}
           </div>
+          <p className="mb-6">{product.description}</p>
 
-          <p className="text-text-dim mb-6">{product.description}</p>
-
-          {product.variants && product.variants.length > 0 && (
-            <VariantSelector
-              variants={product.variants}
-              selected={selectedVariant}
-              onSelect={setSelectedVariant}
-            />
+          {product.variants.length > 0 && (
+            <div className="mb-6">
+              <h3 className="mb-2 font-medium">Options</h3>
+              <VariantSelector variants={product.variants} selected={selectedVariant} onChange={setSelectedVariant} />
+            </div>
           )}
 
-          <div className="flex items-center space-x-4 mb-6">
-            <label className="text-text">Quantity:</label>
-            <input
-              type="number"
-              min="1"
-              max={product.stock_quantity}
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-16 px-3 py-1 border border-border rounded text-text bg-surface"
-            />
-            <span className="text-text-dim">In stock: {product.stock_quantity}</span>
+          <div className="mb-6">
+            <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm ${product.stock_quantity > 0 ? 'bg-success/20 text-success' : 'bg-error/20 text-error'}`}>
+              {product.stock_quantity > 0 ? 'In Stock' : 'Out of Stock'}
+            </span>
           </div>
 
-          <div className="flex flex-wrap gap-4 mb-6">
-            <button
-              onClick={handleAddToCart}
-              className="btn btn-primary flex items-center space-x-2 px-8 py-3"
-            >
-              <ShoppingCart size={20} />
-              <span>Add to Cart</span>
-            </button>
-            <button
-              onClick={handleWishlistToggle}
-              className={`btn px-6 py-3 ${has(product._id) ? 'text-accent' : 'text-text-dim'}`}
-            >
-              <Heart size={20} fill={has(product._id) ? '#FF9900' : 'none'} />
-            </button>
-            <button className="btn px-6 py-3 text-text-dim">
-              <Share2 size={20} />
-            </button>
+          <div className="flex gap-4">
+            <Button className="flex-1">Add to Cart</Button>
+            <Button variant="outline" onClick={toggleWishlist}>
+              {isInWishlist ? '❤️' : '♡'}
+            </Button>
           </div>
 
-          <div className="border-t border-border pt-6">
-            <h3 className="font-medium mb-3">Product Details</h3>
-            <ul className="space-y-2 text-text-dim">
-              <li>Category: {product.category}</li>
-              <li>Brand: {product.brand}</li>
-              <li>SKU: {product.sku}</li>
-              <li>Availability: {product.stock_quantity > 0 ? 'In Stock' : 'Out of Stock'}</li>
-            </ul>
+          <div className="mt-8 border-t pt-6">
+            <h3 className="mb-4 text-xl font-semibold">Product Details</h3>
+            <dl className="space-y-2">
+              <div className="flex justify-between">
+                <dt className="text-text_dim">SKU</dt>
+                <dd>{product.sku}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-text_dim">Category</dt>
+                <dd>{product.category_id}</dd>
+              </div>
+            </dl>
           </div>
         </div>
       </div>
 
       <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-6 font-display">Product Reviews</h2>
         <ReviewList productId={product._id} />
       </div>
 
       <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-6 font-display">Questions & Answers</h2>
         <QASection productId={product._id} />
       </div>
     </div>

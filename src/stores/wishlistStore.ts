@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { Product } from '../types';
 
 interface WishlistState {
-  items: string[];
-  add: (productId: string) => void;
+  items: Product[];
+  add: (product: Product) => void;
   remove: (productId: string) => void;
-  toggle: (productId: string) => void;
   has: (productId: string) => boolean;
 }
 
@@ -13,15 +13,15 @@ export const wishlistStore = create<WishlistState>()(
   persist(
     (set, get) => ({
       items: [],
-      add: (productId) =>
-        set({ items: [...get().items, productId] }),
+      add: (product) =>
+        set({
+          items: [...get().items, product],
+        }),
       remove: (productId) =>
-        set({ items: get().items.filter((id) => id !== productId) }),
-      toggle: (productId) =>
-        get().has(productId)
-          ? get().remove(productId)
-          : get().add(productId),
-      has: (productId) => get().items.includes(productId),
+        set({
+          items: get().items.filter((p) => p._id !== productId),
+        }),
+      has: (productId) => get().items.some((p) => p._id === productId),
     }),
     {
       name: 'wishlist-storage',

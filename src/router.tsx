@@ -17,12 +17,14 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
-import Layout from './components/layout/Layout';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
 
-const Router = () => {
-  return (
-    <Routes>
-      <Route element={<Layout />}>
+const Router = () => (
+  <>
+    <Header />
+    <main className="flex-1">
+      <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/products" element={<ProductList />} />
         <Route path="/product/:slug" element={<ProductDetail />} />
@@ -40,9 +42,10 @@ const Router = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
-      </Route>
-    </Routes>
-  );
-};
+      </Routes>
+    </main>
+    <Footer />
+  </>
+);
 
 export default Router;

@@ -18,6 +18,8 @@
     --muted-foreground: #94A3B8;
     --accent: #FF9900;
     --accent-foreground: #0F172A;
+    --destructive: #EF4444;
+    --destructive-foreground: #F8FAFC;
     --border: #334155;
     --input: #334155;
     --ring: #FF9900;
@@ -26,13 +28,18 @@
 }
 
 @layer base {
+  * {
+    @apply border-border;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-bg text-text;
     font-family: 'Source Sans Pro', sans-serif;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-bold text-foreground;
+    @apply text-text;
     font-family: 'Playfair Display', serif;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
   }
 }
 
@@ -41,13 +48,13 @@
     @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2;
   }
   .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90;
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90 px-4 py-2;
   }
   .card {
-    @apply bg-card text-card-foreground rounded-lg border border-border p-6 shadow-sm;
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm p-6;
   }
   .skeleton {
     @apply animate-pulse bg-muted rounded;

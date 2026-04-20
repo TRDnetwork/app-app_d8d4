@@ -8,6 +8,7 @@ import multer from 'multer';
 import path from 'path';
 import { sanitizeFilename } from '../utils/sanitize-filename';
 import { ObjectId } from 'mongodb';
+import { config } from '../config/env';
 
 // SECURITY FIX: Configure multer with enhanced security options
 const upload = multer({
@@ -41,175 +42,313 @@ const upload = multer({
   }
 });
 
-// SECURITY FIX: Validate and sanitize request data
-interface ImportRequest {
-  userId: string;
-  collection: 'products' | 'users' | 'orders' | 'categories';
-  mapping?: Record<string, string>;
-  options?: {
-    updateExisting?: boolean;
-    validateOnly?: boolean;
-  };
-}
+// Column mapping configuration for different entity types
+const COLUMN_MAPPINGS = {
+  products: {
+    required: ['title', 'price', 'category'],
+    optional: ['description', 'brand', 'sku', 'stock_quantity', 'images'],
+    mapping: {
+      'title': 'title',
+      'name': 'title',
+      'price': 'price',
+      'cost': 'price',
+      'original_price': 'original_price',
+      'discount_percent': 'discount_percent',
+      'description': 'description',
+      'desc': 'description',
+      'category': 'category',
+      'category_id': 'category_id',
+      'brand': 'brand',
+      'sku': 'sku',
+      'stock': 'stock_quantity',
+      'stock_quantity': 'stock_quantity',
+      'images': 'images',
+      'image_urls': 'images',
+      'status': 'status'
+    }
+  },
+  users: {
+    required: ['email', 'name'],
+    optional: ['phone', 'role'],
+    mapping: {
+      'email': 'email',
+      'name': 'name',
+      'full_name': 'name',
+      'first_name': 'name',
+      'phone': 'phone',
+      'mobile': 'phone',
+      'role': 'role',
+      'user_role': 'role'
+    }
+  },
+  orders: {
+    required: ['user_id', 'total', 'items'],
+    optional: ['status', 'delivery_speed'],
+    mapping: {
+      'user_id': 'user_id',
+      'customer_id': 'user_id',
+      'total': 'total',
+      'subtotal': 'subtotal',
+      'delivery_charge': 'delivery_charge',
+      'items': 'items',
+      'order_items': 'items',
+      'status': 'status',
+      'delivery_speed': 'delivery_speed'
+    }
+  },
+  categories: {
+    required: ['name'],
+    optional: ['description', 'parent_id'],
+    mapping: {
+      'name': 'name',
+      'slug': 'slug',
+      'description': 'description',
+      'parent_id': 'parent_id',
+      'parent_category': 'parent_id'
+    }
+  }
+};
 
 /**
- * Handle file upload and initiate import job
+ * Upload and preview import file
+ * Shows first 5 rows for validation before import
  */
 export const uploadImportFile = async (req: Request, res: Response) => {
   try {
-    // SECURITY FIX: Validate user authentication and authorization
-    if (!req.user) {
-      return res.status(StatusCodes.UNAUTHORIZED).json({
-        error: 'Authentication required'
+    // SECURITY FIX: Validate user role for import operations
+    if (!req.user || !['admin', 'seller'].includes(req.user.role)) {
+      return res.status(StatusCodes.FORBIDDEN).json({
+        error: 'Insufficient permissions to perform import'
       });
     }
 
-    // SECURITY FIX: Validate request body
-    const { collection, mapping, options } = req.body;
-    
-    if (!collection || !['products', 'users', 'orders', 'categories'].includes(collection)) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Invalid or missing collection parameter'
-      });
-    }
-
-    // SECURITY FIX: Validate file upload
-    if (!req.file) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'No file uploaded'
-      });
-    }
-
-    // SECURITY FIX: Validate file size and type
-    if (req.file.size === 0) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Uploaded file is empty'
-      });
-    }
-
-    // Create import job
-    const importJob = await importQueue.add('import', {
-      userId: req.user.id,
-      collection,
-      filePath: req.file.path,
-      filename: req.file.originalname,
-      mapping: mapping || {},
-      options: {
-        updateExisting: options?.updateExisting || false,
-        validateOnly: options?.validateOnly || false
-      },
-      metadata: {
-        originalName: req.file.originalname,
-        size: req.file.size,
-        mimetype: req.file.mimetype
+    // Use multer to handle file upload
+    upload.single('file')(req, res, async (err) => {
+      if (err) {
+        logger.error('File upload error:', err);
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          error: err.message || 'File upload failed'
+        });
       }
-    }, {
-      // SECURITY FIX: Set job timeout and retry strategy
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 1000
-      },
-      timeout: 300000, // 5 minutes
-      removeOnComplete: true,
-      removeOnFail: 10000
-    });
 
-    logger.info(`Import job created: ${importJob.id}`, {
-      userId: req.user.id,
-      collection,
-      filename: req.file.originalname,
-      jobId: importJob.id
-    });
+      if (!req.file) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          error: 'No file provided'
+        });
+      }
 
-    res.status(StatusCodes.OK).json({
-      message: 'Import job created successfully',
-      jobId: importJob.id,
-      status: 'pending'
+      const { entity_type } = req.body;
+      
+      if (!entity_type || !COLUMN_MAPPINGS[entity_type]) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          error: 'Invalid or missing entity type'
+        });
+      }
+
+      const filePath = req.file.path;
+      const fileExtension = path.extname(req.file.originalname).toLowerCase();
+
+      let previewData;
+      let columnSuggestions = {};
+
+      try {
+        // Parse file based on type
+        if (fileExtension === '.csv') {
+          const parser = new CSVParser();
+          previewData = await parser.parseCSV(filePath, 5);
+          columnSuggestions = parser.suggestColumnMapping(previewData[0], entity_type);
+        } else if (fileExtension === '.json') {
+          const validator = new JSONValidator();
+          previewData = await validator.parseJSON(filePath, 5);
+          columnSuggestions = validator.suggestColumnMapping(previewData[0], entity_type);
+        } else {
+          return res.status(StatusCodes.BAD_REQUEST).json({
+            error: 'Unsupported file format. Please use CSV or JSON.'
+          });
+        }
+
+        // Validate required columns
+        const requiredColumns = COLUMN_MAPPINGS[entity_type].required;
+        const missingColumns = requiredColumns.filter(col => 
+          !Object.values(columnSuggestions).includes(col)
+        );
+
+        res.status(StatusCodes.OK).json({
+          success: true,
+          file_id: path.basename(filePath),
+          entity_type,
+          preview: previewData,
+          suggested_mapping: columnSuggestions,
+          missing_required_columns: missingColumns,
+          total_rows: previewData.length
+        });
+
+      } catch (parseError: any) {
+        logger.error('File parsing error:', parseError);
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          error: parseError.message || 'Failed to parse file'
+        });
+      }
     });
 
   } catch (error: any) {
-    logger.error('Error uploading import file:', error);
-    
-    // SECURITY FIX: Provide generic error message to prevent information leakage
-    if (error.message.includes('Invalid file type')) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Invalid file type. Only CSV and JSON files are allowed.'
-      });
-    }
-
+    logger.error('Upload import file error:', error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      error: 'Failed to process import request'
+      error: 'Failed to process import file'
     });
   }
 };
 
 /**
- * Get import job status
+ * Start import process with column mapping
+ * Uses background job queue for large files
+ */
+export const startImport = async (req: Request, res: Response) => {
+  try {
+    // SECURITY FIX: Validate user role
+    if (!req.user || !['admin', 'seller'].includes(req.user.role)) {
+      return res.status(StatusCodes.FORBIDDEN).json({
+        error: 'Insufficient permissions to perform import'
+      });
+    }
+
+    const { file_id, entity_type, column_mapping, update_existing = false } = req.body;
+
+    // Validate required fields
+    if (!file_id || !entity_type || !column_mapping) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        error: 'Missing required fields: file_id, entity_type, column_mapping'
+      });
+    }
+
+    if (!COLUMN_MAPPINGS[entity_type]) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        error: 'Invalid entity type'
+      });
+    }
+
+    // Validate column mapping
+    const requiredColumns = COLUMN_MAPPINGS[entity_type].required;
+    const missingMapping = requiredColumns.filter(col => 
+      !Object.values(column_mapping).includes(col)
+    );
+
+    if (missingMapping.length > 0) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        error: `Missing required column mappings: ${missingMapping.join(', ')}`
+      });
+    }
+
+    // SECURITY FIX: Validate file path to prevent directory traversal
+    const sanitizedFileId = sanitizeFilename(file_id);
+    const filePath = path.join('/tmp/shopsphere-imports', sanitizedFileId);
+
+    // Check if file exists
+    try {
+      await require('fs').promises.access(filePath);
+    } catch (error) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        error: 'Import file not found or expired'
+      });
+    }
+
+    // Create import job
+    const importJob = await importQueue.add('import', {
+      filePath,
+      entity_type,
+      column_mapping,
+      update_existing,
+      user_id: req.user.id,
+      file_id: sanitizedFileId
+    }, {
+      removeOnComplete: true,
+      removeOnFail: 5
+    });
+
+    logger.info('Import job created', {
+      jobId: importJob.id,
+      entity_type,
+      user_id: req.user.id,
+      file_id: sanitizedFileId
+    });
+
+    res.status(StatusCodes.ACCEPTED).json({
+      success: true,
+      message: 'Import process started',
+      job_id: importJob.id,
+      entity_type,
+      status: 'pending'
+    });
+
+  } catch (error: any) {
+    logger.error('Start import error:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: 'Failed to start import process'
+    });
+  }
+};
+
+/**
+ * Get import status
+ * Pollable endpoint for frontend to check import progress
  */
 export const getImportStatus = async (req: Request, res: Response) => {
   try {
-    const { jobId } = req.params;
-    
-    // SECURITY FIX: Validate user authentication
-    if (!req.user) {
-      return res.status(StatusCodes.UNAUTHORIZED).json({
-        error: 'Authentication required'
-      });
-    }
+    const { job_id } = req.params;
 
-    // SECURITY FIX: Validate job ID format
-    if (!jobId || !/^[0-9a-fA-F]{24}$/.test(jobId)) {
+    if (!job_id) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Invalid job ID format'
+        error: 'Job ID is required'
       });
     }
 
-    // Get job from queue
-    const job = await importQueue.getJob(jobId);
-    
+    const job = await importQueue.getJob(job_id);
+
     if (!job) {
       return res.status(StatusCodes.NOT_FOUND).json({
         error: 'Import job not found'
       });
     }
 
-    // SECURITY FIX: Verify job ownership
-    const jobData = await job.getData();
-    if (jobData.userId !== req.user.id) {
-      return res.status(StatusCodes.FORBIDDEN).json({
-        error: 'Access denied to this import job'
-      });
-    }
-
-    const state = await job.getState();
+    const jobStatus = await job.getState();
     const progress = job.progress;
-    
-    let response: any = {
-      jobId: job.id,
-      status: state,
-      progress: progress || 0,
-      collection: jobData.collection,
-      filename: jobData.filename
-    };
 
-    // Include additional details based on job state
-    if (state === 'completed') {
-      const result = await job.returnvalue();
-      response.result = result;
-      response.completedAt = job.finishedOn;
-    } else if (state === 'failed') {
-      const failedReason = await job.failedReason();
-      response.error = failedReason;
-      response.failedAt = job.finishedOn;
-    } else if (state === 'active') {
-      response.startedAt = job.startedOn;
+    let responseStatus;
+    switch (jobStatus) {
+      case 'completed':
+        responseStatus = 'completed';
+        break;
+      case 'failed':
+        responseStatus = 'failed';
+        break;
+      case 'delayed':
+      case 'waiting':
+        responseStatus = 'pending';
+        break;
+      case 'active':
+        responseStatus = 'processing';
+        break;
+      default:
+        responseStatus = jobStatus;
     }
 
-    res.status(StatusCodes.OK).json(response);
+    // Get job result if available
+    let result = null;
+    if (jobStatus === 'completed' || jobStatus === 'failed') {
+      result = await job.finished();
+    }
+
+    res.status(StatusCodes.OK).json({
+      job_id,
+      status: responseStatus,
+      progress,
+      result,
+      created_at: job.timestamp,
+      updated_at: Date.now()
+    });
 
   } catch (error: any) {
-    logger.error('Error getting import status:', error);
+    logger.error('Get import status error:', error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       error: 'Failed to retrieve import status'
     });
@@ -221,206 +360,50 @@ export const getImportStatus = async (req: Request, res: Response) => {
  */
 export const cancelImport = async (req: Request, res: Response) => {
   try {
-    const { jobId } = req.params;
-    
-    // SECURITY FIX: Validate user authentication
-    if (!req.user) {
-      return res.status(StatusCodes.UNAUTHORIZED).json({
-        error: 'Authentication required'
-      });
-    }
+    const { job_id } = req.params;
 
-    // SECURITY FIX: Validate job ID format
-    if (!jobId || !/^[0-9a-fA-F]{24}$/.test(jobId)) {
+    if (!job_id) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Invalid job ID format'
+        error: 'Job ID is required'
       });
     }
 
-    // Get job from queue
-    const job = await importQueue.getJob(jobId);
-    
+    const job = await importQueue.getJob(job_id);
+
     if (!job) {
       return res.status(StatusCodes.NOT_FOUND).json({
         error: 'Import job not found'
       });
     }
 
-    // SECURITY FIX: Verify job ownership
-    const jobData = await job.getData();
-    if (jobData.userId !== req.user.id) {
-      return res.status(StatusCodes.FORBIDDEN).json({
-        error: 'Access denied to this import job'
-      });
-    }
+    const jobStatus = await job.getState();
 
-    // SECURITY FIX: Only allow cancellation of pending jobs
-    const state = await job.getState();
-    if (state !== 'waiting' && state !== 'delayed') {
+    // Only allow cancellation of pending or active jobs
+    if (!['waiting', 'active', 'delayed'].includes(jobStatus)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Cannot cancel import job in current state'
+        error: 'Cannot cancel job in current state'
       });
     }
 
-    // Remove job from queue
     await job.remove();
-    
-    logger.info(`Import job cancelled: ${jobId}`, {
-      userId: req.user.id,
-      jobId
+
+    logger.info('Import job cancelled', {
+      job_id,
+      user_id: req.user?.id
     });
 
     res.status(StatusCodes.OK).json({
-      message: 'Import job cancelled successfully',
-      jobId
+      success: true,
+      message: 'Import job cancelled successfully'
     });
 
   } catch (error: any) {
-    logger.error('Error cancelling import:', error);
+    logger.error('Cancel import error:', error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       error: 'Failed to cancel import job'
     });
   }
 };
-
-/**
- * Preview import data before processing
- */
-export const previewImport = async (req: Request, res: Response) => {
-  try {
-    const { collection } = req.body;
-    const file = req.file;
-    
-    // SECURITY FIX: Validate user authentication
-    if (!req.user) {
-      return res.status(StatusCodes.UNAUTHORIZED).json({
-        error: 'Authentication required'
-      });
-    }
-
-    // SECURITY FIX: Validate request data
-    if (!collection || !['products', 'users', 'orders', 'categories'].includes(collection)) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Invalid or missing collection parameter'
-      });
-    }
-
-    if (!file) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'No file uploaded'
-      });
-    }
-
-    // SECURITY FIX: Validate file size and type
-    if (file.size === 0) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Uploaded file is empty'
-      });
-    }
-
-    if (!['text/csv', 'application/json'].includes(file.mimetype)) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Invalid file type. Only CSV and JSON files are allowed.'
-      });
-    }
-
-    let previewData: any[] = [];
-    let headers: string[] = [];
-    let totalCount = 0;
-
-    // Process file based on type
-    if (file.mimetype === 'text/csv') {
-      const csvParser = new CSVParser();
-      const result = await csvParser.parseFile(file.path);
-      
-      // SECURITY FIX: Validate CSV parsing result
-      if (!result || !Array.isArray(result.data)) {
-        throw new Error('Failed to parse CSV file');
-      }
-      
-      previewData = result.data.slice(0, 5); // First 5 rows
-      headers = result.headers;
-      totalCount = result.data.length;
-    } else if (file.mimetype === 'application/json') {
-      const content = require('fs').readFileSync(file.path, 'utf8');
-      const jsonData = JSON.parse(content);
-      
-      // SECURITY FIX: Validate JSON structure
-      if (!Array.isArray(jsonData)) {
-        throw new Error('JSON file must contain an array of objects');
-      }
-      
-      previewData = jsonData.slice(0, 5); // First 5 items
-      headers = Object.keys(previewData[0] || {});
-      totalCount = jsonData.length;
-    }
-
-    // Map headers to collection fields
-    const fieldMapping = getCollectionFieldMapping(collection);
-    
-    res.status(StatusCodes.OK).json({
-      collection,
-      headers,
-      fieldMapping,
-      preview: previewData,
-      totalCount,
-      filename: file.originalname
-    });
-
-  } catch (error: any) {
-    logger.error('Error previewing import:', error);
-    
-    // SECURITY FIX: Provide generic error message
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      error: 'Failed to preview import data'
-    });
-  }
-};
-
-/**
- * Get available field mappings for a collection
- */
-function getCollectionFieldMapping(collection: string): Record<string, string> {
-  const mappings: Record<string, Record<string, string>> = {
-    products: {
-      'name': 'title',
-      'title': 'title',
-      'description': 'description',
-      'price': 'price',
-      'original_price': 'original_price',
-      'discount': 'discount_percent',
-      'category': 'category',
-      'brand': 'brand',
-      'sku': 'sku',
-      'stock': 'stock_quantity',
-      'images': 'images',
-      'status': 'status'
-    },
-    users: {
-      'name': 'name',
-      'email': 'email',
-      'phone': 'phone',
-      'role': 'role',
-      'address': 'addresses'
-    },
-    orders: {
-      'order_number': 'order_number',
-      'user_id': 'user_id',
-      'items': 'items',
-      'total': 'total',
-      'status': 'status',
-      'address': 'address'
-    },
-    categories: {
-      'name': 'name',
-      'slug': 'slug',
-      'parent': 'parent_id',
-      'image': 'image_url'
-    }
-  };
-
-  return mappings[collection] || {};
-}
 ```
 
 ```typescript
