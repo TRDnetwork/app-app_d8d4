@@ -1,71 +1,69 @@
-# 📨 ShopSphere Email Setup Guide
-
-This guide explains how to configure transactional emails for ShopSphere using Resend.
+# ShopSphere Email Setup Guide
 
 ## 1. Get Your Resend API Key
+1. Go to [resend.com](https://resend.com) and create an account
+2. Navigate to the Dashboard → API Keys
+3. Create a new API key with full access
+4. Copy the API key (it starts with `re_`)
 
-1. Go to [resend.com](https://resend.com) and sign up or log in.
-2. Navigate to **API Keys** and create a new API key.
-3. Copy the key (it starts with `re_...`).
+## 2. Configure Environment Variables
+Add the following environment variables to your Vercel project:
 
-> 🔐 **Never commit this key to version control.**
+```bash
+RESEND_API_KEY=re_XXXXXXXXXXXXXXXXXXXXX
+EMAIL_FROM=hello@shopsphere.com
+```
 
-## 2. Set Environment Variable on Vercel
-
-1. Go to your Vercel project dashboard.
-2. Navigate to **Settings > Environment Variables**.
-3. Add a new variable:
-   - **Key**: `RESEND_API_KEY`
-   - **Value**: Paste your Resend API key
-   - **Environment**: Add to Production, Preview, and Development
-4. Redeploy your application.
-
-> ❌ Do NOT use `VITE_RESEND_API_KEY` — this would expose the key to the browser.
+**Important Security Notes:**
+- `RESEND_API_KEY` is a secret and must NEVER be exposed to the client
+- Do NOT use `VITE_RESEND_API_KEY` or any `VITE_*` prefix — these are exposed in the browser bundle
+- The API key is only used server-side in `api/send-email.ts`
+- Set these variables in Vercel's Environment Variables section (not in `.env.local`)
 
 ## 3. Verify Your Sending Domain
-
-1. In Resend dashboard, go to **Domains**.
-2. Click **Add Domain** and enter your domain (e.g., `shopsphere.com`).
-3. Add the required DNS records (TXT and CNAME) to your domain provider.
-4. Wait for verification (usually a few minutes).
-
-Once verified, you can send from `hello@shopsphere.com` or any subdomain.
+1. In Resend Dashboard, go to Domains
+2. Add your domain (e.g., `shopsphere.com`)
+3. Add the required DNS records (TXT and CNAME) to your domain registrar
+4. Wait for verification (usually a few minutes)
+5. Once verified, update `EMAIL_FROM` to use your domain (e.g., `hello@shopsphere.com`)
 
 ## 4. Frontend Integration
-
 The frontend sends email requests via `fetch` to the serverless function:
 
-```ts
+```typescript
+// Example: Send order confirmation
 await fetch('/api/send-email', {
   method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     to: 'customer@example.com',
-    subject: 'Order Confirmed #12345',
-    html: '<strong>Hello</strong> world',
-  }),
+    template: 'order-confirmation',
+    data: orderData
+  })
 });
 ```
 
-> ✅ The API key stays server-side — never exposed to the client.
+**Never import email functionality directly in client code.** All email sending goes through `/api/send-email`.
 
-## 5. Available Email Templates
+## 5. Test Email Delivery
+1. Use Resend Dashboard → Activity to monitor sent emails
+2. For development, you can use `delivered@resend.dev` as the recipient to test without sending real emails
+3. Check for delivery status, opens, and clicks in the Resend dashboard
 
-- `OrderConfirmationEmail` — sent after successful purchase
-- `PasswordResetEmail` — sent when user requests password reset
-- `SellerApplicationReceivedEmail` — notifies admin of new seller application
+## 6. Templates
+Email templates are located in:
+- `src/emails/` — React components that return HTML strings
+- `api/send-email.ts` — Serverless function that renders and sends templates
 
-## 6. Testing Emails
-
-1. Use `delivered@resend.dev` as the recipient during development.
-2. View sent emails in [Resend Dashboard > Activity](https://resend.com/activity).
-3. For production, update `TO_EMAIL` in `api/send-email.ts` to your official address.
+Available templates:
+- `order-confirmation` — Sent when an order is placed
+- `password-reset` — Sent when user requests password reset
+- `welcome` — Sent when a new user registers
+- `seller-application-received` — Sent when a seller applies
 
 ## 7. Best Practices
-
-- Always include an unsubscribe link in marketing emails.
-- Monitor bounce rates and spam complaints in Resend dashboard.
-- Use meaningful `reply_to` addresses (e.g., `support@shopsphere.com`).
-- Log email errors (but never log API keys or full email content).
+- Always include an unsubscribe link in marketing emails
+- Monitor bounce rates and spam complaints in Resend dashboard
+- Use descriptive `Subject` lines
+- Test responsive design on mobile devices
+- Never log email content or API keys
