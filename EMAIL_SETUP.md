@@ -2,25 +2,30 @@
 
 ## 1. Get Your Resend API Key
 1. Go to [resend.com](https://resend.com) and sign up for a free account
-2. Verify your domain (e.g., shopsphere.com) in the Resend dashboard
-3. Navigate to API Keys and create a new key
-4. Copy the API key (it will look like `re_12345678...`)
+2. Verify your domain (e.g., `shopsphere.com`) in the Resend dashboard
+3. Navigate to **API Keys** and create a new API key
+4. Copy the API key (it starts with `re_`)
 
 ## 2. Configure Environment Variables
-Add your Resend API key to your Vercel project environment variables:
+Add the Resend API key to your Vercel project environment variables:
 
 ```bash
-# In Vercel dashboard or via CLI
-RESEND_API_KEY=your_actual_api_key_here
+# Vercel CLI
+vercel env add RESEND_API_KEY production
 ```
 
-**Important Security Note**: Never use `VITE_RESEND_API_KEY` or any `VITE_*` prefix. These variables are exposed to the client bundle. The API key must only be accessible server-side.
+Or manually add it in the Vercel dashboard:
+- Key: `RESEND_API_KEY`
+- Value: `re_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`
+- Environment: `Production`, `Preview`, and `Development`
 
-## 3. Integrate with Your Application
-The frontend should call the email API endpoint without importing any email libraries:
+**Important**: Do NOT use `VITE_RESEND_API_KEY` or any `VITE_` prefix — this would expose the key to the client.
+
+## 3. Frontend Integration
+The frontend sends order confirmation requests to the serverless function:
 
 ```javascript
-// In your frontend code (e.g., after order placement)
+// After successful Stripe payment
 await fetch('/api/email/order-confirmation', {
   method: 'POST',
   headers: {
@@ -28,37 +33,26 @@ await fetch('/api/email/order-confirmation', {
   },
   body: JSON.stringify({
     to: 'customer@example.com',
-    order: {
-      id: 'ORD-7X8K2M9N',
-      date: '2023-12-01',
-      status: 'Confirmed',
-      items: [...],
-      subtotal: 299.98,
-      shipping: 9.99,
-      tax: 24.00,
-      total: 333.97
-    }
+    order: orderData
   }),
 });
 ```
 
-## 4. Verify Domain in Resend
-For production emails to reach inboxes:
-1. Go to Domains in your Resend dashboard
-2. Add and verify your domain (e.g., `shopsphere.com`)
-3. Update DNS records as instructed (TXT and CNAME records)
-4. Once verified, replace the default `onboarding@resend.dev` sender with your verified email (e.g., `orders@shopsphere.com`)
+## 4. Verify Your Sending Domain
+1. In the Resend dashboard, go to **Domains**
+2. Add your domain (e.g., `shopsphere.com`)
+3. Add the required DNS records (TXT and CNAME) to your domain registrar
+4. Wait for verification (usually a few minutes)
 
 ## 5. Test the Integration
-1. Place a test order in your application
-2. Check the server logs for any email sending errors
-3. Verify the email arrives in the recipient's inbox (check spam folder if not)
-4. Test edge cases: invalid email addresses, network failures, etc.
+1. Place a test order through the checkout flow
+2. Check the Vercel logs for the `api/email/order-confirmation` function
+3. Verify the email arrives in the customer's inbox (check spam folder if needed)
 
 ## Troubleshooting
-- **Emails not sending**: Check Vercel logs for 5xx errors and verify `RESEND_API_KEY` is set
-- **Rate limiting**: Resend free tier allows 100 emails/month. Upgrade plan as needed
-- **Template issues**: Ensure all required data is passed from frontend to the API
-- **Security**: Never expose the API key in client-side code or version control
+- **401 Unauthorized**: Check that `RESEND_API_KEY` is set in Vercel environment variables
+- **Email not received**: Verify your domain in Resend dashboard and check DNS settings
+- **Template issues**: Test the HTML output locally before deployment
+- **Rate limits**: Resend free tier allows 100 emails/month — upgrade for production traffic
 
-The email system is now ready for production use with secure, server-side email delivery.
+For more details, visit [Resend Documentation](https://resend.com/docs).

@@ -1,93 +1,127 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { FilterSidebar } from '@/components/FilterSidebar';
 import { ProductCard } from '@/components/ProductCard';
-import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { FilterIcon, SlidersHorizontalIcon } from 'lucide-react';
+
+const products = [
+  {
+    id: '1',
+    title: 'Wireless Noise-Cancelling Headphones',
+    price: 199.99,
+    discountedPrice: 149.99,
+    image: 'https://via.placeholder.com/300x300?text=Headphones',
+    rating: 4.7,
+    reviews: 124,
+  },
+  {
+    id: '2',
+    title: 'Smart Fitness Watch',
+    price: 249.99,
+    discountedPrice: 199.99,
+    image: 'https://via.placeholder.com/300x300?text=Watch',
+    rating: 4.5,
+    reviews: 89,
+  },
+  {
+    id: '3',
+    title: 'Ultra HD 4K Streaming Box',
+    price: 89.99,
+    discountedPrice: 69.99,
+    image: 'https://via.placeholder.com/300x300?text=Streaming+Box',
+    rating: 4.8,
+    reviews: 203,
+  },
+  {
+    id: '4',
+    title: 'Professional DSLR Camera',
+    price: 1299.99,
+    discountedPrice: 999.99,
+    image: 'https://via.placeholder.com/300x300?text=Camera',
+    rating: 4.9,
+    reviews: 156,
+  },
+];
 
 export default function ProductsPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await fetch(`/api/products?search=${searchTerm}`);
-        const data = await res.json();
-        if (data.success) {
-          setProducts(data.products);
-        } else {
-          throw new Error(data.message);
-        }
-      } catch (error: any) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: error.message || 'Failed to load products',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, [searchTerm]);
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-12 text-lg"
-            />
-          </div>
-          <Button className="h-12 px-8">Search</Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <aside className="lg:col-span-1">
-          <FilterSidebar />
-        </aside>
-        <div className="lg:col-span-3">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">All Products</h1>
-            <select className="border rounded px-3 py-2">
-              <option>Sort by: Featured</option>
-              <option>Price: Low to High</option>
-              <option>Price: High to Low</option>
-              <option>Newest</option>
-              <option>Best Selling</option>
-              <option>Avg. Rating</option>
-            </select>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="border rounded-lg p-4 space-y-3 animate-pulse">
-                  <div className="w-full h-48 bg-gray-200 rounded"></div>
-                  <div className="h-4 bg-gray-200 rounded"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Filters Sidebar */}
+          <aside className="md:w-64 flex-shrink-0">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
+                <SlidersHorizontalIcon className="h-5 w-5 mr-2" />
+                Filters
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Price Range
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    />
+                  </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Brand
+                  </label>
+                  {['Apple', 'Samsung', 'Sony', 'Nike'].map((brand) => (
+                    <div key={brand} className="flex items-center mt-1">
+                      <input
+                        type="checkbox"
+                        id={brand}
+                        className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                      />
+                      <label
+                        htmlFor={brand}
+                        className="ml-2 text-sm text-gray-700"
+                      >
+                        {brand}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Button className="w-full mt-6">Apply Filters</Button>
+            </div>
+          </aside>
+
+          {/* Product Grid */}
+          <main className="flex-1">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">Products</h1>
+              <div className="flex items-center gap-2">
+                <FilterIcon className="h-5 w-5 text-gray-500" />
+                <select className="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  <option>Sort by: Featured</option>
+                  <option>Price: Low to High</option>
+                  <option>Price: High to Low</option>
+                  <option>Best Selling</option>
+                  <option>Customer Rating</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
               ))}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product: any) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
+
+            <div className="flex justify-center mt-8">
+              <Button variant="outline">Load More</Button>
             </div>
-          )}
+          </main>
         </div>
       </div>
     </div>

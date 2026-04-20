@@ -1,252 +1,278 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Image from 'next/image';
-import { useToast } from '@/components/ui/use-toast';
 import { StarIcon } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export default function ProductDetail({ params }: { params: { id: string } }) {
-  const [product, setProduct] = useState<any>(null);
-  const [selectedImage, setSelectedImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+export default function ProductDetailPage() {
+  const product = {
+    id: '1',
+    title: 'Wireless Noise-Cancelling Headphones',
+    price: 199.99,
+    discountedPrice: 149.99,
+    images: [
+      'https://via.placeholder.com/600x600?text=Headphones+Front',
+      'https://via.placeholder.com/600x600?text=Headphones+Side',
+      'https://via.placeholder.com/600x600?text=Headphones+Back',
+    ],
+    rating: 4.7,
+    reviews: 124,
+    description:
+      'Experience immersive sound with our premium wireless headphones. Active noise cancellation, 30-hour battery life, and ultra-comfortable fit.',
+    brand: 'AudioPro',
+    category: 'Electronics',
+    inStock: true,
+    variants: [
+      { color: 'Black', inStock: true },
+      { color: 'Silver', inStock: true },
+      { color: 'Rose Gold', inStock: false },
+    ],
+  };
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const res = await fetch(`/api/products/${params.id}`);
-        const data = await res.json();
-        if (data.success) {
-          setProduct(data.product);
-        } else {
-          throw new Error(data.message);
-        }
-      } catch (error: any) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: error.message || 'Failed to load product',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  const frequentlyBoughtTogether = [
+    {
+      id: '2',
+      title: 'Premium Audio Cable',
+      price: 29.99,
+      image: 'https://via.placeholder.com/150x150?text=Cable',
+    },
+    {
+      id: '3',
+      title: 'Leather Carrying Case',
+      price: 39.99,
+      image: 'https://via.placeholder.com/150x150?text=Case',
+    },
+  ];
 
-    fetchProduct();
-  }, [params.id]);
-
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <div className="w-full h-96 bg-gray-200 rounded-lg"></div>
-              <div className="grid grid-cols-4 gap-2">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-20 bg-gray-200 rounded"></div>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              <div className="h-4 bg-gray-200 rounded"></div>
-              <div className="h-10 bg-gray-200 rounded w-1/3"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h2 className="text-2xl font-bold">Product not found</h2>
-      </div>
-    );
-  }
-
-  const discountedPrice = product.price * (1 - product.discount_percent / 100);
+  const reviews = [
+    {
+      id: '1',
+      user: 'Alex M.',
+      rating: 5,
+      title: 'Outstanding sound quality!',
+      comment: 'These headphones deliver crystal clear audio and the noise cancellation is incredible.',
+      date: '2024-01-15',
+    },
+    {
+      id: '2',
+      user: 'Jamie L.',
+      rating: 4,
+      title: 'Great value for money',
+      comment: 'Comfortable to wear for long periods and battery lasts as advertised.',
+      date: '2024-01-10',
+    },
+  ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div>
-          <div className="relative w-full h-96 mb-4">
-            <Image
-              src={product.images[selectedImage]}
+    <div className="min-h-screen bg-white py-8">
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          {/* Image Gallery */}
+          <div>
+            <img
+              src={product.images[0]}
               alt={product.title}
-              fill
-              className="object-cover rounded-lg"
+              className="w-full h-auto rounded-lg shadow-md"
             />
-          </div>
-          <div className="grid grid-cols-4 gap-2">
-            {product.images.map((img: string, idx: number) => (
-              <div
-                key={idx}
-                className={`relative w-full h-20 rounded cursor-pointer ${
-                  selectedImage === idx ? 'ring-2 ring-orange-500' : ''
-                }`}
-                onClick={() => setSelectedImage(idx)}
-              >
-                <Image src={img} alt={`Thumbnail ${idx}`} fill className="object-cover rounded" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
-          <p className="text-gray-600 mb-4">{product.brand}</p>
-
-          <div className="flex items-center mb-4">
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <StarIcon
+            <div className="flex gap-2 mt-4">
+              {product.images.map((img, i) => (
+                <img
                   key={i}
-                  className={`w-5 h-5 ${i < Math.round(product.average_rating) ? 'text-yellow-400' : 'text-gray-300'}`}
-                  fill="currentColor"
+                  src={img}
+                  alt={`${product.title} ${i + 1}`}
+                  className="w-20 h-20 object-cover border border-gray-200 rounded cursor-pointer hover:border-orange-500"
                 />
               ))}
             </div>
-            <span className="ml-2 text-sm text-gray-600">({product.review_count} reviews)</span>
           </div>
 
-          <div className="mb-4">
-            <div className="text-3xl font-bold text-orange-600">${discountedPrice.toFixed(2)}</div>
-            <div className="flex items-center">
-              <span className="text-lg text-gray-500 line-through">${product.price.toFixed(2)}</span>
-              <span className="ml-2 text-sm font-medium text-green-600">{product.discount_percent}% off</span>
+          {/* Product Info */}
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {product.title}
+            </h1>
+            <div className="flex items-center mb-4">
+              <div className="flex text-orange-500">
+                {[...Array(5)].map((_, i) => (
+                  <StarIcon
+                    key={i}
+                    className={`h-5 w-5 ${
+                      i < Math.floor(product.rating)
+                        ? 'fill-current'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-sm text-gray-600 ml-2">
+                {product.reviews} reviews
+              </span>
             </div>
-          </div>
 
-          <div className="mb-4">
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-              product.stock > 10 ? 'bg-green-100 text-green-800' : product.stock > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-            }`}>
-              {product.stock > 10 ? 'In Stock' : product.stock > 0 ? 'Low Stock' : 'Out of Stock'}
-            </span>
-          </div>
+            <div className="flex items-center mb-6">
+              <span className="font-bold text-2xl text-gray-900">
+                ${product.discountedPrice}
+              </span>
+              <span className="text-lg text-gray-500 line-through ml-2">
+                ${product.price}
+              </span>
+              <span className="ml-4 bg-orange-100 text-orange-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                Save ${(product.price - product.discountedPrice).toFixed(2)}
+              </span>
+            </div>
 
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Quantity</label>
-            <div className="flex items-center border rounded">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="h-10 w-10"
-              >
-                -
+            <p className="text-gray-700 mb-6">{product.description}</p>
+
+            <div className="mb-6">
+              <h3 className="font-medium text-gray-900 mb-2">Color</h3>
+              <div className="flex gap-2">
+                {product.variants.map((variant) => (
+                  <button
+                    key={variant.color}
+                    disabled={!variant.inStock}
+                    className={`px-4 py-2 rounded-md border text-sm font-medium transition ${
+                      variant.inStock
+                        ? 'border-gray-300 hover:border-orange-500 hover:bg-orange-50'
+                        : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {variant.color}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center mb-6">
+              <label className="text-sm font-medium text-gray-700 mr-4">
+                Quantity:
+              </label>
+              <select className="border border-gray-300 rounded px-3 py-2 text-sm">
+                {[...Array(10)].map((_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {i + 1}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex gap-4 mb-6">
+              <Button size="lg" className="flex-1">
+                Add to Cart
               </Button>
-              <Input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                className="h-10 w-16 text-center border-0"
-                min="1"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setQuantity(quantity + 1)}
-                className="h-10 w-10"
-              >
-                +
+              <Button size="lg" variant="secondary">
+                Buy Now
               </Button>
             </div>
-          </div>
 
-          <div className="space-y-3 mb-6">
-            <Button className="w-full h-12 text-lg bg-orange-600 hover:bg-orange-700">
-              Add to Cart
-            </Button>
-            <Button variant="outline" className="w-full h-12 text-lg">
-              Buy Now
-            </Button>
-          </div>
-
-          <div className="text-sm text-gray-600">
-            <p>Free delivery: Estimated between {new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString()} - {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}</p>
-            <p className="mt-1">EMI options available</p>
+            <div className="text-sm text-gray-600">
+              <p>Free delivery: Arrives Tue, Jan 21</p>
+              <p>Secure transaction</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <Tabs defaultValue="description" className="mt-12">
-        <TabsList>
-          <TabsTrigger value="description">Description</TabsTrigger>
-          <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          <TabsTrigger value="qa">Q&A</TabsTrigger>
-          <TabsTrigger value="frequently-bought">Frequently Bought Together</TabsTrigger>
-        </TabsList>
-        <TabsContent value="description" className="mt-6">
-          <p className="text-gray-700 leading-relaxed">{product.description}</p>
-        </TabsContent>
-        <TabsContent value="reviews" className="mt-6">
-          <div className="space-y-4">
-            {product.reviews?.slice(0, 3).map((review: any) => (
-              <div key={review._id} className="border-b pb-4">
-                <div className="flex items-center mb-2">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <StarIcon
-                        key={i}
-                        className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
-                        fill="currentColor"
-                      />
-                    ))}
-                  </div>
-                  <span className="ml-2 font-medium">{review.user_name}</span>
+        {/* Frequently Bought Together */}
+        <section className="mt-16">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            Frequently Bought Together
+          </h2>
+          <div className="flex items-center bg-gray-50 p-4 rounded-lg">
+            <div className="flex items-center space-x-4 flex-1">
+              {frequentlyBoughtTogether.map((item) => (
+                <div key={item.id} className="text-center">
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="w-20 h-20 object-cover mx-auto mb-2"
+                  />
+                  <p className="text-sm text-gray-700">{item.title}</p>
+                  <p className="font-medium text-gray-900">${item.price}</p>
                 </div>
-                <h4 className="font-medium">{review.title}</h4>
-                <p className="text-gray-700 mt-1">{review.comment}</p>
-                {review.images?.length > 0 && (
-                  <div className="flex gap-2 mt-2">
-                    {review.images.slice(0, 3).map((img: string, idx: number) => (
-                      <div key={idx} className="relative w-20 h-20">
-                        <Image src={img} alt="Review" fill className="object-cover rounded" />
-                      </div>
-                    ))}
+              ))}
+            </div>
+            <div className="ml-8 text-right">
+              <p className="text-sm text-gray-600">Total Price:</p>
+              <p className="text-2xl font-bold text-gray-900">
+                $
+                {(product.discountedPrice + 29.99 + 39.99).toLocaleString(
+                  'en-US',
+                  {
+                    minimumFractionDigits: 2,
+                  }
+                )}
+              </p>
+              <Button size="sm" className="mt-2">
+                Add All to Cart
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Tabs */}
+        <Tabs defaultValue="reviews" className="mt-16">
+          <TabsList>
+            <TabsTrigger value="description">Description</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews ({product.reviews})</TabsTrigger>
+            <TabsTrigger value="qa">Q&A</TabsTrigger>
+          </TabsList>
+          <TabsContent value="description" className="mt-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Details</h3>
+            <ul className="space-y-2 text-gray-700">
+              <li>
+                <strong>Brand:</strong> {product.brand}
+              </li>
+              <li>
+                <strong>Category:</strong> {product.category}
+              </li>
+              <li>
+                <strong>Connectivity:</strong> Bluetooth 5.0, 3.5mm jack
+              </li>
+              <li>
+                <strong>Battery Life:</strong> Up to 30 hours
+              </li>
+              <li>
+                <strong>Weight:</strong> 250g
+              </li>
+            </ul>
+          </TabsContent>
+          <TabsContent value="reviews" className="mt-6">
+            <div className="space-y-6">
+              {reviews.map((review) => (
+                <div key={review.id} className="border-b border-gray-200 pb-6">
+                  <div className="flex items-center mb-2">
+                    <div className="flex text-orange-500">
+                      {[...Array(5)].map((_, i) => (
+                        <StarIcon
+                          key={i}
+                          className={`h-4 w-4 ${
+                            i < review.rating
+                              ? 'fill-current'
+                              : 'text-gray-300'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="ml-2 text-sm text-gray-600">
+                      {review.user} • {review.date}
+                    </span>
                   </div>
-                )}
-                <div className="flex items-center mt-2 text-sm text-gray-500">
-                  <button className="hover:text-gray-700">Helpful</button>
-                  <span className="mx-2">•</span>
-                  <span>{review.helpful_votes?.length || 0} found this helpful</span>
+                  <h4 className="font-medium text-gray-900">{review.title}</h4>
+                  <p className="text-gray-700 mt-1">{review.comment}</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="qa" className="mt-6">
-          <div className="space-y-4">
-            {product.questions?.map((q: any) => (
-              <div key={q._id} className="border-b pb-4">
-                <p className="font-medium">Q: {q.question}</p>
-                {q.answer ? (
-                  <p className="text-gray-700 mt-2">A: {q.answer}</p>
-                ) : (
-                  <p className="text-gray-500 text-sm mt-2">No answer yet</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="frequently-bought" className="mt-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {product.frequently_bought_together?.map((item: any) => (
-              <ProductCard key={item._id} product={item} />
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+              ))}
+            </div>
+            <Button variant="outline" className="mt-6">
+              Write a Review
+            </Button>
+          </TabsContent>
+          <TabsContent value="qa" className="mt-6">
+            <p className="text-gray-600">
+              No questions yet. Be the first to ask a question.
+            </p>
+            <Button variant="outline" className="mt-4">
+              Ask a Question
+            </Button>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
