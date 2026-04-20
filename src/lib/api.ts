@@ -1,42 +1,31 @@
-import { toast } from '../components/ui/use-toast';
+import { authStore } from '../stores/authStore';
 
 const API_BASE = '/api';
 
-export const apiClient = async (endpoint: string, options: RequestInit = {}) => {
-  const url = `${API_BASE}${endpoint}`;
-  const config = {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
+const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
+  const token = authStore.getState().user?.token;
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+    ...options.headers,
   };
 
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (res.status === 401) {
+    authStore.getState().logout();
+    window.location.href = '/login';
   }
 
-  try {
-    const response = await fetch(url, config);
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      toast({
-        title: 'Error',
-        description: error.message || 'Something went wrong',
-        variant: 'destructive',
-      });
-      throw new Error(error.message || 'Request failed');
-    }
-    return await response.json();
-  } catch (err) {
-    if (err instanceof Error) {
-      toast({
-        title: 'Network Error',
-        description: err.message,
-        variant: 'destructive',
-      });
-    }
-    throw err;
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || 'Something went wrong');
   }
+
+  return res.json();
 };
+
+export default fetchWithAuth;

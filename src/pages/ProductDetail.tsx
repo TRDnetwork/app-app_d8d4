@@ -1,155 +1,137 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { apiClient } from '../lib/api';
-import ImageGallery from '../components/ImageGallery';
-import { Button } from '../components/ui/button';
-import { useCart } from '../stores/cartStore';
-import { useWishlist } from '../stores/wishlistStore';
-import { Skeleton } from '../components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ImageGallery } from '../components/product/ImageGallery';
+import { VariantSelector } from '../components/product/VariantSelector';
+import { ReviewList } from '../components/product/ReviewList';
+import { QASection } from '../components/product/QASection';
+import { formatCurrency } from '../lib/formatters';
+import { fetchWithAuth } from '../lib/api';
+import { cartStore } from '../stores/cartStore';
+import { wishlistStore } from '../stores/wishlistStore';
+import { Heart, ShoppingCart, Share2 } from 'lucide-react';
 
 const ProductDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<any>(null);
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
-  const { addItem } = useCart();
-  const { isInWishlist, toggleWishlist } = useWishlist();
-  const [loading, setLoading] = useState(true);
+  const { addItem } = cartStore();
+  const { toggle, has } = wishlistStore();
 
   useEffect(() => {
-    const fetchProduct = async () => {
+    const loadProduct = async () => {
       try {
-        const data = await apiClient(`/products/${id}`);
-        setProduct(data);
-        if (data.variants?.length > 0) {
-          setSelectedVariant(data.variants[0]);
+        const res = await fetchWithAuth(`/api/products/${slug}`);
+        setProduct(res.data);
+        if (res.data.variants?.length > 0) {
+          setSelectedVariant(res.data.variants[0]);
         }
       } catch (err) {
-        // ignore
-      } finally {
-        setLoading(false);
+        console.error('Failed to load product:', err);
+        navigate('/products');
       }
     };
-    fetchProduct();
-  }, [id]);
+    loadProduct();
+  }, [slug]);
 
-  useEffect(() => {
-    if (product) {
-      apiClient(`/products/${id}/view`, { method: 'POST' });
-    }
-  }, [product, id]);
+  const handleAddToCart = () => {
+    if (!product) return;
+    addItem({
+      product_id: product._id,
+      title: product.title,
+      image: product.images[0],
+      price: selectedVariant?.price || product.price,
+      quantity,
+    });
+    // Show toast
+  };
 
-  if (loading || !product) {
+  if (!product) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          <div className="md:w-1/2">
-            <Skeleton className="h-96 w-full shimmer" />
+      <div className="container mx-auto px-4 py-12">
+        <div className="skeleton h-96 rounded-lg mb-6"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2">
+            <div className="skeleton h-12 w-3/4 mb-4"></div>
+            <div className="skeleton h-4 w-1/2 mb-2"></div>
+            <div className="skeleton h-4 w-full mb-2"></div>
+            <div className="skeleton h-4 w-5/6"></div>
           </div>
-          <div className="md:w-1/2 space-y-4">
-            <Skeleton className="h-8 w-3/4 shimmer" />
-            <Skeleton className="h-6 w-1/2 shimmer" />
-            <Skeleton className="h-20 w-full shimmer" />
+          <div>
+            <div className="skeleton h-32 mb-4"></div>
+            <div className="skeleton h-12 w-full"></div>
           </div>
         </div>
       </div>
     );
   }
 
+  const finalPrice = selectedVariant?.price || product.price;
+  const originalPrice = selectedVariant?.original_price || product.original_price || finalPrice;
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row gap-8">
-        <div className="md:w-1/2">
-          <ImageGallery images={product.images} />
-        </div>
-        <div className="md:w-1/2">
-          <h1 className="text-3xl font-bold mb-4">{product.title}</h1>
-          <p className="text-text-dim mb-4">{product.brand}</p>
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl font-bold text-primary">${product.price}</span>
-            {product.original_price > product.price && (
-              <span className="text-text-dim line-through">${product.original_price}</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <ImageGallery images={product.images} />
+
+        <div>
+          <h1 className="text-3xl font-bold mb-2 font-display">{product.title}</h1>
+          <p className="text-text-dim mb-4">by {product.brand}</p>
+
+          <div className="flex items-center mb-4">
+            <div className="text-accent font-bold text-2xl">{formatCurrency(finalPrice)}</div>
+            {originalPrice > finalPrice && (
+              <div className="ml-2 text-text-dim line-through">{formatCurrency(originalPrice)}</div>
             )}
-            {product.discount_percent > 0 && (
-              <span className="text-success font-medium">-{product.discount_percent}%</span>
+            {originalPrice > finalPrice && (
+              <div className="ml-2 text-warning font-semibold">
+                Save {Math.round(((originalPrice - finalPrice) / originalPrice) * 100)}%
+              </div>
             )}
           </div>
-          <p className="mb-6">{product.description}</p>
 
-          {/* Variants */}
-          {product.variants?.length > 0 && (
-            <div className="mb-6">
-              <h3 className="font-semibold mb-2">Select Variant</h3>
-              <div className="flex gap-2 flex-wrap">
-                {product.variants.map((v: any) => (
-                  <Button
-                    key={v.sku}
-                    variant={selectedVariant?.sku === v.sku ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedVariant(v)}
-                  >
-                    {v.color} / {v.size}
-                  </Button>
-                ))}
-              </div>
-            </div>
+          <p className="text-text-dim mb-6">{product.description}</p>
+
+          {product.variants && product.variants.length > 0 && (
+            <VariantSelector
+              variants={product.variants}
+              selected={selectedVariant}
+              onSelect={setSelectedVariant}
+            />
           )}
 
-          {/* Quantity */}
-          <div className="flex items-center gap-4 mb-6">
-            <label className="font-medium">Quantity:</label>
+          <div className="flex items-center space-x-4 mb-6">
+            <label className="text-text">Quantity:</label>
             <input
               type="number"
               min="1"
-              max={selectedVariant?.stock || 99}
+              max={product.stock_quantity}
               value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value))}
-              className="w-20 px-3 py-1 border border-border rounded bg-surface text-text"
+              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-16 px-3 py-1 border border-border rounded text-text bg-surface"
             />
+            <span className="text-text-dim">In stock: {product.stock_quantity}</span>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-4 mb-6">
-            <Button
-              className="flex-1"
-              onClick={() => selectedVariant && addItem(product._id, selectedVariant.sku, quantity)}
+          <div className="flex flex-wrap gap-4 mb-6">
+            <button
+              onClick={handleAddToCart}
+              className="btn btn-primary flex items-center space-x-2 px-8 py-3"
             >
-              Add to Cart
-            </Button>
-            <Button variant="secondary" size="icon" onClick={() => toggleWishlist(product._id)}>
-              {isInWishlist(product._id) ? '❤️' : '♡'}
-            </Button>
-          </div>
-
-          {/* Stock */}
-          <div className="mb-6">
-            <span
-              className={`inline-block px-3 py-1 rounded-full text-sm ${
-                selectedVariant?.stock > 10 ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'
-              }`}
+              <ShoppingCart size={20} />
+              <span>Add to Cart</span>
+            </button>
+            <button
+              onClick={() => toggle(product._id)}
+              className={`btn px-6 py-3 ${has(product._id) ? 'text-accent' : 'text-text-dim'}`}
             >
-              {selectedVariant?.stock > 10 ? 'In Stock' : selectedVariant?.stock > 0 ? 'Low Stock' : 'Out of Stock'}
-            </span>
+              <Heart size={20} fill={has(product._id) ? '#FF9900' : 'none'} />
+            </button>
+            <button className="btn px-6 py-3 text-text-dim">
+              <Share2 size={20} />
+            </button>
           </div>
 
-          {/* Tabs */}
-          <Tabs defaultValue="description" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="description">Description</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews</TabsTrigger>
-              <TabsTrigger value="qa">Q&A</TabsTrigger>
-            </TabsList>
-            <TabsContent value="description">
-              <p className="mt-4">{product.description}</p>
-            </TabsContent>
-            <TabsContent value="reviews">Reviews Section</TabsContent>
-            <TabsContent value="qa">Q&A Section</TabsContent>
-          </Tabs>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default ProductDetail;
+          <div className="border-t border-border pt-6">
+            <h3 className="

@@ -1,62 +1,90 @@
-import React, { useEffect } from 'react';
-import { useAuth } from '../stores/authStore';
-import ProductCard from '../components/ProductCard';
-import { apiClient } from '../lib/api';
-import { Skeleton } from '../components/ui/skeleton';
+import React, { useEffect, useState } from 'react';
+import { ProductCard } from '../components/product/ProductCard';
+import { fetchWithAuth } from '../lib/api';
 
 const Home: React.FC = () => {
-  const { user } = useAuth();
-  const [products, setProducts] = useState<any[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [sponsoredProducts, setSponsoredProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const loadProducts = async () => {
       try {
-        const data = await apiClient('/products?limit=8');
-        setProducts(data.products);
+        const [featuredRes, sponsoredRes] = await Promise.all([
+          fetchWithAuth('/api/products?is_featured=true&limit=8'),
+          fetchWithAuth('/api/products?is_sponsored=true&limit=4'),
+        ]);
+        setFeaturedProducts(featuredRes.data || []);
+        setSponsoredProducts(sponsoredRes.data || []);
       } catch (err) {
-        // ignore
+        console.error('Failed to load products:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchProducts();
+    loadProducts();
   }, []);
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">Welcome{user?.name ? `, ${user.name}` : ''}</h1>
-
       {/* Hero Banner */}
-      <div className="relative h-64 md:h-80 rounded-lg mb-8 overflow-hidden">
+      <section className="relative h-64 md:h-80 rounded-lg mb-12 overflow-hidden">
         <img
-          src="https://via.placeholder.com/1200x300/1E293B/FF9900?text=Deals+of+the+Day"
+          src="https://via.placeholder.com/1200x320/1E293B/FF9900?text=Free+Shipping+on+Orders+Over+$50"
           alt="Hero Banner"
           className="w-full h-full object-cover"
         />
-      </div>
+        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+          <h1 className="text-4xl md:text-6xl font-bold text-white text-center font-display">
+            Welcome to ShopSphere
+          </h1>
+        </div>
+      </section>
 
-      {/* Featured Products */}
-      <h2 className="text-2xl font-semibold mb-6">Featured Products</h2>
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="card">
-              <div className="p-4">
-                <Skeleton className="h-48 w-full shimmer" />
-                <Skeleton className="h-6 w-3/4 mt-4 shimmer" />
-                <Skeleton className="h-4 w-1/2 mt-2 shimmer" />
+      {/* Deals of the Day */}
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold mb-6 font-display">Deals of the Day</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="skeleton h-64 rounded-lg"></div>
+            ))
+          ) : (
+            featuredProducts.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))
+          )}
+        </div>
+      </section>
+
+      {/* Featured Categories */}
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold mb-6 font-display">Featured Categories</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {['Electronics', 'Fashion', 'Home & Kitchen', 'Beauty', 'Sports', 'Books'].map((cat) => (
+            <div key={cat} className="relative group rounded-lg overflow-hidden h-32 bg-muted">
+              <img
+                src={`https://via.placeholder.com/200x120/1E293B/FFFFFF?text=${cat}`}
+                alt={cat}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+              />
+              <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                <span className="text-white font-semibold">{cat}</span>
               </div>
             </div>
           ))}
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.map((product) => (
+      </section>
+
+      {/* Sponsored Products */}
+      <section>
+        <h2 className="text-2xl font-bold mb-6 font-display">Sponsored Products</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {sponsoredProducts.map((product) => (
             <ProductCard key={product._id} product={product} />
           ))}
         </div>
-      )}
+      </section>
     </div>
   );
 };

@@ -1,63 +1,32 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { CartItem } from './cartStore';
 
 interface Address {
-  _id?: string;
-  street: string;
+  _id: string;
+  line1: string;
+  line2?: string;
   city: string;
   state: string;
-  zip: string;
+  postal_code: string;
   country: string;
-  phone: string;
-  label?: string;
-}
-
-interface DeliveryOption {
-  id: string;
-  label: string;
-  description: string;
-  price: number;
+  type: 'home' | 'work' | 'other';
 }
 
 interface CheckoutState {
   address: Address | null;
-  deliveryOption: DeliveryOption | null;
-  paymentMethod: 'card' | 'upi' | 'cod' | null;
-  cartItems: CartItem[];
-  cartTotal: number;
+  deliverySpeed: 'standard' | 'express' | 'same_day' | null;
+  paymentMethod: 'stripe' | 'upi' | 'cod' | null;
   setAddress: (address: Address) => void;
-  setDeliveryOption: (option: DeliveryOption) => void;
-  setPaymentMethod: (method: 'card' | 'upi' | 'cod') => void;
-  setCartItems: (items: CartItem[]) => void;
-  clearCheckout: () => void;
+  setDeliverySpeed: (speed: 'standard' | 'express' | 'same_day') => void;
+  setPaymentMethod: (method: 'stripe' | 'upi' | 'cod') => void;
+  reset: () => void;
 }
 
-export const useCheckoutStore = create<CheckoutState>()(
-  persist(
-    (set, get) => ({
-      address: null,
-      deliveryOption: null,
-      paymentMethod: null,
-      cartItems: [],
-      cartTotal: 0,
-      setAddress: (address) => set({ address }),
-      setDeliveryOption: (deliveryOption) => set({ deliveryOption }),
-      setPaymentMethod: (paymentMethod) => set({ paymentMethod }),
-      setCartItems: (cartItems) => {
-        const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        set({ cartItems, cartTotal });
-      },
-      clearCheckout: () => set({
-        address: null,
-        deliveryOption: null,
-        paymentMethod: null,
-        cartItems: [],
-        cartTotal: 0,
-      }),
-    }),
-    {
-      name: 'checkout-storage',
-    }
-  )
-);
+export const checkoutStore = create<CheckoutState>((set) => ({
+  address: null,
+  deliverySpeed: null,
+  paymentMethod: null,
+  setAddress: (address) => set({ address }),
+  setDeliverySpeed: (speed) => set({ deliverySpeed: speed }),
+  setPaymentMethod: (method) => set({ paymentMethod: method }),
+  reset: () => set({ address: null, deliverySpeed: null, paymentMethod: null }),
+}));

@@ -1,10 +1,10 @@
-import express from 'express';
+import { Router } from 'express';
 import { createCheckoutSession, webhookHandler } from '../controllers/stripeController';
-import { authenticateJWT } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
 
-const router = express.Router();
+const router = Router();
 
-router.post('/create-checkout-session', authenticateJWT, createCheckoutSession);
-router.post('/webhook', express.raw({ type: 'application/json' }), webhookHandler);
+router.post('/create-checkout-session', authMiddleware, createCheckoutSession);
+router.post('/webhook', webhookHandler);
 
 export default router;
