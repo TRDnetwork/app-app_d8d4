@@ -1,186 +1,126 @@
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
-import { Order } from '@/models/Order';
-import { Cart } from '@/models/Cart';
-import { User } from '@/models/User';
+import { Order } from '../models/order';
+import { Cart } from '../models/cart';
+import { User } from '../models/user';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16',
 });
 
 // Create Checkout Session
-export const createCheckoutSession = async (req: any, res: Response) => {
-  try {
-    const { deliverySpeed, addressId } = req.body;
-    const userId = req.user.id;
+export const createCheckoutSession = async (req: Request, res: Response) => {
+  const { userId } = req.body;
+  const domain = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-    // Get user and address
-    const user = await User.findById(userId).select('email name');
+  try {
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const address = user.addresses?.find((addr: any) => addr._id.toString() === addressId);
-    if (!address) {
-      return res.status(400).json({ error: 'Invalid address' });
-    }
-
-    // Get cart items
-    const cart = await Cart.findOne({ userId }).populate('items.product');
+    const cart = await Cart.findOne({ user_id: userId }).populate('items.product_id');
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ error: 'Cart is empty' });
     }
 
-    // Calculate total
-    const deliveryFees: Record<string, number> = {
-      standard: 0,
-      express: 99,
-      'same-day': 199,
-    };
-    const deliveryFee = deliveryFees[deliverySpeed] || 0;
-
-    let total = deliveryFee;
-    const lineItems = cart.items.map((item: any) => {
-      const price = item.product.price;
-      total += price * item.quantity;
-      return {
-        price_data: {
-          currency: 'inr',
-          product_data: {
-            name: item.product.title,
-            images: [item.product.images[0]],
-          },
-          unit_amount: Math.round(price * 100), // Stripe expects amount in paise
+    const lineItems = cart.items.map((item: any) => ({
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: item.product_id.title,
+          images: [item.product_id.images[0]],
         },
-        quantity: item.quantity,
-      };
-    });
-
-    // Add delivery fee as line item if applicable
-    if (deliveryFee > 0) {
-      lineItems.push({
-        price_data: {
-          currency: 'inr',
-          product_data: {
-            name: `Delivery (${deliverySpeed.replace('-', ' ')})`,
-          },
-          unit_amount: Math.round(deliveryFee * 100),
-        },
-        quantity: 1,
-      });
-    }
-
-    // Create order in pending status
-    const order = new Order({
-      userId,
-      items: cart.items.map((item: any) => ({
-        product: item.product._id,
-        variant: item.variant,
-        quantity: item.quantity,
-        price: item.product.price,
-        sellerId: item.product.sellerId,
-      })),
-      totalAmount: total,
-      deliveryFee,
-      deliverySpeed,
-      address: {
-        label: address.label,
-        street: address.street,
-        city: address.city,
-        state: address.state,
-        zip: address.zip,
-        country: address.country,
+        unit_amount: Math.round(item.price * 100), // in cents
       },
-      paymentStatus: 'pending',
-      orderStatus: 'placed',
-    });
+      quantity: item.quantity,
+    }));
 
-    await order.save();
-
-    // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
-      customer_email: user.email,
-      success_url: `${process.env.FRONTEND_URL}/order-confirmation?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/cart`,
+      success_url: `${domain}/order-confirmation?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${domain}/cart`,
       metadata: {
-        orderId: order._id.toString(),
-        userId: userId,
-      },
-      billing_address_collection: 'required',
-      shipping_address_collection: {
-        allowed_countries: ['IN'],
+        user_id: userId,
+        cart_id: cart._id.toString(),
       },
     });
 
-    res.json({ sessionId: session.id });
-  } catch (error: any) {
-    console.error('Error creating checkout session:', error);
-    res.status(500).json({ error: 'Failed to create checkout session' });
+    res.json({ id: session.id });
+  } catch (err: any) {
+    console.error('Error creating checkout session:', err);
+    res.status(500).json({ error: err.message });
   }
 };
 
 // Handle Stripe Webhook
 export const handleWebhook = async (req: Request, res: Response) => {
   const sig = req.headers['stripe-signature'];
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig!, endpointSecret);
+    event = stripe.webhooks.constructEvent(req.body, sig!, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error(`Webhook signature verification failed: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   // Handle the event
-  try {
-    switch (event.type) {
-      case 'checkout.session.completed':
-        const session = event.data.object;
-        const orderId = session.metadata?.orderId;
-        
-        if (orderId) {
-          // Update order status
-          await Order.findByIdAndUpdate(orderId, {
-            paymentStatus: 'completed',
-            orderStatus: 'confirmed',
-            stripeSessionId: session.id,
-            stripePaymentIntentId: session.payment_intent,
-          });
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const cartId = session.metadata?.cart_id;
+    const userId = session.metadata?.user_id;
 
-          // Clear cart
-          await Cart.findOneAndDelete({ userId: session.metadata?.userId });
-        }
-        break;
-
-      case 'payment_intent.succeeded':
-        // Handle successful payment
-        break;
-
-      case 'payment_intent.payment_failed':
-        // Handle failed payment
-        const failedPaymentIntent = event.data.object;
-        const failedOrderId = failedPaymentIntent.metadata?.orderId;
-        if (failedOrderId) {
-          await Order.findByIdAndUpdate(failedOrderId, {
-            paymentStatus: 'failed',
-            orderStatus: 'cancelled',
-          });
-        }
-        break;
-
-      default:
-        console.log(`Unhandled event type ${event.type}`);
+    // Prevent duplicate processing
+    const existingOrder = await Order.findOne({ 'payment_intent': session.payment_intent });
+    if (existingOrder) {
+      return res.json({ received: true });
     }
 
-    // Return a 200 response to acknowledge receipt of the event
-    res.json({ received: true });
-  } catch (error: any) {
-    console.error('Error processing webhook event:', error);
-    res.status(500).json({ error: 'Webhook handler failed' });
+    try {
+      const cart = await Cart.findById(cartId).populate('items.product_id');
+      if (!cart) {
+        console.error('Cart not found:', cartId);
+        return res.json({ received: true });
+      }
+
+      const orderItems = cart.items.map((item: any) => ({
+        product_id: item.product_id._id,
+        title: item.product_id.title,
+        price: item.price,
+        quantity: item.quantity,
+        seller_id: item.product_id.seller_id,
+      }));
+
+      const order = new Order({
+        user_id: userId,
+        order_number: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        items: orderItems,
+        total_amount: session.amount_total ? session.amount_total / 100 : 0,
+        payment_method: 'card',
+        payment_status: 'completed',
+        order_status: 'placed',
+        address: {}, // Will be populated from user's selected address
+        payment_intent: session.payment_intent,
+      });
+
+      await order.save();
+      await Cart.findByIdAndDelete(cartId);
+
+      // TODO: Send order confirmation email via Email Agent
+      console.log('Order created:', order._id);
+    } catch (err) {
+      console.error('Error processing checkout session:', err);
+      return res.status(500).json({ error: 'Failed to process order' });
+    }
   }
+
+  // Handle other events (e.g., invoice.paid for subscriptions)
+  if (event.type === 'invoice.paid') {
+    // Used for subscription payments
+  }
+
+  res.json({ received: true });
 };

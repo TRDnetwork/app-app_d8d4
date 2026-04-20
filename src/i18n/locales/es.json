@@ -2,93 +2,191 @@
   "nav": {
     "home": "Inicio",
     "products": "Productos",
-    "categories": "Categorías",
-    "deals": "Ofertas",
-    "account": "Cuenta",
-    "cart": "Carrito",
-    "search": "Buscar productos, marcas y más..."
+    "orders": "Pedidos",
+    "wishlist": "Lista de deseos",
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "profile": "Perfil",
+    "sellerDashboard": "Panel de vendedor",
+    "adminPanel": "Panel de administrador"
   },
-  "hero": {
-    "title": "Bienvenido a ShopSphere",
-    "subtitle": "Productos premium con entrega ultrarrápida"
+  "header": {
+    "searchPlaceholder": "Buscar productos..."
   },
-  "product": {
+  "footer": {
+    "customerService": "Servicio al cliente",
+    "company": "Empresa",
+    "legal": "Legal",
+    "helpCenter": "Centro de ayuda",
+    "returns": "Devoluciones y reembolsos",
+    "shipping": "Información de envío",
+    "contact": "Contáctenos",
+    "about": "Sobre nosotros",
+    "careers": "Trabaja con nosotros",
+    "press": "Prensa",
+    "blog": "Blog",
+    "privacy": "Política de privacidad",
+    "terms": "Términos de servicio",
+    "cookies": "Política de cookies"
+  },
+  "home": {
+    "heroTitle": "Ofertas del día",
+    "heroSubtitle": "Hasta 50% de descuento en las mejores marcas",
+    "heroShopNow": "Comprar ahora",
+    "featuredCategories": "Categorías destacadas",
+    "trendingProducts": "Productos populares",
+    "viewAll": "Ver todo"
+  },
+  "productListing": {
+    "title": "Productos",
+    "showing": "Mostrando",
+    "of": "de",
+    "products": "productos",
+    "sortBy": "Ordenar por",
+    "relevance": "Relevancia",
+    "priceLow": "Precio: Bajo a alto",
+    "priceHigh": "Precio: Alto a bajo",
+    "newest": "Más nuevos",
+    "rating": "Calificación promedio"
+  },
+  "productDetail": {
     "addToCart": "Añadir al carrito",
-    "viewDetails": "Ver detalles",
-    "rating": "Calificación",
+    "buyNow": "Comprar ahora",
+    "description": "Descripción",
+    "specifications": "Especificaciones",
     "reviews": "Reseñas",
-    "price": "Precio",
-    "originalPrice": "Precio original",
-    "discount": "Descuento",
-    "outOfStock": "Agotado",
-    "inStock": "En stock"
+    "questions": "Preguntas",
+    "addToWishlist": "Añadir a la lista de deseos",
+    "removeFromWishlist": "Eliminar de la lista de deseos"
   },
   "cart": {
-    "title": "Tu carrito",
+    "title": "Carrito de compras",
+    "product": "Producto",
+    "price": "Precio",
+    "quantity": "Cantidad",
     "subtotal": "Subtotal",
-    "shipping": "Envío",
-    "tax": "Impuestos",
     "total": "Total",
-    "checkout": "Proceder al pago",
-    "empty": "Tu carrito está vacío",
-    "continueShopping": "Continuar comprando"
+    "continueShopping": "Continuar comprando",
+    "checkout": "Pagar",
+    "emptyCart": "Tu carrito está vacío"
   },
   "checkout": {
     "title": "Pagar",
-    "stepAddress": "Dirección de envío",
-    "stepDelivery": "Opciones de entrega",
-    "stepPayment": "Pago",
-    "stepReview": "Revisar pedido",
+    "shippingAddress": "Dirección de envío",
+    "deliveryMethod": "Método de entrega",
+    "paymentMethod": "Método de pago",
+    "orderSummary": "Resumen del pedido",
     "continue": "Continuar",
     "back": "Atrás",
-    "firstName": "Nombre",
-    "lastName": "Apellido",
-    "email": "Correo electrónico",
-    "address": "Dirección",
-    "apartment": "Departamento, suite, etc. (opcional)",
-    "city": "Ciudad",
-    "state": "Estado",
-    "zip": "Código postal",
-    "saveAddress": "Guardar esta información para la próxima vez",
-    "standard": "Entrega estándar",
-    "express": "Entrega exprés",
-    "sameDay": "Entrega el mismo día",
-    "payment": "Pago",
-    "orderSummary": "Resumen del pedido"
+    "standardDelivery": "Entrega estándar",
+    "expressDelivery": "Entrega exprés",
+    "sameDayDelivery": "Entrega el mismo día",
+    "free": "Gratis",
+    "cardDetails": "Detalles de la tarjeta",
+    "nameOnCard": "Nombre en la tarjeta",
+    "pay": "Pagar"
+  },
+  "orderConfirmation": {
+    "title": "¡Pedido confirmado!",
+    "thankYou": "Gracias por tu compra",
+    "orderNumber": "Número de pedido",
+    "emailSent": "Hemos enviado un correo de confirmación a",
+    "viewOrderHistory": "Ver historial de pedidos",
+    "continueShopping": "Continuar comprando"
   },
   "auth": {
-    "login": "Iniciar sesión",
-    "register": "Registrarse",
-    "logout": "Cerrar sesión",
-    "email": "Correo electrónico",
-    "password": "Contraseña",
-    "confirmPassword": "Confirmar contraseña",
-    "forgotPassword": "¿Olvidaste tu contraseña?",
-    "resetPassword": "Restablecer contraseña",
-    "signIn": "Inicia sesión en tu cuenta",
-    "createAccount": "Crear una nueva cuenta",
-    "resetInstructions": "Ingresa tu correo electrónico para restablecer tu contraseña"
+    "login": {
+      "title": "Bienvenido de nuevo",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "signIn": "Iniciar sesión",
+      "forgotPassword": "¿Olvidaste tu contraseña?",
+      "orContinueWith": "O continuar con",
+      "noAccount": "¿No tienes una cuenta?",
+      "signUp": "Regístrate"
+    },
+    "register": {
+      "title": "Crear una cuenta",
+      "fullName": "Nombre completo",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "confirmPassword": "Confirmar contraseña",
+      "createAccount": "Crear cuenta",
+      "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+      "signIn": "Iniciar sesión"
+    },
+    "forgotPassword": {
+      "title": "Restablecer contraseña",
+      "email": "Correo electrónico",
+      "sendResetEmail": "Enviar correo de restablecimiento",
+      "backToSignIn": "Volver a iniciar sesión"
+    },
+    "resetPassword": {
+      "title": "Restablecer contraseña",
+      "newPassword": "Nueva contraseña",
+      "confirmNewPassword": "Confirmar nueva contraseña",
+      "resetPassword": "Restablecer contraseña"
+    }
   },
-  "footer": {
-    "about": "Acerca de",
-    "contact": "Contacto",
-    "privacy": "Política de privacidad",
-    "terms": "Términos de servicio",
-    "copyright": "© {year} ShopSphere. Todos los derechos reservados."
+  "profile": {
+    "title": "Mi perfil",
+    "personalInfo": "Información personal",
+    "fullName": "Nombre completo",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "saveChanges": "Guardar cambios",
+    "addresses": "Direcciones",
+    "addNewAddress": "Añadir nueva dirección",
+    "default": "Predeterminado",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
+  "wishlist": {
+    "title": "Lista de deseos",
+    "empty": "Tu lista de deseos está vacía",
+    "continueShopping": "Continuar comprando"
+  },
+  "orders": {
+    "title": "Historial de pedidos",
+    "order": "Pedido",
+    "date": "Fecha",
+    "total": "Total",
+    "status": "Estado",
+    "viewDetails": "Ver detalles",
+    "empty": "Aún no has realizado ningún pedido"
+  },
+  "orderTracking": {
+    "title": "Seguimiento del pedido",
+    "orderNumber": "Número de pedido",
+    "placed": "Realizado",
+    "confirmed": "Confirmado",
+    "shipped": "Enviado",
+    "outForDelivery": "En camino",
+    "delivered": "Entregado",
+    "items": "Artículos",
+    "quantity": "Cant.",
+    "deliveryAddress": "Dirección de entrega",
+    "orderSummary": "Resumen del pedido",
+    "subtotal": "Subtotal",
+    "deliveryFee": "Tarifa de envío",
+    "tax": "Impuesto",
+    "total": "Total",
+    "paymentMethod": "Método de pago",
+    "cardEndingIn": "Tarjeta terminada en"
   },
   "common": {
-    "loading": "Cargando...",
-    "error": "Algo salió mal",
-    "success": "Éxito",
-    "close": "Cerrar",
     "save": "Guardar",
     "cancel": "Cancelar",
     "delete": "Eliminar",
     "edit": "Editar",
-    "view": "Ver",
+    "close": "Cerrar",
+    "yes": "Sí",
+    "no": "No",
     "search": "Buscar",
     "filter": "Filtrar",
-    "sort": "Ordenar",
-    "clear": "Limpiar"
+    "apply": "Aplicar",
+    "clear": "Limpiar",
+    "loadMore": "Cargar más",
+    "backToTop": "Volver arriba"
   }
 }

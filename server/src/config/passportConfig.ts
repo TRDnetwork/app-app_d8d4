@@ -2,7 +2,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 import { User } from '../models/User';
-import { generateToken, generateRefreshToken } from '../utils/generateToken';
+import { generateAccessToken, generateRefreshToken } from '../utils/token';
 
 // Google OAuth configuration
 passport.use(new GoogleStrategy({
@@ -26,6 +26,7 @@ passport.use(new GoogleStrategy({
         // Update existing user with OAuth info
         existingUser.oauthProvider = 'google';
         existingUser.oauthId = profile.id;
+        existingUser.emailVerified = true;
         user = await existingUser.save();
       } else {
         // Create new user
@@ -41,11 +42,16 @@ passport.use(new GoogleStrategy({
     }
 
     // Generate tokens
-    const payload = { id: user._id, role: user.role };
-    const token = generateToken(payload);
+    const payload = { id: user._id.toString(), role: user.role };
+    const token = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
-    return done(null, { user, token, refreshToken });
+    return done(null, { 
+      id: user._id.toString(), 
+      role: user.role,
+      token,
+      refreshToken
+    });
   } catch (error) {
     return done(error as Error, undefined);
   }
@@ -74,6 +80,7 @@ passport.use(new FacebookStrategy({
         // Update existing user with OAuth info
         existingUser.oauthProvider = 'facebook';
         existingUser.oauthId = profile.id;
+        existingUser.emailVerified = true;
         user = await existingUser.save();
       } else {
         // Create new user
@@ -89,19 +96,24 @@ passport.use(new FacebookStrategy({
     }
 
     // Generate tokens
-    const payload = { id: user._id, role: user.role };
-    const token = generateToken(payload);
+    const payload = { id: user._id.toString(), role: user.role };
+    const token = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
-    return done(null, { user, token, refreshToken });
+    return done(null, { 
+      id: user._id.toString(), 
+      role: user.role,
+      token,
+      refreshToken
+    });
   } catch (error) {
     return done(error as Error, undefined);
   }
 }));
 
 // Serialize user
-passport.serializeUser((user, done) => {
-  done(null, (user as any).id);
+passport.serializeUser((user: any, done) => {
+  done(null, user.id);
 });
 
 // Deserialize user

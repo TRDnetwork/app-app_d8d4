@@ -1,19 +1,9 @@
 User-agent: *
 Allow: /
+
 Disallow: /admin/
-Disallow: /api/
+Disallow: /seller/
 Disallow: /checkout/
-Disallow: /profile/
 Disallow: /cart/
 
-Sitemap: https://shopsphere.com/sitemap.xml
-
-User-agent: Googlebot
-Allow: /
-Disallow: /admin/
-Disallow: /api/
-
-User-agent: Bingbot
-Allow: /
-Disallow: /admin/
-Disallow: /api/
+Sitemap: https://shopsphere.local/sitemap.xml

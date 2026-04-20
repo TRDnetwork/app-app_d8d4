@@ -2,93 +2,191 @@
   "nav": {
     "home": "Accueil",
     "products": "Produits",
-    "categories": "Catégories",
-    "deals": "Offres",
-    "account": "Compte",
-    "cart": "Panier",
-    "search": "Rechercher des produits, marques, et plus..."
+    "orders": "Commandes",
+    "wishlist": "Liste de souhaits",
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "profile": "Profil",
+    "sellerDashboard": "Tableau de bord vendeur",
+    "adminPanel": "Panneau d'administration"
   },
-  "hero": {
-    "title": "Bienvenue sur ShopSphere",
-    "subtitle": "Produits premium avec livraison ultra-rapide"
+  "header": {
+    "searchPlaceholder": "Rechercher des produits..."
   },
-  "product": {
+  "footer": {
+    "customerService": "Service client",
+    "company": "Entreprise",
+    "legal": "Juridique",
+    "helpCenter": "Centre d'aide",
+    "returns": "Retours et remboursements",
+    "shipping": "Informations de livraison",
+    "contact": "Nous contacter",
+    "about": "À propos de nous",
+    "careers": "Carrières",
+    "press": "Presse",
+    "blog": "Blog",
+    "privacy": "Politique de confidentialité",
+    "terms": "Conditions d'utilisation",
+    "cookies": "Politique de cookies"
+  },
+  "home": {
+    "heroTitle": "Offres du jour",
+    "heroSubtitle": "Jusqu'à 50 % de réduction sur les meilleures marques",
+    "heroShopNow": "Acheter maintenant",
+    "featuredCategories": "Catégories en vedette",
+    "trendingProducts": "Produits populaires",
+    "viewAll": "Voir tout"
+  },
+  "productListing": {
+    "title": "Produits",
+    "showing": "Affichage",
+    "of": "sur",
+    "products": "produits",
+    "sortBy": "Trier par",
+    "relevance": "Pertinence",
+    "priceLow": "Prix : Bas à élevé",
+    "priceHigh": "Prix : Élevé à bas",
+    "newest": "Plus récents",
+    "rating": "Note moyenne"
+  },
+  "productDetail": {
     "addToCart": "Ajouter au panier",
-    "viewDetails": "Voir les détails",
-    "rating": "Évaluation",
+    "buyNow": "Acheter maintenant",
+    "description": "Description",
+    "specifications": "Spécifications",
     "reviews": "Avis",
-    "price": "Prix",
-    "originalPrice": "Prix d'origine",
-    "discount": "Réduction",
-    "outOfStock": "Épuisé",
-    "inStock": "En stock"
+    "questions": "Questions",
+    "addToWishlist": "Ajouter à la liste de souhaits",
+    "removeFromWishlist": "Supprimer de la liste de souhaits"
   },
   "cart": {
-    "title": "Votre panier",
+    "title": "Panier",
+    "product": "Produit",
+    "price": "Prix",
+    "quantity": "Quantité",
     "subtotal": "Sous-total",
-    "shipping": "Livraison",
-    "tax": "Taxes",
     "total": "Total",
-    "checkout": "Passer à la caisse",
-    "empty": "Votre panier est vide",
-    "continueShopping": "Continuer vos achats"
+    "continueShopping": "Continuer vos achats",
+    "checkout": "Paiement",
+    "emptyCart": "Votre panier est vide"
   },
   "checkout": {
     "title": "Paiement",
-    "stepAddress": "Adresse de livraison",
-    "stepDelivery": "Options de livraison",
-    "stepPayment": "Paiement",
-    "stepReview": "Réviser la commande",
+    "shippingAddress": "Adresse de livraison",
+    "deliveryMethod": "Méthode de livraison",
+    "paymentMethod": "Méthode de paiement",
+    "orderSummary": "Résumé de la commande",
     "continue": "Continuer",
     "back": "Retour",
-    "firstName": "Prénom",
-    "lastName": "Nom",
-    "email": "Courriel",
-    "address": "Adresse",
-    "apartment": "Appartement, suite, etc. (facultatif)",
-    "city": "Ville",
-    "state": "État",
-    "zip": "Code postal",
-    "saveAddress": "Enregistrer ces informations pour la prochaine fois",
-    "standard": "Livraison standard",
-    "express": "Livraison express",
-    "sameDay": "Livraison le jour même",
-    "payment": "Paiement",
-    "orderSummary": "Résumé de la commande"
+    "standardDelivery": "Livraison standard",
+    "expressDelivery": "Livraison express",
+    "sameDayDelivery": "Livraison le jour même",
+    "free": "Gratuit",
+    "cardDetails": "Détails de la carte",
+    "nameOnCard": "Nom sur la carte",
+    "pay": "Payer"
+  },
+  "orderConfirmation": {
+    "title": "Commande confirmée !",
+    "thankYou": "Merci pour votre achat",
+    "orderNumber": "Numéro de commande",
+    "emailSent": "Nous avons envoyé un e-mail de confirmation à",
+    "viewOrderHistory": "Voir l'historique des commandes",
+    "continueShopping": "Continuer vos achats"
   },
   "auth": {
-    "login": "Connexion",
-    "register": "S'inscrire",
-    "logout": "Se déconnecter",
-    "email": "Courriel",
-    "password": "Mot de passe",
-    "confirmPassword": "Confirmer le mot de passe",
-    "forgotPassword": "Mot de passe oublié ?",
-    "resetPassword": "Réinitialiser le mot de passe",
-    "signIn": "Connectez-vous à votre compte",
-    "createAccount": "Créer un nouveau compte",
-    "resetInstructions": "Saisissez votre courriel pour réinitialiser votre mot de passe"
+    "login": {
+      "title": "Bienvenue",
+      "email": "E-mail",
+      "password": "Mot de passe",
+      "signIn": "Se connecter",
+      "forgotPassword": "Mot de passe oublié ?",
+      "orContinueWith": "Ou continuer avec",
+      "noAccount": "Vous n'avez pas de compte ?",
+      "signUp": "S'inscrire"
+    },
+    "register": {
+      "title": "Créer un compte",
+      "fullName": "Nom complet",
+      "email": "E-mail",
+      "password": "Mot de passe",
+      "confirmPassword": "Confirmer le mot de passe",
+      "createAccount": "Créer un compte",
+      "alreadyHaveAccount": "Vous avez déjà un compte ?",
+      "signIn": "Se connecter"
+    },
+    "forgotPassword": {
+      "title": "Réinitialiser le mot de passe",
+      "email": "E-mail",
+      "sendResetEmail": "Envoyer l'e-mail de réinitialisation",
+      "backToSignIn": "Retour à la connexion"
+    },
+    "resetPassword": {
+      "title": "Réinitialiser le mot de passe",
+      "newPassword": "Nouveau mot de passe",
+      "confirmNewPassword": "Confirmer le nouveau mot de passe",
+      "resetPassword": "Réinitialiser le mot de passe"
+    }
   },
-  "footer": {
-    "about": "À propos",
-    "contact": "Contact",
-    "privacy": "Politique de confidentialité",
-    "terms": "Conditions d'utilisation",
-    "copyright": "© {year} ShopSphere. Tous droits réservés."
+  "profile": {
+    "title": "Mon profil",
+    "personalInfo": "Informations personnelles",
+    "fullName": "Nom complet",
+    "email": "E-mail",
+    "phone": "Téléphone",
+    "saveChanges": "Enregistrer les modifications",
+    "addresses": "Adresses",
+    "addNewAddress": "Ajouter une nouvelle adresse",
+    "default": "Par défaut",
+    "edit": "Modifier",
+    "delete": "Supprimer"
+  },
+  "wishlist": {
+    "title": "Liste de souhaits",
+    "empty": "Votre liste de souhaits est vide",
+    "continueShopping": "Continuer vos achats"
+  },
+  "orders": {
+    "title": "Historique des commandes",
+    "order": "Commande",
+    "date": "Date",
+    "total": "Total",
+    "status": "Statut",
+    "viewDetails": "Voir les détails",
+    "empty": "Vous n'avez pas encore passé de commande"
+  },
+  "orderTracking": {
+    "title": "Suivi de la commande",
+    "orderNumber": "Numéro de commande",
+    "placed": "Passée",
+    "confirmed": "Confirmée",
+    "shipped": "Expédiée",
+    "outForDelivery": "En cours de livraison",
+    "delivered": "Livré",
+    "items": "Articles",
+    "quantity": "Qté",
+    "deliveryAddress": "Adresse de livraison",
+    "orderSummary": "Résumé de la commande",
+    "subtotal": "Sous-total",
+    "deliveryFee": "Frais de livraison",
+    "tax": "Taxe",
+    "total": "Total",
+    "paymentMethod": "Méthode de paiement",
+    "cardEndingIn": "Carte se terminant par"
   },
   "common": {
-    "loading": "Chargement...",
-    "error": "Une erreur s'est produite",
-    "success": "Succès",
-    "close": "Fermer",
     "save": "Enregistrer",
     "cancel": "Annuler",
     "delete": "Supprimer",
     "edit": "Modifier",
-    "view": "Voir",
+    "close": "Fermer",
+    "yes": "Oui",
+    "no": "Non",
     "search": "Rechercher",
     "filter": "Filtrer",
-    "sort": "Trier",
-    "clear": "Effacer"
+    "apply": "Appliquer",
+    "clear": "Effacer",
+    "loadMore": "Charger plus",
+    "backToTop": "Retour en haut"
   }
 }

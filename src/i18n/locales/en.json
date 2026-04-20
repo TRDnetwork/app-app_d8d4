@@ -2,93 +2,191 @@
   "nav": {
     "home": "Home",
     "products": "Products",
-    "categories": "Categories",
-    "deals": "Deals",
-    "account": "Account",
-    "cart": "Cart",
-    "search": "Search for products, brands, and more..."
+    "orders": "Orders",
+    "wishlist": "Wishlist",
+    "login": "Login",
+    "logout": "Logout",
+    "profile": "Profile",
+    "sellerDashboard": "Seller Dashboard",
+    "adminPanel": "Admin Panel"
   },
-  "hero": {
-    "title": "Welcome to ShopSphere",
-    "subtitle": "Premium products with lightning-fast delivery"
+  "header": {
+    "searchPlaceholder": "Search for products..."
   },
-  "product": {
+  "footer": {
+    "customerService": "Customer Service",
+    "company": "Company",
+    "legal": "Legal",
+    "helpCenter": "Help Center",
+    "returns": "Returns & Refunds",
+    "shipping": "Shipping Info",
+    "contact": "Contact Us",
+    "about": "About Us",
+    "careers": "Careers",
+    "press": "Press",
+    "blog": "Blog",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "cookies": "Cookie Policy"
+  },
+  "home": {
+    "heroTitle": "Deals of the Day",
+    "heroSubtitle": "Up to 50% off on top brands",
+    "heroShopNow": "Shop Now",
+    "featuredCategories": "Featured Categories",
+    "trendingProducts": "Trending Products",
+    "viewAll": "View All"
+  },
+  "productListing": {
+    "title": "Products",
+    "showing": "Showing",
+    "of": "of",
+    "products": "products",
+    "sortBy": "Sort by",
+    "relevance": "Relevance",
+    "priceLow": "Price: Low to High",
+    "priceHigh": "Price: High to Low",
+    "newest": "Newest",
+    "rating": "Avg. Rating"
+  },
+  "productDetail": {
     "addToCart": "Add to Cart",
-    "viewDetails": "View Details",
-    "rating": "Rating",
+    "buyNow": "Buy Now",
+    "description": "Description",
+    "specifications": "Specifications",
     "reviews": "Reviews",
-    "price": "Price",
-    "originalPrice": "Original Price",
-    "discount": "Discount",
-    "outOfStock": "Out of Stock",
-    "inStock": "In Stock"
+    "questions": "Questions",
+    "addToWishlist": "Add to Wishlist",
+    "removeFromWishlist": "Remove from Wishlist"
   },
   "cart": {
-    "title": "Your Cart",
+    "title": "Shopping Cart",
+    "product": "Product",
+    "price": "Price",
+    "quantity": "Quantity",
     "subtotal": "Subtotal",
-    "shipping": "Shipping",
-    "tax": "Tax",
     "total": "Total",
-    "checkout": "Proceed to Checkout",
-    "empty": "Your cart is empty",
-    "continueShopping": "Continue Shopping"
+    "continueShopping": "Continue Shopping",
+    "checkout": "Checkout",
+    "emptyCart": "Your cart is empty"
   },
   "checkout": {
     "title": "Checkout",
-    "stepAddress": "Shipping Address",
-    "stepDelivery": "Delivery Options",
-    "stepPayment": "Payment",
-    "stepReview": "Review Order",
+    "shippingAddress": "Shipping Address",
+    "deliveryMethod": "Delivery Method",
+    "paymentMethod": "Payment Method",
+    "orderSummary": "Order Summary",
     "continue": "Continue",
     "back": "Back",
-    "firstName": "First Name",
-    "lastName": "Last Name",
-    "email": "Email",
-    "address": "Address",
-    "apartment": "Apartment, suite, etc. (optional)",
-    "city": "City",
-    "state": "State",
-    "zip": "ZIP Code",
-    "saveAddress": "Save this information for next time",
-    "standard": "Standard Delivery",
-    "express": "Express Delivery",
-    "sameDay": "Same-Day Delivery",
-    "payment": "Payment",
-    "orderSummary": "Order Summary"
+    "standardDelivery": "Standard Delivery",
+    "expressDelivery": "Express Delivery",
+    "sameDayDelivery": "Same-Day Delivery",
+    "free": "Free",
+    "cardDetails": "Card Details",
+    "nameOnCard": "Name on Card",
+    "pay": "Pay"
+  },
+  "orderConfirmation": {
+    "title": "Order Confirmed!",
+    "thankYou": "Thank you for your purchase",
+    "orderNumber": "Order Number",
+    "emailSent": "We've sent a confirmation email to",
+    "viewOrderHistory": "View Order History",
+    "continueShopping": "Continue Shopping"
   },
   "auth": {
-    "login": "Login",
-    "register": "Register",
-    "logout": "Logout",
-    "email": "Email",
-    "password": "Password",
-    "confirmPassword": "Confirm Password",
-    "forgotPassword": "Forgot Password?",
-    "resetPassword": "Reset Password",
-    "signIn": "Sign in to your account",
-    "createAccount": "Create a new account",
-    "resetInstructions": "Enter your email to reset your password"
+    "login": {
+      "title": "Welcome Back",
+      "email": "Email",
+      "password": "Password",
+      "signIn": "Sign In",
+      "forgotPassword": "Forgot password?",
+      "orContinueWith": "Or continue with",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up"
+    },
+    "register": {
+      "title": "Create an Account",
+      "fullName": "Full Name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "createAccount": "Create Account",
+      "alreadyHaveAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Reset Password",
+      "email": "Email",
+      "sendResetEmail": "Send Reset Email",
+      "backToSignIn": "Back to Sign In"
+    },
+    "resetPassword": {
+      "title": "Reset Password",
+      "newPassword": "New Password",
+      "confirmNewPassword": "Confirm New Password",
+      "resetPassword": "Reset Password"
+    }
   },
-  "footer": {
-    "about": "About",
-    "contact": "Contact",
-    "privacy": "Privacy Policy",
-    "terms": "Terms of Service",
-    "copyright": "© {year} ShopSphere. All rights reserved."
+  "profile": {
+    "title": "My Profile",
+    "personalInfo": "Personal Information",
+    "fullName": "Full Name",
+    "email": "Email",
+    "phone": "Phone",
+    "saveChanges": "Save Changes",
+    "addresses": "Addresses",
+    "addNewAddress": "Add New Address",
+    "default": "Default",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "wishlist": {
+    "title": "Wishlist",
+    "empty": "Your wishlist is empty",
+    "continueShopping": "Continue Shopping"
+  },
+  "orders": {
+    "title": "Order History",
+    "order": "Order",
+    "date": "Date",
+    "total": "Total",
+    "status": "Status",
+    "viewDetails": "View Details",
+    "empty": "You haven't placed any orders yet"
+  },
+  "orderTracking": {
+    "title": "Order Tracking",
+    "orderNumber": "Order Number",
+    "placed": "Placed",
+    "confirmed": "Confirmed",
+    "shipped": "Shipped",
+    "outForDelivery": "Out for Delivery",
+    "delivered": "Delivered",
+    "items": "Items",
+    "quantity": "Qty",
+    "deliveryAddress": "Delivery Address",
+    "orderSummary": "Order Summary",
+    "subtotal": "Subtotal",
+    "deliveryFee": "Delivery Fee",
+    "tax": "Tax",
+    "total": "Total",
+    "paymentMethod": "Payment Method",
+    "cardEndingIn": "Card ending in"
   },
   "common": {
-    "loading": "Loading...",
-    "error": "Something went wrong",
-    "success": "Success",
-    "close": "Close",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
     "edit": "Edit",
-    "view": "View",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
     "search": "Search",
     "filter": "Filter",
-    "sort": "Sort",
-    "clear": "Clear"
+    "apply": "Apply",
+    "clear": "Clear",
+    "loadMore": "Load More",
+    "backToTop": "Back to Top"
   }
 }

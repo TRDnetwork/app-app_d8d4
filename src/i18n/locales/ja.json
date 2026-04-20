@@ -2,93 +2,150 @@
   "nav": {
     "home": "ホーム",
     "products": "商品",
-    "categories": "カテゴリー",
-    "deals": "セール",
-    "account": "アカウント",
-    "cart": "カート",
-    "search": "商品、ブランドなどを検索..."
-  },
-  "hero": {
-    "title": "ShopSphereへようこそ",
-    "subtitle": "プレミアム商品を超高速配送でお届け"
-  },
-  "product": {
-    "addToCart": "カートに追加",
-    "viewDetails": "詳細を見る",
-    "rating": "評価",
-    "reviews": "レビュー",
-    "price": "価格",
-    "originalPrice": "通常価格",
-    "discount": "割引",
-    "outOfStock": "在庫切れ",
-    "inStock": "在庫あり"
-  },
-  "cart": {
-    "title": "あなたのカート",
-    "subtotal": "小計",
-    "shipping": "送料",
-    "tax": "税金",
-    "total": "合計",
-    "checkout": "購入手続きへ",
-    "empty": "カートは空です",
-    "continueShopping": "買い物を続ける"
-  },
-  "checkout": {
-    "title": "購入",
-    "stepAddress": "配送先住所",
-    "stepDelivery": "配送方法",
-    "stepPayment": "支払い",
-    "stepReview": "注文内容の確認",
-    "continue": "続ける",
-    "back": "戻る",
-    "firstName": "名",
-    "lastName": "姓",
-    "email": "メールアドレス",
-    "address": "住所",
-    "apartment": "アパート、スイートなど（任意）",
-    "city": "市区町村",
-    "state": "都道府県",
-    "zip": "郵便番号",
-    "saveAddress": "次回のためにこの情報を保存する",
-    "standard": "標準配送",
-    "express": "速達配送",
-    "sameDay": "当日配送",
-    "payment": "支払い",
-    "orderSummary": "注文内容の概要"
-  },
-  "auth": {
+    "orders": "注文履歴",
+    "wishlist": "ウィッシュリスト",
     "login": "ログイン",
-    "register": "登録",
     "logout": "ログアウト",
-    "email": "メールアドレス",
-    "password": "パスワード",
-    "confirmPassword": "パスワードの確認",
-    "forgotPassword": "パスワードをお忘れですか？",
-    "resetPassword": "パスワードをリセット",
-    "signIn": "アカウントにサインイン",
-    "createAccount": "新しいアカウントを作成",
-    "resetInstructions": "パスワードをリセットするにはメールアドレスを入力してください"
+    "profile": "プロフィール",
+    "sellerDashboard": "販売者ダッシュボード",
+    "adminPanel": "管理者パネル"
+  },
+  "header": {
+    "searchPlaceholder": "商品を検索..."
   },
   "footer": {
-    "about": "会社概要",
+    "customerService": "カスタマーサービス",
+    "company": "企業情報",
+    "legal": "法的情報",
+    "helpCenter": "ヘルプセンター",
+    "returns": "返品・返金",
+    "shipping": "配送情報",
     "contact": "お問い合わせ",
+    "about": "会社概要",
+    "careers": "採用情報",
+    "press": "プレス",
+    "blog": "ブログ",
     "privacy": "プライバシーポリシー",
     "terms": "利用規約",
-    "copyright": "© {year} ShopSphere. 全著作権所有。"
+    "cookies": "Cookieポリシー"
   },
-  "common": {
-    "loading": "読み込み中...",
-    "error": "問題が発生しました",
-    "success": "成功",
-    "close": "閉じる",
-    "save": "保存",
-    "cancel": "キャンセル",
-    "delete": "削除",
+  "home": {
+    "heroTitle": "本日のセール",
+    "heroSubtitle": "人気ブランドが最大50%オフ",
+    "heroShopNow": "今すぐ購入",
+    "featuredCategories": "おすすめカテゴリー",
+    "trendingProducts": "人気商品",
+    "viewAll": "すべて表示"
+  },
+  "productListing": {
+    "title": "商品",
+    "showing": "表示中",
+    "of": "中",
+    "products": "商品",
+    "sortBy": "並べ替え",
+    "relevance": "関連性",
+    "priceLow": "価格：低価格から",
+    "priceHigh": "価格：高価格から",
+    "newest": "新着順",
+    "rating": "平均評価"
+  },
+  "productDetail": {
+    "addToCart": "カートに追加",
+    "buyNow": "今すぐ購入",
+    "description": "商品説明",
+    "specifications": "仕様",
+    "reviews": "レビュー",
+    "questions": "質問",
+    "addToWishlist": "ウィッシュリストに追加",
+    "removeFromWishlist": "ウィッシュリストから削除"
+  },
+  "cart": {
+    "title": "ショッピングカート",
+    "product": "商品",
+    "price": "価格",
+    "quantity": "数量",
+    "subtotal": "小計",
+    "total": "合計",
+    "continueShopping": "買い物を続ける",
+    "checkout": "購入手続き",
+    "emptyCart": "カートは空です"
+  },
+  "checkout": {
+    "title": "購入手続き",
+    "shippingAddress": "配送先住所",
+    "deliveryMethod": "配送方法",
+    "paymentMethod": "支払い方法",
+    "orderSummary": "注文内容",
+    "continue": "続ける",
+    "back": "戻る",
+    "standardDelivery": "標準配送",
+    "expressDelivery": "速達配送",
+    "sameDayDelivery": "当日配送",
+    "free": "無料",
+    "cardDetails": "カード情報",
+    "nameOnCard": "カード名義人",
+    "pay": "支払う"
+  },
+  "orderConfirmation": {
+    "title": "注文完了！",
+    "thankYou": "ご購入ありがとうございます",
+    "orderNumber": "注文番号",
+    "emailSent": "確認メールを送信しました",
+    "viewOrderHistory": "注文履歴を表示",
+    "continueShopping": "買い物を続ける"
+  },
+  "auth": {
+    "login": {
+      "title": "おかえりなさい",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "signIn": "ログイン",
+      "forgotPassword": "パスワードをお忘れですか？",
+      "orContinueWith": "または以下で続ける",
+      "noAccount": "アカウントをお持ちでないですか？",
+      "signUp": "サインアップ"
+    },
+    "register": {
+      "title": "アカウントを作成",
+      "fullName": "氏名",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "confirmPassword": "パスワード確認",
+      "createAccount": "アカウントを作成",
+      "alreadyHaveAccount": "すでにアカウントをお持ちですか？",
+      "signIn": "ログイン"
+    },
+    "forgotPassword": {
+      "title": "パスワードをリセット",
+      "email": "メールアドレス",
+      "sendResetEmail": "リセットメールを送信",
+      "backToSignIn": "ログインに戻る"
+    },
+    "resetPassword": {
+      "title": "パスワードをリセット",
+      "newPassword": "新しいパスワード",
+      "confirmNewPassword": "新しいパスワードを確認",
+      "resetPassword": "パスワードをリセット"
+    }
+  },
+  "profile": {
+    "title": "マイプロフィール",
+    "personalInfo": "個人情報",
+    "fullName": "氏名",
+    "email": "メールアドレス",
+    "phone": "電話番号",
+    "saveChanges": "変更を保存",
+    "addresses": "住所",
+    "addNewAddress": "新しい住所を追加",
+    "default": "デフォルト",
     "edit": "編集",
-    "view": "表示",
-    "search": "検索",
-    "filter": "フィルター",
-    "sort": "並べ替え",
-    "clear": "クリア"
-  }
-}
+    "delete": "削除"
+  },
+  "wishlist": {
+    "title": "ウィッシュリスト",
+    "empty": "ウィッシュリストは空です",
+    "continueShopping": "買い物を続ける"
+  },
+  "orders": {
+    "title": "注文履歴",
+    "order":
