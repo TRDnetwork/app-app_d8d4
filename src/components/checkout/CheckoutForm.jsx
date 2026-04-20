@@ -1,125 +1,84 @@
 import React, { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Button } from '../ui/button';
 import { useToast } from '../ui/use-toast';
-import { checkoutStore } from '../../stores/checkoutStore';
-import { cartStore } from '../../stores/cartStore';
-import { fetchWithAuth } from '../../lib/api';
-import { useNavigate } from 'react-router-dom';
 
-// Initialize Stripe
+// Public key is exposed to frontend
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-const CheckoutForm = () => {
-  const stripe = useStripe();
-  const elements = useElements();
+const CheckoutForm = ({ orderData, onPaymentSuccess, onPaymentError }) => {
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const { address, deliverySpeed, paymentMethod } = checkoutStore();
-  const { getSubtotal, couponCode, discount } = cartStore();
-
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-
-    if (!address || !deliverySpeed || !paymentMethod) {
-      toast({
-        title: 'Missing Information',
-        description: 'Please complete all steps before placing your order.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const handleCheckout = async () => {
     setLoading(true);
-    setErrors({});
-
+    
     try {
-      // Create checkout session
-      const response = await fetchWithAuth('/api/stripe/create-checkout-session', {
+      const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
-        body: JSON.stringify({
-          address,
-          deliverySpeed,
-          couponCode,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
       });
 
-      const { sessionId } = response;
+      const session = await response.json();
+
+      if (!response.ok) {
+        throw new Error(session.error || 'Failed to create checkout session');
+      }
 
       // Redirect to Stripe Checkout
+      const stripe = await stripePromise;
       const { error } = await stripe.redirectToCheckout({
-        sessionId,
+        sessionId: session.id,
       });
 
       if (error) {
-        throw error;
+        toast({
+          title: 'Payment Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+        onPaymentError?.(error.message);
       }
-    } catch (err) {
-      console.error('Checkout error:', err);
+    } catch (error) {
+      console.error('Checkout error:', error);
       toast({
-        title: 'Payment Failed',
-        description: err.message || 'An error occurred during checkout. Please try again.',
+        title: 'Checkout Failed',
+        description: error.message || 'Unable to process payment at this time.',
         variant: 'destructive',
       });
-      setErrors({ form: err.message });
+      onPaymentError?.(error.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
       <div className="bg-surface p-6 rounded-lg border border-border">
-        <h3 className="text-lg font-semibold mb-4">Payment Details</h3>
-        <div className="p-4 bg-muted rounded-lg mb-4">
-          <CardElement
-            options={{
-              style: {
-                base: {
-                  fontSize: '16px',
-                  color: '#F8FAFC',
-                  '::placeholder': {
-                    color: '#94A3B8',
-                  },
-                },
-                invalid: {
-                  color: '#EF4444',
-                },
-              },
-            }}
-          />
-        </div>
-        {errors.card && <p className="text-error text-sm">{errors.card}</p>}
-      </div>
-
-      <div className="flex justify-between items-center pt-4 border-t border-border">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate('/cart')}
+        <h3 className="text-xl font-bold mb-4">Secure Checkout</h3>
+        <p className="text-text-dim mb-6">
+          Your payment is secured via Stripe. We never store your card details.
+        </p>
+        <Button 
+          onClick={handleCheckout} 
           disabled={loading}
+          className="w-full bg-accent hover:bg-accent/90 text-primary-foreground"
         >
-          Back to Cart
-        </Button>
-        <Button type="submit" disabled={!stripe || loading}>
-          {loading ? 'Processing...' : 'Place Order'}
+          {loading ? 'Processing...' : `Pay $${orderData.total?.toFixed(2) || 0}`}
         </Button>
       </div>
-    </form>
+      
+      <div className="flex items-center justify-center space-x-2 text-sm text-text-dim">
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+        </svg>
+        <span>Secure SSL Encryption • No card data stored</span>
+      </div>
+    </div>
   );
 };
 
-const CheckoutFormWrapper = () => {
-  return (
-    <Elements stripe={stripePromise}>
-      <CheckoutForm />
-    </Elements>
-  );
-};
-
-export default CheckoutFormWrapper;
+export default CheckoutForm;

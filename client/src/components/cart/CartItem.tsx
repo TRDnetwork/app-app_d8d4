@@ -25,52 +25,98 @@ const CartItem: React.FC<{ item: any }> = ({ item }) => {
   };
 
   return (
-    <div className="flex items-center gap-4 py-4 border-b border-border">
+    <div 
+      className="flex items-center gap-3 py-3 border-b border-border"
+      role="listitem"
+    >
       <img
         src={item.product.images?.[0]}
         alt={item.product.title}
-        className="w-16 h-16 object-cover rounded"
+        className="w-14 h-14 object-cover rounded min-h-14 min-w-14"
+        aria-label={`Product image: ${item.product.title}`}
       />
       
-      <div className="flex-1">
-        <h3 className="font-medium">{item.product.title}</h3>
+      <div className="flex-1 min-w-0">
+        <h3 
+          className="font-medium text-sm line-clamp-2"
+          role="heading"
+          aria-level={3}
+        >
+          {item.product.title}
+        </h3>
         {item.variant && (
-          <p className="text-sm text-text-dim">Variant: {item.variant}</p>
+          <p 
+            className="text-xs text-text-dim"
+            id={`variant-${item.product._id}`}
+          >
+            {item.variant}
+          </p>
         )}
       </div>
       
-      <div className="flex items-center gap-4">
-        <span className="font-bold">{formatCurrency(item.product.price)}</span>
+      <div className="flex flex-col items-end space-y-2">
+        <span 
+          className="font-bold text-sm"
+          aria-label={`Price: ${formatCurrency(item.product.price)}`}
+        >
+          {formatCurrency(item.product.price)}
+        </span>
         
-        <div className="flex items-center border border-border rounded">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+        <div 
+          className="flex items-center border border-border rounded min-h-10"
+          role="group"
+          aria-label="Quantity selector"
+        >
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-10 w-10"
+            aria-label="Decrease quantity"
+          >
             -
           </Button>
-          <span className="w-8 text-center">{item.quantity}</span>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <span 
+            className="w-8 text-center text-sm"
+            id={`quantity-${item.product._id}`}
+          >
+            {item.quantity}
+          </span>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-10 w-10"
+            aria-label="Increase quantity"
+          >
             +
           </Button>
         </div>
         
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-text-dim hover:text-error"
-          onClick={handleSaveForLater}
-          aria-label="Save for later"
-        >
-          Save
-        </Button>
-        
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-text-dim hover:text-error"
-          onClick={handleRemove}
-          aria-label="Remove item"
-        >
-          <Trash2 className="h-5 w-5" />
-        </Button>
+        <div className="flex space-x-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-text-dim hover:text-error text-xs min-h-8 min-w-16"
+            onClick={handleSaveForLater}
+            aria-label="Save for later"
+            tabIndex={0}
+          >
+            Save
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-text-dim hover:text-error text-xs min-h-8 min-w-16"
+            onClick={handleRemove}
+            aria-label="Remove item from cart"
+            tabIndex={0}
+          >
+            <Trash2 
+              className="h-4 w-4"
+              aria-hidden="true"
+            />
+          </Button>
+        </div>
       </div>
     </div>
   );

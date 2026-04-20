@@ -3,56 +3,118 @@
     "home": "Home",
     "products": "Products",
     "wishlist": "Wishlist",
-    "seller": "Seller",
-    "admin": "Admin",
-    "profile": "Profile",
-    "orderHistory": "Order History",
+    "orders": "Orders",
     "login": "Login",
+    "register": "Register",
     "logout": "Logout"
   },
   "header": {
-    "searchPlaceholder": "Search products...",
-    "cart": "Cart"
+    "search": "Search for products...",
+    "cart": "Cart",
+    "account": "Account"
+  },
+  "footer": {
+    "newsletter": "Stay Updated",
+    "subscribe": "Subscribe to our newsletter",
+    "join": "Join",
+    "copyright": "All rights reserved"
   },
   "product": {
-    "outOfStock": "Out of Stock",
-    "addToCart": "Add to Cart",
-    "saveForLater": "Save for Later",
-    "quantity": "Quantity",
+    "price": "Price",
+    "originalPrice": "Original Price",
+    "rating": "Rating",
     "reviews": "Reviews",
-    "questions": "Questions & Answers",
-    "frequentlyBoughtTogether": "Frequently Bought Together",
-    "customersAlsoViewed": "Customers Also Viewed"
+    "addToCart": "Add to Cart",
+    "saveToWishlist": "Save to Wishlist",
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock",
+    "description": "Description",
+    "details": "Product Details",
+    "specifications": "Specifications",
+    "reviewsTitle": "Customer Reviews",
+    "writeReview": "Write a Review",
+    "frequentlyBought": "Frequently Bought Together",
+    "alsoViewed": "Customers Also Viewed"
   },
   "cart": {
-    "title": "Shopping Cart",
+    "title": "Your Cart",
     "empty": "Your cart is empty",
     "continueShopping": "Continue Shopping",
     "subtotal": "Subtotal",
+    "discount": "Discount",
     "delivery": "Delivery",
-    "free": "Free",
     "total": "Total",
     "proceedToCheckout": "Proceed to Checkout",
     "remove": "Remove",
-    "updateQuantity": "Update Quantity"
+    "quantity": "Quantity",
+    "update": "Update",
+    "coupon": "Coupon Code",
+    "apply": "Apply",
+    "invalidCoupon": "Invalid coupon code",
+    "savedForLater": "Saved for Later"
   },
   "checkout": {
     "title": "Checkout",
-    "address": "Address",
-    "delivery": "Delivery",
-    "payment": "Payment",
-    "review": "Review",
-    "back": "Back",
-    "continue": "Continue",
-    "placeOrder": "Place Order",
+    "shipping": "Shipping Address",
+    "selectAddress": "Select Address",
+    "addNewAddress": "Add New Address",
+    "delivery": "Delivery Options",
+    "standard": "Standard Delivery",
+    "express": "Express Delivery",
+    "sameDay": "Same Day Delivery",
+    "free": "Free",
+    "payment": "Payment Method",
+    "card": "Credit/Debit Card",
+    "upi": "UPI",
+    "cod": "Cash on Delivery",
+    "review": "Order Review",
     "orderSummary": "Order Summary",
-    "estimatedDelivery": "Estimated Delivery"
+    "placeOrder": "Place Order",
+    "processing": "Processing..."
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email Address",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "resetPassword": "Reset Password",
+    "sendResetLink": "Send Reset Link",
+    "name": "Full Name",
+    "phone": "Phone Number",
+    "createAccount": "Create Account",
+    "welcomeBack": "Welcome back",
+    "newCustomer": "New Customer?",
+    "existingCustomer": "Existing Customer?"
+  },
+  "profile": {
+    "title": "My Profile",
+    "edit": "Edit Profile",
+    "addresses": "My Addresses",
+    "addAddress": "Add Address",
+    "orderHistory": "Order History",
+    "logout": "Logout"
+  },
+  "search": {
+    "title": "Search Results",
+    "noResults": "No products found",
+    "resultsFor": "Results for",
+    "filters": "Filters",
+    "sort": "Sort by",
+    "priceLowToHigh": "Price: Low to High",
+    "priceHighToLow": "Price: High to Low",
+    "newest": "Newest",
+    "bestSelling": "Best Selling",
+    "avgRating": "Avg Rating"
   },
   "order": {
-    "confirmation": "Thank you for your order!",
+    "confirmation": "Order Confirmation",
+    "thankYou": "Thank you for your order!",
     "orderNumber": "Order Number",
-    "viewOrderStatus": "View Order Status",
-    "continueShopping": "Continue Shopping",
+    "estimatedDelivery": "Estimated Delivery",
+    "trackOrder": "Track Order",
+    "downloadInvoice": "Download Invoice",
     "status": {
       "placed": "Placed",
       "confirmed": "Confirmed",
@@ -61,49 +123,28 @@
       "delivered": "Delivered",
       "cancelled": "Cancelled",
       "returned": "Returned"
-    }
+    },
+    "history": "Order History",
+    "viewDetails": "View Details"
   },
-  "auth": {
-    "login": {
-      "title": "Sign in to ShopSphere",
-      "email": "Email address",
-      "password": "Password",
-      "submit": "Login",
-      "forgotPassword": "Forgot password?",
-      "noAccount": "Don't have an account?",
-      "createAccount": "Sign up"
-    },
-    "register": {
-      "title": "Create an account",
-      "name": "Full name",
-      "email": "Email address",
-      "password": "Password",
-      "confirmPassword": "Confirm password",
-      "submit": "Register",
-      "hasAccount": "Already have an account?",
-      "signIn": "Sign in"
-    },
-    "forgotPassword": {
-      "title": "Forgot password?",
-      "description": "Enter your email address and we'll send you a link to reset your password.",
-      "email": "Email address",
-      "submit": "Send reset link",
-      "success": "If an account with this email exists, a password reset link has been sent"
-    },
-    "resetPassword": {
-      "title": "Reset password",
-      "newPassword": "New password",
-      "confirmPassword": "Confirm new password",
-      "submit": "Reset password"
-    }
+  "wishlist": {
+    "title": "My Wishlist",
+    "empty": "Your wishlist is empty",
+    "browseProducts": "Browse Products",
+    "remove": "Remove",
+    "moveToCart": "Move to Cart"
   },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
     "close": "Close",
-    "edit": "Edit",
-    "delete": "Delete",
+    "back": "Back",
+    "next": "Next",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "or": "or",
+    "and": "and",
+    "of": "of",
+    "page": "Page"
   }
 }

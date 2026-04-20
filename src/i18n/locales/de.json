@@ -3,107 +3,148 @@
     "home": "Startseite",
     "products": "Produkte",
     "wishlist": "Wunschliste",
-    "seller": "Verkäufer",
-    "admin": "Administrator",
-    "profile": "Profil",
-    "orderHistory": "Bestellübersicht",
+    "orders": "Bestellungen",
     "login": "Anmelden",
+    "register": "Registrieren",
     "logout": "Abmelden"
   },
   "header": {
-    "searchPlaceholder": "Produkte suchen...",
-    "cart": "Warenkorb"
+    "search": "Produkte suchen...",
+    "cart": "Warenkorb",
+    "account": "Konto"
+  },
+  "footer": {
+    "newsletter": "Bleiben Sie Aktuell",
+    "subscribe": "Abonnieren Sie unseren Newsletter",
+    "join": "Beitreten",
+    "copyright": "Alle Rechte vorbehalten"
   },
   "product": {
-    "outOfStock": "Nicht auf Lager",
-    "addToCart": "In den Warenkorb",
-    "saveForLater": "Für später speichern",
-    "quantity": "Menge",
+    "price": "Preis",
+    "originalPrice": "Originalpreis",
+    "rating": "Bewertung",
     "reviews": "Bewertungen",
-    "questions": "Fragen und Antworten",
-    "frequentlyBoughtTogether": "Oft zusammen gekauft",
-    "customersAlsoViewed": "Kunden haben sich auch angesehen"
+    "addToCart": "In den Warenkorb",
+    "saveToWishlist": "Zur Wunschliste hinzufügen",
+    "inStock": "Auf Lager",
+    "outOfStock": "Nicht auf Lager",
+    "description": "Beschreibung",
+    "details": "Produktdetails",
+    "specifications": "Spezifikationen",
+    "reviewsTitle": "Kundenbewertungen",
+    "writeReview": "Bewertung schreiben",
+    "frequentlyBought": "Häufig zusammen gekauft",
+    "alsoViewed": "Kunden haben sich auch angesehen"
   },
   "cart": {
-    "title": "Warenkorb",
+    "title": "Ihr Warenkorb",
     "empty": "Ihr Warenkorb ist leer",
     "continueShopping": "Weiter einkaufen",
     "subtotal": "Zwischensumme",
+    "discount": "Rabatt",
     "delivery": "Lieferung",
-    "free": "Kostenlos",
     "total": "Gesamt",
     "proceedToCheckout": "Zur Kasse",
     "remove": "Entfernen",
-    "updateQuantity": "Menge aktualisieren"
+    "quantity": "Menge",
+    "update": "Aktualisieren",
+    "coupon": "Gutscheincode",
+    "apply": "Anwenden",
+    "invalidCoupon": "Ungültiger Gutscheincode",
+    "savedForLater": "Für später gespeichert"
   },
   "checkout": {
     "title": "Bezahlen",
-    "address": "Adresse",
-    "delivery": "Lieferung",
-    "payment": "Zahlung",
-    "review": "Überprüfen",
-    "back": "Zurück",
-    "continue": "Weiter",
-    "placeOrder": "Bestellung aufgeben",
+    "shipping": "Lieferadresse",
+    "selectAddress": "Adresse auswählen",
+    "addNewAddress": "Neue Adresse hinzufügen",
+    "delivery": "Lieferoptionen",
+    "standard": "Standardlieferung",
+    "express": "Expresslieferung",
+    "sameDay": "Lieferung am selben Tag",
+    "free": "Kostenlos",
+    "payment": "Zahlungsmethode",
+    "card": "Kredit-/Debitkarte",
+    "upi": "UPI",
+    "cod": "Nachnahme",
+    "review": "Bestellung prüfen",
     "orderSummary": "Bestellübersicht",
-    "estimatedDelivery": "Geschätzte Lieferung"
+    "placeOrder": "Bestellung aufgeben",
+    "processing": "Wird bearbeitet..."
+  },
+  "auth": {
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "email": "E-Mail-Adresse",
+    "password": "Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "forgotPassword": "Passwort vergessen?",
+    "resetPassword": "Passwort zurücksetzen",
+    "sendResetLink": "Zurücksetzungslink senden",
+    "name": "Vollständiger Name",
+    "phone": "Telefonnummer",
+    "createAccount": "Konto erstellen",
+    "welcomeBack": "Willkommen zurück",
+    "newCustomer": "Neuer Kunde?",
+    "existingCustomer": "Bestehender Kunde?"
+  },
+  "profile": {
+    "title": "Mein Profil",
+    "edit": "Profil bearbeiten",
+    "addresses": "Meine Adressen",
+    "addAddress": "Adresse hinzufügen",
+    "orderHistory": "Bestellverlauf",
+    "logout": "Abmelden"
+  },
+  "search": {
+    "title": "Suchergebnisse",
+    "noResults": "Keine Produkte gefunden",
+    "resultsFor": "Ergebnisse für",
+    "filters": "Filter",
+    "sort": "Sortieren nach",
+    "priceLowToHigh": "Preis: Niedrig zu Hoch",
+    "priceHighToLow": "Preis: Hoch zu Niedrig",
+    "newest": "Neueste",
+    "bestSelling": "Meistverkauft",
+    "avgRating": "Durchschnittsbewertung"
   },
   "order": {
-    "confirmation": "Vielen Dank für Ihre Bestellung!",
+    "confirmation": "Bestellbestätigung",
+    "thankYou": "Vielen Dank für Ihre Bestellung!",
     "orderNumber": "Bestellnummer",
-    "viewOrderStatus": "Bestellstatus anzeigen",
-    "continueShopping": "Weiter einkaufen",
+    "estimatedDelivery": "Voraussichtliche Lieferung",
+    "trackOrder": "Bestellung verfolgen",
+    "downloadInvoice": "Rechnung herunterladen",
     "status": {
-      "placed": "Aufgegeben",
+      "placed": "Bestellt",
       "confirmed": "Bestätigt",
       "shipped": "Versandt",
       "outForDelivery": "Unterwegs",
       "delivered": "Geliefert",
       "cancelled": "Storniert",
-      "returned": "Zurückgegeben"
-    }
+      "returned": "Retourniert"
+    },
+    "history": "Bestellverlauf",
+    "viewDetails": "Details anzeigen"
   },
-  "auth": {
-    "login": {
-      "title": "Melden Sie sich bei ShopSphere an",
-      "email": "E-Mail-Adresse",
-      "password": "Passwort",
-      "submit": "Anmelden",
-      "forgotPassword": "Passwort vergessen?",
-      "noAccount": "Sie haben noch kein Konto?",
-      "createAccount": "Registrieren"
-    },
-    "register": {
-      "title": "Ein Konto erstellen",
-      "name": "Vollständiger Name",
-      "email": "E-Mail-Adresse",
-      "password": "Passwort",
-      "confirmPassword": "Passwort bestätigen",
-      "submit": "Registrieren",
-      "hasAccount": "Sie haben bereits ein Konto?",
-      "signIn": "Anmelden"
-    },
-    "forgotPassword": {
-      "title": "Passwort vergessen?",
-      "description": "Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts.",
-      "email": "E-Mail-Adresse",
-      "submit": "Zurücksetzungslink senden",
-      "success": "Wenn ein Konto mit dieser E-Mail existiert, wurde ein Zurücksetzungslink gesendet"
-    },
-    "resetPassword": {
-      "title": "Passwort zurücksetzen",
-      "newPassword": "Neues Passwort",
-      "confirmPassword": "Neues Passwort bestätigen",
-      "submit": "Passwort zurücksetzen"
-    }
+  "wishlist": {
+    "title": "Meine Wunschliste",
+    "empty": "Ihre Wunschliste ist leer",
+    "browseProducts": "Produkte durchsuchen",
+    "remove": "Entfernen",
+    "moveToCart": "In den Warenkorb"
   },
   "common": {
     "save": "Speichern",
     "cancel": "Abbrechen",
     "close": "Schließen",
-    "edit": "Bearbeiten",
-    "delete": "Löschen",
+    "back": "Zurück",
+    "next": "Weiter",
     "yes": "Ja",
-    "no": "Nein"
+    "no": "Nein",
+    "or": "oder",
+    "and": "und",
+    "of": "von",
+    "page": "Seite"
   }
 }

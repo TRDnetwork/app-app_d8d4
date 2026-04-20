@@ -2,108 +2,149 @@
   "nav": {
     "home": "Inicio",
     "products": "Productos",
-    "wishlist": "Lista de deseos",
-    "seller": "Vendedor",
-    "admin": "Administrador",
-    "profile": "Perfil",
-    "orderHistory": "Historial de pedidos",
-    "login": "Iniciar sesión",
-    "logout": "Cerrar sesión"
+    "wishlist": "Lista de Deseos",
+    "orders": "Pedidos",
+    "login": "Iniciar Sesión",
+    "register": "Registrarse",
+    "logout": "Cerrar Sesión"
   },
   "header": {
-    "searchPlaceholder": "Buscar productos...",
-    "cart": "Carrito"
+    "search": "Buscar productos...",
+    "cart": "Carrito",
+    "account": "Cuenta"
+  },
+  "footer": {
+    "newsletter": "Mantente Actualizado",
+    "subscribe": "Suscríbete a nuestro boletín",
+    "join": "Unirse",
+    "copyright": "Todos los derechos reservados"
   },
   "product": {
-    "outOfStock": "Agotado",
-    "addToCart": "Añadir al carrito",
-    "saveForLater": "Guardar para más tarde",
-    "quantity": "Cantidad",
+    "price": "Precio",
+    "originalPrice": "Precio Original",
+    "rating": "Calificación",
     "reviews": "Reseñas",
-    "questions": "Preguntas y respuestas",
-    "frequentlyBoughtTogether": "Comprados frecuentemente juntos",
-    "customersAlsoViewed": "Los clientes también vieron"
+    "addToCart": "Añadir al Carrito",
+    "saveToWishlist": "Guardar en Lista de Deseos",
+    "inStock": "En Stock",
+    "outOfStock": "Agotado",
+    "description": "Descripción",
+    "details": "Detalles del Producto",
+    "specifications": "Especificaciones",
+    "reviewsTitle": "Reseñas de Clientes",
+    "writeReview": "Escribir una Reseña",
+    "frequentlyBought": "Frecuentemente Comprados Juntos",
+    "alsoViewed": "Clientes También Vieron"
   },
   "cart": {
-    "title": "Carrito de compras",
+    "title": "Tu Carrito",
     "empty": "Tu carrito está vacío",
-    "continueShopping": "Continuar comprando",
+    "continueShopping": "Continuar Comprando",
     "subtotal": "Subtotal",
+    "discount": "Descuento",
     "delivery": "Entrega",
-    "free": "Gratis",
     "total": "Total",
-    "proceedToCheckout": "Proceder al pago",
+    "proceedToCheckout": "Proceder al Pago",
     "remove": "Eliminar",
-    "updateQuantity": "Actualizar cantidad"
+    "quantity": "Cantidad",
+    "update": "Actualizar",
+    "coupon": "Código de Cupón",
+    "apply": "Aplicar",
+    "invalidCoupon": "Código de cupón inválido",
+    "savedForLater": "Guardado para Más Tarde"
   },
   "checkout": {
     "title": "Pagar",
-    "address": "Dirección",
-    "delivery": "Entrega",
-    "payment": "Pago",
-    "review": "Revisar",
-    "back": "Atrás",
-    "continue": "Continuar",
-    "placeOrder": "Realizar pedido",
-    "orderSummary": "Resumen del pedido",
-    "estimatedDelivery": "Entrega estimada"
+    "shipping": "Dirección de Envío",
+    "selectAddress": "Seleccionar Dirección",
+    "addNewAddress": "Añadir Nueva Dirección",
+    "delivery": "Opciones de Entrega",
+    "standard": "Entrega Estándar",
+    "express": "Entrega Exprés",
+    "sameDay": "Entrega el Mismo Día",
+    "free": "Gratis",
+    "payment": "Método de Pago",
+    "card": "Tarjeta de Crédito/Débito",
+    "upi": "UPI",
+    "cod": "Pago Contra Entrega",
+    "review": "Revisar Pedido",
+    "orderSummary": "Resumen del Pedido",
+    "placeOrder": "Realizar Pedido",
+    "processing": "Procesando..."
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "register": "Registrarse",
+    "email": "Dirección de Correo",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar Contraseña",
+    "forgotPassword": "¿Olvidó su Contraseña?",
+    "resetPassword": "Restablecer Contraseña",
+    "sendResetLink": "Enviar Enlace de Restablecimiento",
+    "name": "Nombre Completo",
+    "phone": "Número de Teléfono",
+    "createAccount": "Crear Cuenta",
+    "welcomeBack": "Bienvenido de nuevo",
+    "newCustomer": "¿Nuevo Cliente?",
+    "existingCustomer": "¿Cliente Existente?"
+  },
+  "profile": {
+    "title": "Mi Perfil",
+    "edit": "Editar Perfil",
+    "addresses": "Mis Direcciones",
+    "addAddress": "Añadir Dirección",
+    "orderHistory": "Historial de Pedidos",
+    "logout": "Cerrar Sesión"
+  },
+  "search": {
+    "title": "Resultados de Búsqueda",
+    "noResults": "No se encontraron productos",
+    "resultsFor": "Resultados para",
+    "filters": "Filtros",
+    "sort": "Ordenar por",
+    "priceLowToHigh": "Precio: Bajo a Alto",
+    "priceHighToLow": "Precio: Alto a Bajo",
+    "newest": "Más Recientes",
+    "bestSelling": "Más Vendidos",
+    "avgRating": "Calificación Promedio"
   },
   "order": {
-    "confirmation": "¡Gracias por tu pedido!",
-    "orderNumber": "Número de pedido",
-    "viewOrderStatus": "Ver estado del pedido",
-    "continueShopping": "Continuar comprando",
+    "confirmation": "Confirmación de Pedido",
+    "thankYou": "¡Gracias por tu pedido!",
+    "orderNumber": "Número de Pedido",
+    "estimatedDelivery": "Entrega Estimada",
+    "trackOrder": "Rastrear Pedido",
+    "downloadInvoice": "Descargar Factura",
     "status": {
       "placed": "Realizado",
       "confirmed": "Confirmado",
       "shipped": "Enviado",
-      "outForDelivery": "En camino",
+      "outForDelivery": "En Camino",
       "delivered": "Entregado",
       "cancelled": "Cancelado",
       "returned": "Devuelto"
-    }
+    },
+    "history": "Historial de Pedidos",
+    "viewDetails": "Ver Detalles"
   },
-  "auth": {
-    "login": {
-      "title": "Inicia sesión en ShopSphere",
-      "email": "Dirección de correo",
-      "password": "Contraseña",
-      "submit": "Iniciar sesión",
-      "forgotPassword": "¿Olvidaste tu contraseña?",
-      "noAccount": "¿No tienes una cuenta?",
-      "createAccount": "Regístrate"
-    },
-    "register": {
-      "title": "Crear una cuenta",
-      "name": "Nombre completo",
-      "email": "Dirección de correo",
-      "password": "Contraseña",
-      "confirmPassword": "Confirmar contraseña",
-      "submit": "Registrarse",
-      "hasAccount": "¿Ya tienes una cuenta?",
-      "signIn": "Iniciar sesión"
-    },
-    "forgotPassword": {
-      "title": "¿Olvidaste tu contraseña?",
-      "description": "Ingresa tu dirección de correo y te enviaremos un enlace para restablecer tu contraseña.",
-      "email": "Dirección de correo",
-      "submit": "Enviar enlace de restablecimiento",
-      "success": "Si existe una cuenta con este correo, se ha enviado un enlace para restablecer la contraseña"
-    },
-    "resetPassword": {
-      "title": "Restablecer contraseña",
-      "newPassword": "Nueva contraseña",
-      "confirmPassword": "Confirmar nueva contraseña",
-      "submit": "Restablecer contraseña"
-    }
+  "wishlist": {
+    "title": "Mi Lista de Deseos",
+    "empty": "Tu lista de deseos está vacía",
+    "browseProducts": "Explorar Productos",
+    "remove": "Eliminar",
+    "moveToCart": "Mover al Carrito"
   },
   "common": {
     "save": "Guardar",
     "cancel": "Cancelar",
     "close": "Cerrar",
-    "edit": "Editar",
-    "delete": "Eliminar",
+    "back": "Atrás",
+    "next": "Siguiente",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "or": "o",
+    "and": "y",
+    "of": "de",
+    "page": "Página"
   }
 }

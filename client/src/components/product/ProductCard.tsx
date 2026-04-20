@@ -1,164 +1,194 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '../ui/button';
-import { Heart, Star } from 'lucide-react';
+import { Star, Heart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Product } from '../../types';
+import { wishlistStore } from '../../stores/wishlistStore';
 import { formatCurrency } from '../../lib/formatters';
-import { Skeleton } from '../ui/skeleton';
-import { useWishlist } from '../../hooks/useWishlist';
-import { trackProductView, trackCTAClick, trackWishlistAdd, trackWishlistRemove } from '../../lib/analytics';
 
-// PERF: Added memoization to prevent unnecessary re-renders when parent re-renders
-const ProductCard = memo(({ product, isLoading = false }) => {
-  const { has, toggle } = useWishlist();
-  const [isImageLoading, setIsImageLoading] = useState(true);
-  const isInWishlist = has(product?._id);
+interface ProductCardProps {
+  product: Product;
+  loading?: boolean;
+}
 
-  // Track product view when the card becomes visible
-  useEffect(() => {
-    if (!isLoading && product) {
-      trackProductView(product._id, {
-        product_name: product.title,
-        price: product.price,
-        category: product.category?.name,
-        brand: product.brand
-      });
+// Mobile-optimized ProductCard with touch-friendly elements
+const ProductCard = React.memo(function ProductCard({ product, loading = false }: ProductCardProps) {
+  const navigate = useNavigate();
+  const toggleWishlist = wishlistStore((state) => state.toggle);
+  const isInWishlist = wishlistStore((state) => state.has(product._id));
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
+
+  // Memoized discount calculation
+  const discount = useMemo(() => {
+    if (product.original_price && product.price) {
+      return Math.round(((product.original_price - product.price) / product.original_price) * 100);
     }
-  }, [isLoading, product]);
+    return 0;
+  }, [product.original_price, product.price]);
 
-  // PERF: Debounce image loading state to prevent flickering
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsImageLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const handleWishlistToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsWishlistLoading(true);
+    try {
+      toggleWishlist(product);
+    } catch (error) {
+      console.error('Failed to update wishlist:', error);
+    } finally {
+      setIsWishlistLoading(false);
+    }
+  };
 
-  if (isLoading) {
+  const handleCardClick = () => {
+    navigate(`/product/${product.slug}`);
+  };
+
+  // Mobile-optimized skeleton loader
+  if (loading) {
     return (
-      <div className="card group overflow-hidden">
-        <Skeleton className="mb-4 h-48 w-full" />
-        <Skeleton className="mb-2 h-4 w-3/4" />
-        <Skeleton className="mb-2 h-4 w-1/2" />
-        <Skeleton className="h-8 w-20" />
+      <div className="bg-card rounded-lg overflow-hidden shadow-sm animate-pulse">
+        <div className="aspect-square bg-muted"></div>
+        <div className="p-3 space-y-2">
+          <div className="h-4 bg-muted rounded"></div>
+          <div className="h-4 bg-muted rounded w-3/4"></div>
+          <div className="h-4 bg-muted rounded w-1/2"></div>
+          <div className="flex items-center justify-between">
+            <div className="h-5 bg-muted rounded w-1/3"></div>
+            <div className="h-5 bg-muted rounded w-8"></div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (!product) return null;
-
-  // PERF: Calculate discount percentage only when needed
-  const getDiscountPercent = () => {
-    if (!product.original_price || product.original_price <= product.price) return 0;
-    return Math.round(((product.original_price - product.price) / product.original_price) * 100);
-  };
-
-  const discountPercent = getDiscountPercent();
-
-  const handleCardClick = () => {
-    trackCTAClick('product_card', 'product_list', {
-      product_id: product._id,
-      product_name: product.title,
-      position: product.position // if available from parent
-    });
-  };
-
-  const handleWishlistToggle = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const action = isInWishlist ? 'remove' : 'add';
-    toggle(product);
-    
-    if (action === 'add') {
-      trackWishlistAdd(product._id, {
-        product_name: product.title,
-        price: product.price
-      });
-    } else {
-      trackWishlistRemove(product._id, {
-        product_name: product.title
-      });
-    }
-  };
-
   return (
-    // PERF: Added key prop for React list optimization
     <div 
-      key={product._id} 
-      className="card group overflow-hidden cursor-pointer" 
-      data-testid="product-card"
+      className="bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
       onClick={handleCardClick}
+      role="link"
+      tabIndex={0}
+      aria-label={`View details for ${product.title}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          handleCardClick();
+        }
+      }}
     >
-      <div className="relative">
-        {/* PERF: Optimized image loading with WebP format and lazy loading */}
-        <img
-          srcSet={`
-            ${product.images?.[0]?.replace('.jpg', '.webp')} 1x,
-            ${product.images?.[0]?.replace('.jpg', '@2x.webp')} 2x
-          `}
-          src={product.images?.[0]?.replace('.jpg', '.webp')}
-          alt={product.title}
-          loading="lazy"
-          width={300}
-          height={300}
-          // PERF: Added onLoad handler to manage loading state
-          onLoad={() => setIsImageLoading(false)}
-          className={`h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
-        />
-        {isImageLoading && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Skeleton className="h-full w-full" />
+      <div className="relative aspect-square">
+        <picture>
+          <source srcSet={`${product.images[0]}?format=webp&quality=80`} type="image/webp" />
+          <img
+            src={`${product.images[0]}?quality=80`}
+            alt={product.title}
+            width={300}
+            height={300}
+            loading="lazy"
+            className="w-full h-full object-cover"
+            fetchPriority="high"
+            aria-describedby={`product-description-${product._id}`}
+          />
+        </picture>
+        
+        {/* Mobile-optimized discount badge */}
+        {discount > 0 && (
+          <div 
+            className="absolute top-2 left-2 bg-accent text-primary-foreground text-xs font-bold px-2 py-1 rounded min-h-6 flex items-center"
+            aria-label={`${discount}% off discount`}
+          >
+            {discount}% OFF
           </div>
         )}
         
-        {/* PERF: Optimized conditional rendering with logical operators */}
-        {discountPercent > 0 && (
-          <span className="absolute left-2 top-2 rounded bg-warning px-2 py-1 text-xs font-bold text-white">
-            -{discountPercent}%
-          </span>
-        )}
-        
+        {/* Mobile-optimized wishlist button with larger tap target */}
         <Button
           variant="ghost"
           size="icon"
-          className="absolute right-2 top-2 rounded-full bg-white/80 p-2 hover:bg-white"
+          className="absolute top-2 right-2 bg-background/80 hover:bg-background min-h-11 min-w-11"
           onClick={handleWishlistToggle}
+          disabled={isWishlistLoading}
           aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+          tabIndex={0}
         >
-          <Heart className={`h-5 w-5 ${isInWishlist ? 'fill-current text-error' : 'text-error'}`} />
+          {isWishlistLoading ? (
+            <div 
+              className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin"
+              role="status"
+              aria-label="Loading"
+            />
+          ) : (
+            <Heart
+              className={`h-5 w-5 ${isInWishlist ? 'fill-accent text-accent' : 'text-muted-foreground'}`}
+              aria-hidden="true"
+            />
+          )}
         </Button>
       </div>
       
-      <div className="mt-4">
-        <h3 className="line-clamp-2 text-sm font-medium" title={product.title}>
+      <div className="p-3">
+        <h3 
+          className="font-semibold text-text line-clamp-2 mb-1 text-sm"
+          id={`product-description-${product._id}`}
+        >
           {product.title}
         </h3>
         
-        <div className="mt-2 flex items-center">
-          <span className="text-lg font-bold text-accent">{formatCurrency(product.price)}</span>
+        {/* Mobile-optimized price display */}
+        <div className="flex items-center gap-2 mb-2">
+          <span 
+            className="text-base font-bold text-accent"
+            aria-label={`Price: ${formatCurrency(product.price)}`}
+          >
+            {formatCurrency(product.price)}
+          </span>
           {product.original_price > product.price && (
-            <span className="ml-2 text-sm text-text-dim line-through">{formatCurrency(product.original_price)}</span>
+            <span 
+              className="text-sm text-text-dim line-through"
+              aria-label={`Was ${formatCurrency(product.original_price)}`}
+            >
+              {formatCurrency(product.original_price)}
+            </span>
           )}
         </div>
         
-        {product.rating && (
-          <div className="mt-1 flex items-center">
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`h-4 w-4 ${i < Math.round(product.rating) ? 'fill-current text-warning' : 'text-muted'}`}
-                />
-              ))}
-            </div>
-            <span className="ml-1 text-sm text-text-dim">({product.review_count || 0})</span>
+        {/* Mobile-optimized rating */}
+        <div className="flex items-center gap-1 mb-3">
+          <div 
+            className="sr-only"
+            aria-label={`Rating: ${product.rating || 0} out of 5 stars, based on ${product.reviews || 0} reviews`}
+          >
+            {product.rating || 0} out of 5 stars, {product.reviews || 0} reviews
           </div>
-        )}
+          {[...Array(5)].map((_, i) => (
+            <Star
+              key={i}
+              className={`h-4 w-4 ${i < Math.floor(product.rating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`}
+              aria-hidden="true"
+            />
+          ))}
+          <span 
+            className="text-xs text-text-dim"
+            aria-label={`${product.reviews || 0} reviews`}
+          >
+            ({product.reviews || 0})
+          </span>
+        </div>
+        
+        {/* Mobile-optimized Add to Cart button */}
+        <Button 
+          className="w-full bg-accent hover:bg-orange-600 min-h-11 text-base"
+          onClick={(e) => {
+            e.stopPropagation();
+            // Add to cart logic would go here
+          }}
+        >
+          Add to Cart
+        </Button>
       </div>
     </div>
   );
 });
 
-// PERF: Added display name for better debugging
 ProductCard.displayName = 'ProductCard';
 
 export default ProductCard;
