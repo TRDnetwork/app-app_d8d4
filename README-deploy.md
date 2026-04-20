@@ -2,48 +2,84 @@
 
 ## Deploy to Vercel
 
-1. Push code to a GitHub repository
-2. Log in to Vercel and import the project
-3. Vercel will auto-detect Next.js and use `npm run build` from client/package.json
-4. Set environment variables in Vercel dashboard (see below)
-5. Deploy
+1. **Import Project**
+   - Go to [vercel.com](https://vercel.com)
+   - Click "New Project" → "Import Git Repository"
+   - Select the ShopSphere repository
+   - Click "Continue"
+
+2. **Configure Environment Variables**
+   - In the Vercel dashboard, go to Settings → Environment Variables
+   - Add all variables from `.env.example` with their production values:
+     - `NEXT_PUBLIC_API_URL` - Your backend API URL
+     - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key
+     - `NEXT_PUBLIC_RESEND_API_KEY` - Resend API key for emails
+     - `NEXT_PUBLIC_APP_ENV` - Set to `production`
+
+3. **Set Build Settings**
+   - Framework: "Next.js"
+   - Build Command: `npm run build`
+   - Output Directory: `.next`
+   - Install Command: `npm install`
+
+4. **Deploy**
+   - Click "Deploy"
+   - Wait for build to complete
+   - Once deployed, copy the production URL
 
 ## Environment Variables
 
-Required in Vercel project settings:
+Required environment variables for production:
 
-**Frontend:**
-- `NEXT_PUBLIC_API_URL` – Base URL for Express backend (e.g., `https://your-backend.onrender.com`)
-- `NEXT_PUBLIC_CLIENT_URL` – Your deployed frontend URL (e.g., `https://shopsphere.vercel.app`)
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` – Stripe publishable key
-
-**Backend:**  
-*(Deploy backend separately on Render/Railway with these vars)*
-- `PORT`, `NODE_ENV`, `JWT_SECRET`, `JWT_REFRESH_SECRET`
-- `MONGODB_URI` – Connection string for MongoDB Atlas
-- OAuth keys: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, etc.
-- Email SMTP credentials
-- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
-- AWS S3 credentials and `S3_BUCKET_NAME`
+| Variable | Description | Source |
+|--------|-------------|--------|
+| `NEXT_PUBLIC_API_URL` | Backend API endpoint | Your backend deployment URL |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe frontend key | [Stripe Dashboard](https://dashboard.stripe.com) |
+| `STRIPE_SECRET_KEY` | Stripe backend secret | [Stripe Dashboard](https://dashboard.stripe.com) |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | Generated when setting up webhook |
+| `RESEND_API_KEY` | Email service API key | [Resend Dashboard](https://resend.com) |
+| `JWT_SECRET` | JWT token signing key | Generate strong random string |
+| `MONGODB_URI` | MongoDB connection string | [MongoDB Atlas](https://cloud.mongodb.com) |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | [Google Cloud Console](https://console.cloud.google.com) |
+| `FACEBOOK_APP_ID` | Facebook App ID | [Facebook Developers](https://developers.facebook.com) |
 
 ## First-time Setup
 
-1. Run database migrations and seed data:
-   ```bash
-   cd server
-   npm run migrate:reset
-   ```
+1. **Database Initialization**
+   - Ensure MongoDB is running or Atlas cluster is created
+   - The application will automatically create collections on first run
+   - Run seed script if needed: `npm run seed` in server directory
 
-2. Deploy backend to Render/Railway with persistent MongoDB (Atlas recommended)
+2. **Backend Deployment**
+   - Deploy backend to Railway/Render:
+     - Import server repository
+     - Add same environment variables
+     - Set PORT to 5000
+     - Deploy service
 
-3. Configure Stripe:
-   - Set webhook endpoint to `https://your-backend.com/api/webhooks/stripe`
-   - Use Stripe CLI to test webhooks locally
+3. **Stripe Webhook Configuration**
+   - In Stripe Dashboard, go to Developers → Webhooks
+   - Add endpoint: `https://your-domain.com/api/stripe/webhook`
+   - Copy webhook signing secret and add to environment variables
+   - Test with Stripe CLI
 
-4. Enable OAuth logins:
-   - Register app with Google/Facebook Developer consoles
-   - Add redirect URIs: `/api/auth/oauth/google/callback`, `/api/auth/oauth/facebook/callback`
+4. **OAuth Setup**
+   - **Google**:
+     - Create project in Google Cloud Console
+     - Enable Google+ API
+     - Create OAuth client ID
+     - Add redirect URI: `https://your-domain.com/api/auth/google/callback`
+   - **Facebook**:
+     - Create app in Facebook Developers
+     - Add Facebook Login product
+     - Add redirect URI: `https://your-domain.com/api/auth/facebook/callback`
 
-5. Set up AWS S3:
-   - Create bucket with public read access for product images
-   - Configure CORS policy to allow your frontend domain
+5. **Email Service**
+   - Create account at Resend.com
+   - Verify domain
+   - Copy API key to environment variables
+
+6. **Monitoring**
+   - Set up Sentry for error tracking
+   - Configure health check endpoint: `GET /api/health`
+   - Set up alerting for critical errors

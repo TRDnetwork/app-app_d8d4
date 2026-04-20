@@ -1,61 +1,45 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-// Define user roles
-export type UserRole = 'customer' | 'seller' | 'admin';
-
-// Define user interface
 export interface IUser extends Document {
   email: string;
   password: string;
   name: string;
-  role: UserRole;
-  profilePictureUrl?: string;
   phone?: string;
+  profilePictureUrl?: string;
   emailVerified: boolean;
-  oauthProvider?: 'google' | 'facebook';
+  oauthProvider?: string;
   oauthId?: string;
-  verificationToken?: string;
-  verificationTokenExpiresAt?: Date;
-  resetPasswordToken?: string;
-  resetPasswordTokenExpiresAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  role: 'customer' | 'seller' | 'admin';
   comparePassword: (password: string) => Promise<boolean>;
 }
 
-// User schema
 const userSchema = new Schema<IUser>(
   {
     email: {
       type: String,
       required: [true, 'Email is required'],
       unique: true,
-      trim: true,
       lowercase: true,
-      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email'],
+      trim: true,
+      match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email'],
     },
     password: {
       type: String,
       required: [true, 'Password is required'],
       minlength: [8, 'Password must be at least 8 characters'],
-      select: false, // Don't return password by default
+      select: false,
     },
     name: {
       type: String,
       required: [true, 'Name is required'],
       trim: true,
     },
-    role: {
+    phone: {
       type: String,
-      enum: ['customer', 'seller', 'admin'],
-      default: 'customer',
+      trim: true,
     },
     profilePictureUrl: {
-      type: String,
-      default: null,
-    },
-    phone: {
       type: String,
       default: null,
     },
@@ -72,27 +56,32 @@ const userSchema = new Schema<IUser>(
       type: String,
       default: null,
     },
+    role: {
+      type: String,
+      enum: ['customer', 'seller', 'admin'],
+      default: 'customer',
+    },
     verificationToken: {
       type: String,
-      default: null,
+      select: false,
     },
     verificationTokenExpiresAt: {
       type: Date,
-      default: null,
+      select: false,
     },
     resetPasswordToken: {
       type: String,
-      default: null,
+      select: false,
     },
     resetPasswordTokenExpiresAt: {
       type: Date,
-      default: null,
+      select: false,
     },
   },
   {
     timestamps: true,
     toJSON: {
-      transform(doc, ret) {
+      transform: function (doc, ret) {
         delete ret.password;
         delete ret.verificationToken;
         delete ret.verificationTokenExpiresAt;
@@ -106,9 +95,8 @@ const userSchema = new Schema<IUser>(
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
-  // Only hash password if it's modified
   if (!this.isModified('password')) return next();
-
+  
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
@@ -120,30 +108,31 @@ userSchema.pre('save', async function (next) {
 
 // Compare password method
 userSchema.methods.comparePassword = async function (password: string): Promise<boolean> {
-  return bcrypt.compare(password, this.password);
+  return await bcrypt.compare(password, this.password);
 };
 
-// Create compound index for OAuth provider and ID
-userSchema.index({ oauthProvider: 1, oauthId: 1 }, { unique: true, sparse: true });
+// Check if email is verified
+userSchema.methods.isEmailVerified = function (): boolean {
+  return this.emailVerified;
+};
 
-// Create index for email
-userSchema.index({ email: 1 }, { unique: true });
+// Check if user is admin
+userSchema.methods.isAdmin = function (): boolean {
+  return this.role === 'admin';
+};
 
-// Create index for verification token
-userSchema.index({ verificationToken: 1 });
+// Check if user is seller
+userSchema.methods.isSeller = function (): boolean {
+  return this.role === 'seller';
+};
 
-// Create index for reset password token
-userSchema.index({ resetPasswordToken: 1 });
+// Check if user is customer
+userSchema.methods.isCustomer = function (): boolean {
+  return this.role === 'customer';
+};
 
-// Create index for email verification status
-userSchema.index({ emailVerified: 1, createdAt: 1 });
-
-// Create index for role
-userSchema.index({ role: 1 });
-
-// Export User model
-const User = mongoose.model<IUser>('User', userSchema);
-export default User;
+export const User = mongoose.model<IUser>('User', userSchema);
 ```
 
 ```typescript
+// SECURITY FIX: Use environment variables for JWT secrets

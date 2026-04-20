@@ -6,16 +6,16 @@ import { generateToken, generateRefreshToken } from '../utils/generateToken';
 
 // Google OAuth configuration
 passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID!, // SECURITY FIX: Use environment variable
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET!, // SECURITY FIX: Use environment variable
+  clientID: process.env.GOOGLE_CLIENT_ID!,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
   callbackURL: '/api/auth/oauth/google/callback',
   passReqToCallback: true
 }, async (request, accessToken, refreshToken, profile, done) => {
   try {
     // Find or create user
     let user = await User.findOne({ 
-      oauth_provider: 'google', 
-      oauth_id: profile.id 
+      oauthProvider: 'google', 
+      oauthId: profile.id 
     });
 
     if (!user) {
@@ -24,18 +24,18 @@ passport.use(new GoogleStrategy({
       
       if (existingUser) {
         // Update existing user with OAuth info
-        existingUser.oauth_provider = 'google';
-        existingUser.oauth_id = profile.id;
+        existingUser.oauthProvider = 'google';
+        existingUser.oauthId = profile.id;
         user = await existingUser.save();
       } else {
         // Create new user
         user = await User.create({
           name: profile.displayName,
           email: profile.emails?.[0].value,
-          oauth_provider: 'google',
-          oauth_id: profile.id,
+          oauthProvider: 'google',
+          oauthId: profile.id,
           role: 'customer',
-          email_verified: true
+          emailVerified: true
         });
       }
     }
@@ -53,8 +53,8 @@ passport.use(new GoogleStrategy({
 
 // Facebook OAuth configuration
 passport.use(new FacebookStrategy({
-  clientID: process.env.FACEBOOK_APP_ID!, // SECURITY FIX: Use environment variable
-  clientSecret: process.env.FACEBOOK_APP_SECRET!, // SECURITY FIX: Use environment variable
+  clientID: process.env.FACEBOOK_APP_ID!,
+  clientSecret: process.env.FACEBOOK_APP_SECRET!,
   callbackURL: '/api/auth/oauth/facebook/callback',
   profileFields: ['id', 'displayName', 'email'],
   passReqToCallback: true
@@ -62,8 +62,8 @@ passport.use(new FacebookStrategy({
   try {
     // Find or create user
     let user = await User.findOne({ 
-      oauth_provider: 'facebook', 
-      oauth_id: profile.id 
+      oauthProvider: 'facebook', 
+      oauthId: profile.id 
     });
 
     if (!user) {
@@ -72,18 +72,18 @@ passport.use(new FacebookStrategy({
       
       if (existingUser) {
         // Update existing user with OAuth info
-        existingUser.oauth_provider = 'facebook';
-        existingUser.oauth_id = profile.id;
+        existingUser.oauthProvider = 'facebook';
+        existingUser.oauthId = profile.id;
         user = await existingUser.save();
       } else {
         // Create new user
         user = await User.create({
           name: profile.displayName,
           email: profile.emails?.[0].value,
-          oauth_provider: 'facebook',
-          oauth_id: profile.id,
+          oauthProvider: 'facebook',
+          oauthId: profile.id,
           role: 'customer',
-          email_verified: true
+          emailVerified: true
         });
       }
     }
@@ -114,7 +114,8 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-export const config = passport;
+export default passport;
 ```
 
 ```typescript
+// SECURITY FIX: Use environment variables for client URL

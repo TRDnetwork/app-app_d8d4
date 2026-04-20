@@ -1,65 +1,45 @@
 import rateLimit from 'express-rate-limit';
-import RedisStore from 'rate-limit-redis';
-import { Redis } from 'ioredis';
 
-// Create Redis client
-const redisClient = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-});
-
-// API rate limiter - 100 requests per minute
+// General rate limiter for API endpoints
 export const apiLimiter = rateLimit({
-  store: new RedisStore({
-    sendCommand: (...args: string[]) => redisClient.call(...args),
-  }),
-  windowMs: 60 * 1000, // 1 minute
+  windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
   message: {
-    error: 'Too many requests, please try again later.',
-    retryAfter: 60,
+    success: false,
+    message: 'Too many requests from this IP, please try again later.',
   },
-  standardHeaders: true,
-  legacyHeaders: false,
 });
 
-// Auth rate limiter - 5 requests per 15 minutes
+// Auth rate limiter for authentication endpoints
 export const authLimiter = rateLimit({
-  store: new RedisStore({
-    sendCommand: (...args: string[]) => redisClient.call(...args),
-  }),
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5,
   message: {
-    error: 'Too many requests, please try again later.',
-    retryAfter: 900,
+    success: false,
+    message: 'Too many authentication attempts, please try again later.',
   },
-  standardHeaders: true,
-  legacyHeaders: false,
 });
 
-// Search rate limiter - 30 requests per minute
-export const searchLimiter = rateLimit({
-  store: new RedisStore({
-    sendCommand: (...args: string[]) => redisClient.call(...args),
-  }),
-  windowMs: 60 * 1000, // 1 minute
-  max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
+// Password reset rate limiter
+export const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3,
+  message: {
+    success: false,
+    message: 'Too many password reset attempts, please try again later.',
+  },
 });
 
-// Payment rate limiter - 10 requests per minute
-export const paymentLimiter = rateLimit({
-  store: new RedisStore({
-    sendCommand: (...args: string[]) => redisClient.call(...args),
-  }),
-  windowMs: 60 * 1000, // 1 minute
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
+// Login rate limiter
+export const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: {
+    success: false,
+    message: 'Too many login attempts, please try again later.',
+  },
 });
+```
 
-// Export Redis client for use in other modules
-export { redisClient };
+```typescript
+// SECURITY FIX: Use generic error message to prevent user enumeration

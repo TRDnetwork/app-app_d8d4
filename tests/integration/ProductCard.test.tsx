@@ -1,99 +1,82 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { ProductCard } from '../../client/src/components/ProductCard';
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { ProductCard } from '../../src/components/ProductCard';
 
 describe('ProductCard', () => {
   const mockProduct = {
     id: '1',
-    name: 'Wireless Headphones',
+    name: 'Test Product',
     price: 99.99,
-    originalPrice: 149.99,
-    image: 'https://example.com/headphones.jpg',
+    originalPrice: 129.99,
+    discountPercent: 23,
+    image: 'https://via.placeholder.com/300',
     rating: 4.5,
-    reviews: 124,
-    discount: 33
+    reviewCount: 124,
   };
 
-  const mockOnAddToCart = vi.fn();
-
-  beforeEach(() => {
-    mockOnAddToCart.mockClear();
-  });
-
-  it('renders product card with all information', () => {
-    render(<ProductCard product={mockProduct} onAddToCart={mockOnAddToCart} />);
-
-    expect(screen.getByAltText(mockProduct.name)).toBeInTheDocument();
-    expect(screen.getByText(mockProduct.name)).toBeInTheDocument();
-    expect(screen.getByText(`$${mockProduct.price}`)).toBeInTheDocument();
-    expect(screen.getByText(`$${mockProduct.originalPrice}`)).toBeInTheDocument();
-    expect(screen.getByText(`${mockProduct.discount}% OFF`)).toBeInTheDocument();
-    expect(screen.getByText(`${mockProduct.reviews}`)).toBeInTheDocument();
-  });
-
-  it('displays correct number of filled stars based on rating', () => {
-    render(<ProductCard product={mockProduct} onAddToCart={mockOnAddToCart} />);
-
-    const stars = screen.getAllByRole('img', { hidden: true });
-    expect(stars).toHaveLength(5);
+  it('renders product name and price', () => {
+    render(<ProductCard product={mockProduct} />);
     
-    // First 4 stars should be filled (4.5 rounds to 4 full stars)
-    for (let i = 0; i < 4; i++) {
-      expect(stars[i]).toHaveAttribute('fill', 'currentColor');
-    }
+    expect(screen.getByText('Test Product')).toBeInTheDocument();
+    expect(screen.getByText('$99.99')).toBeInTheDocument();
+  });
+
+  it('displays original price with strikethrough', () => {
+    render(<ProductCard product={mockProduct} />);
     
-    // Last star should be empty
-    expect(stars[4]).not.toHaveAttribute('fill');
+    const originalPrice = screen.getByText('$129.99');
+    expect(originalPrice).toBeInTheDocument();
+    expect(originalPrice).toHaveClass('line-through');
   });
 
-  it('calls onAddToCart when Add to Cart button is clicked', () => {
-    render(<ProductCard product={mockProduct} onAddToCart={mockOnAddToCart} />);
-
-    fireEvent.click(screen.getByRole('button', { name: /add to cart/i }));
-
-    expect(mockOnAddToCart).toHaveBeenCalledWith(mockProduct);
-  });
-
-  it('does not show discount badge when no discount', () => {
-    const productWithoutDiscount = { ...mockProduct, discount: undefined };
-    render(<ProductCard product={productWithoutDiscount} onAddToCart={mockOnAddToCart} />);
-
-    expect(screen.queryByText(/% off/i)).not.toBeInTheDocument();
-  });
-
-  it('does not show original price when no discount', () => {
-    const productWithoutDiscount = { ...mockProduct, discount: undefined, originalPrice: undefined };
-    render(<ProductCard product={productWithoutDiscount} onAddToCart={mockOnAddToCart} />);
-
-    expect(screen.queryByText(`$${mockProduct.originalPrice}`)).not.toBeInTheDocument();
-  });
-
-  it('handles missing optional fields gracefully', () => {
-    const minimalProduct = {
-      id: '2',
-      name: 'Basic Product',
-      price: 49.99,
-      image: 'https://example.com/product.jpg'
-    };
-
-    render(<ProductCard product={minimalProduct} onAddToCart={mockOnAddToCart} />);
-
-    expect(screen.getByText(minimalProduct.name)).toBeInTheDocument();
-    expect(screen.getByText(`$${minimalProduct.price}`)).toBeInTheDocument();
-    expect(screen.queryByText(/% off/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/\(/)).not.toBeInTheDocument();
-  });
-
-  it('applies hover effects', () => {
-    render(<ProductCard product={mockProduct} onAddToCart={mockOnAddToCart} />);
-
-    const card = screen.getByTestId('product-card');
+  it('shows discount percentage', () => {
+    render(<ProductCard product={mockProduct} />);
     
-    // Initial state
-    expect(card).not.toHaveClass('hover:shadow-lg');
+    expect(screen.getByText('23% off')).toBeInTheDocument();
+  });
+
+  it('renders product image with correct src', () => {
+    render(<ProductCard product={mockProduct} />);
     
-    // Simulate hover
-    fireEvent.mouseEnter(card);
-    expect(card).toHaveClass('hover:shadow-lg');
+    const image = screen.getByAltText('Test Product');
+    expect(image).toBeInTheDocument();
+    expect(image).toHaveAttribute('src', 'https://via.placeholder.com/300');
+  });
+
+  it('displays rating stars', () => {
+    render(<ProductCard product={mockProduct} />);
+    
+    const ratingElement = screen.getByText('4.5');
+    expect(ratingElement).toBeInTheDocument();
+  });
+
+  it('shows review count', () => {
+    render(<ProductCard product={mockProduct} />);
+    
+    expect(screen.getByText('124 reviews')).toBeInTheDocument();
+  });
+
+  it('applies correct styling for high rating', () => {
+    const highRatingProduct = { ...mockProduct, rating: 4.8 };
+    render(<ProductCard product={highRatingProduct} />);
+    
+    const ratingElement = screen.getByText('4.8');
+    expect(ratingElement).toHaveClass('text-green-500');
+  });
+
+  it('applies correct styling for medium rating', () => {
+    const mediumRatingProduct = { ...mockProduct, rating: 3.5 };
+    render(<ProductCard product={mediumRatingProduct} />);
+    
+    const ratingElement = screen.getByText('3.5');
+    expect(ratingElement).toHaveClass('text-yellow-500');
+  });
+
+  it('applies correct styling for low rating', () => {
+    const lowRatingProduct = { ...mockProduct, rating: 2.0 };
+    render(<ProductCard product={lowRatingProduct} />);
+    
+    const ratingElement = screen.getByText('2.0');
+    expect(ratingElement).toHaveClass('text-red-500');
   });
 });

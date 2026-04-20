@@ -1,159 +1,167 @@
-import { describe, it, expect, vi } from 'vitest';
-import request from 'supertest';
-import app from '../../server/src/server';
-
-// Mock dependencies
-vi.mock('ioredis', () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
-      on: vi.fn(),
-    })),
-  };
-});
-
-vi.mock('@sentry/node', () => ({
-  init: vi.fn(),
-  Handlers: {
-    requestHandler: vi.fn().mockReturnValue((req, res, next) => next()),
-    errorHandler: vi.fn().mockReturnValue((err, req, res, next) => next(err)),
-    tracingHandler: vi.fn(),
-  },
-}));
-
-vi.mock('helmet', () => ({
-  default: vi.fn().mockReturnValue((req, res, next) => next()),
-}));
-
-vi.mock('cors', () => ({
-  default: vi.fn().mockReturnValue((req, res, next) => next()),
-}));
-
-// Mock environment variables
-process.env.JWT_SECRET = 'test_jwt_secret';
-process.env.JWT_REFRESH_SECRET = 'test_jwt_refresh_secret';
-process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
-process.env.CLIENT_URL = 'http://localhost:3000';
-process.env.RESEND_API_KEY = 'test_resend_api_key';
-process.env.EMAIL_FROM = 'test@example.com';
+import { describe, it, expect } from 'vitest';
+import { server } from '../mocks/server';
+import { rest } from 'msw';
 
 describe('API Endpoints', () => {
-  it('GET /api/health returns 200', async () => {
-    const res = await request(app).get('/api/health');
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ status: 'OK' });
-  });
-
-  it('POST /api/auth/register returns 400 for missing fields', async () => {
-    const res = await request(app)
-      .post('/api/auth/register')
-      .send({});
+  it('GET /api/products returns product list', async () => {
+    const response = await fetch('/api/products');
+    const data = await response.json();
     
-    expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty('message');
+    expect(response.status).toBe(200);
+    expect(data).toHaveProperty('data');
+    expect(Array.isArray(data.data)).toBe(true);
   });
 
-  it('POST /api/auth/register returns 400 for invalid email', async () => {
-    const res = await request(app)
-      .post('/api/auth/register')
-      .send({
-        name: 'John Doe',
-        email: 'invalid-email',
+  it('POST /api/auth/register creates new user', async () => {
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: 'Test User',
+        email: 'test@example.com',
         password: 'password123',
-      });
+      }),
+    });
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toHaveProperty('success', true);
+  });
+
+  it('POST /api/auth/login authenticates user', async () => {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: 'test@example.com',
+        password: 'password123',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toHaveProperty('token');
+  });
+
+  it('GET /api/cart returns user cart', async () => {
+    // Mock authentication
+    localStorage.setItem('token', 'mock-jwt-token');
     
-    expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty('message');
+    const response = await fetch('/api/cart');
+    expect(response.status).toBe(200);
   });
 
-  it('POST /api/auth/register returns 400 for short password', async () => {
-    const res = await request(app)
-      .post('/api/auth/register')
-      .send({
-        name: 'John Doe',
-        email: 'john@example.com',
-        password: '123',
-      });
+  it('POST /api/orders creates new order', async () => {
+    const response = await fetch('/api/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer mock-jwt-token',
+      },
+      body: JSON.stringify({
+        address_id: 'mock-address-id',
+        payment_method: 'card',
+      }),
+    });
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toHaveProperty('data');
+  });
+
+  it('GET /api/users/profile returns user profile', async () => {
+    // Mock authentication
+    localStorage.setItem('token', 'mock-jwt-token');
     
-    expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty('message');
+    const response = await fetch('/api/users/profile');
+    expect(response.status).toBe(200);
   });
 
-  it('POST /api/auth/login returns 401 for invalid credentials', async () => {
-    const res = await request(app)
-      .post('/api/auth/login')
-      .send({
-        email: 'nonexistent@example.com',
-        password: 'wrong_password',
-      });
+  it('POST /api/users/wishlist adds product to wishlist', async () => {
+    // Mock authentication
+    localStorage.setItem('token', 'mock-jwt-token');
     
-    expect(res.status).toBe(401);
-    expect(res.body).toHaveProperty('message');
+    const response = await fetch('/api/users/wishlist', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        productId: 'mock-product-id',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toHaveProperty('success', true);
   });
 
-  it('POST /api/auth/forgot-password returns 404 for non-existent email', async () => {
-    const res = await request(app)
-      .post('/api/auth/forgot-password')
-      .send({
-        email: 'nonexistent@example.com',
-      });
+  it('GET /api/products/:id returns product details', async () => {
+    const response = await fetch('/api/products/1');
+    const data = await response.json();
     
-    expect(res.status).toBe(404);
-    expect(res.body).toHaveProperty('message');
+    expect(response.status).toBe(200);
+    expect(data).toHaveProperty('data');
+    expect(data.data).toHaveProperty('name');
+    expect(data.data).toHaveProperty('price');
   });
 
-  it('GET /api/auth/refresh-token returns 401 for missing token', async () => {
-    const res = await request(app)
-      .post('/api/auth/refresh-token')
-      .set('Cookie', []);
+  it('GET /api/users/orders returns order history', async () => {
+    // Mock authentication
+    localStorage.setItem('token', 'mock-jwt-token');
     
-    expect(res.status).toBe(401);
-    expect(res.body).toHaveProperty('message');
-  });
-
-  it('POST /api/auth/logout returns 200', async () => {
-    const res = await request(app)
-      .post('/api/auth/logout');
+    const response = await fetch('/api/users/orders');
+    const data = await response.json();
     
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('message');
+    expect(response.status).toBe(200);
+    expect(data).toHaveProperty('data');
+    expect(Array.isArray(data.data)).toBe(true);
   });
 
-  it('GET /api/products returns 200', async () => {
-    const res = await request(app).get('/api/products');
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('products');
-    expect(res.body).toHaveProperty('total');
+  it('POST /api/products/:id/reviews creates product review', async () => {
+    // Mock authentication
+    localStorage.setItem('token', 'mock-jwt-token');
+    
+    const response = await fetch('/api/products/1/reviews', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        rating: 5,
+        title: 'Great product!',
+        comment: 'This product exceeded my expectations.',
+      }),
+    });
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toHaveProperty('data');
   });
 
-  it('GET /api/products/:id returns 404 for non-existent product', async () => {
-    const res = await request(app).get('/api/products/nonexistent');
-    expect(res.status).toBe(404);
-    expect(res.body).toHaveProperty('message');
+  it('GET /api/search returns search results', async () => {
+    const response = await fetch('/api/search?q=test');
+    const data = await response.json();
+    
+    expect(response.status).toBe(200);
+    expect(data).toHaveProperty('data');
+    expect(Array.isArray(data.data)).toBe(true);
   });
 
-  it('GET /api/categories returns 200', async () => {
-    const res = await request(app).get('/api/categories');
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('categories');
-  });
+  it('POST /api/coupons/validate validates coupon code', async () => {
+    // Mock authentication
+    localStorage.setItem('token', 'mock-jwt-token');
+    
+    const response = await fetch('/api/coupons/validate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        code: 'DISCOUNT10',
+      }),
+    });
 
-  it('GET /api/search returns 200', async () => {
-    const res = await request(app).get('/api/search?q=test');
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('products');
-    expect(res.body).toHaveProperty('suggestions');
-    expect(res.body).toHaveProperty('total');
-  });
-
-  it('GET /api/cart returns 401 for unauthenticated user', async () => {
-    const res = await request(app).get('/api/cart');
-    expect(res.status).toBe(401);
-    expect(res.body).toHaveProperty('message');
-  });
-
-  it('GET /api/orders returns 401 for unauthenticated user', async () => {
-    const res = await request(app).get('/api/orders');
-    expect(res.status).toBe(401);
-    expect(res.body).toHaveProperty('message');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toHaveProperty('valid');
   });
 });

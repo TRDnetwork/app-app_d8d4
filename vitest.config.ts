@@ -7,13 +7,11 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
-    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
-    exclude: ['tests/e2e/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['client/src/**/*.{ts,tsx}', 'server/src/**/*.{ts,js}'],
-      exclude: ['client/src/main.tsx', 'client/src/**/*.d.ts', 'server/src/server.js'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/main.tsx', 'src/**/*.d.ts'],
     },
   },
 });

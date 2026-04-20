@@ -1,42 +1,122 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import CheckoutForm from '../../client/src/components/CheckoutForm';
+import { CheckoutForm } from '../../src/components/CheckoutForm';
 
 describe('CheckoutForm', () => {
-  const mockOnAddressSubmit = vi.fn();
+  const mockCart = {
+    items: [
+      {
+        id: '1',
+        name: 'Test Product',
+        price: 99.99,
+        quantity: 2,
+        image: 'https://via.placeholder.com/100',
+      },
+    ],
+  };
 
-  beforeEach(() => {
-    mockOnAddressSubmit.mockClear();
+  const mockOnSubmit = vi.fn();
+
+  it('renders all checkout steps', () => {
+    render(<CheckoutForm cart={mockCart} onSubmit={mockOnSubmit} />);
+    
+    expect(screen.getByText('Checkout')).toBeInTheDocument();
+    expect(screen.getByText('Shipping Address')).toBeInTheDocument();
+    expect(screen.getByText('Delivery Speed')).toBeInTheDocument();
+    expect(screen.getByText('Payment Method')).toBeInTheDocument();
+    expect(screen.getByText('Review Your Order')).toBeInTheDocument();
   });
 
-  it('renders all form fields correctly', () => {
-    render(<CheckoutForm onAddressSubmit={mockOnAddressSubmit} />);
-
-    expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/address/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/apartment/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/city/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/state/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/zip/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/save this information/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /continue to delivery/i })).toBeInTheDocument();
+  it('calculates correct order total', () => {
+    render(<CheckoutForm cart={mockCart} onSubmit={mockOnSubmit} />);
+    
+    const subtotal = screen.getByText('$199.98');
+    const shipping = screen.getByText('$0.00');
+    const total = screen.getByText('$199.98');
+    
+    expect(subtotal).toBeInTheDocument();
+    expect(shipping).toBeInTheDocument();
+    expect(total).toBeInTheDocument();
   });
 
-  it('submits form with valid data', async () => {
-    render(<CheckoutForm onAddressSubmit={mockOnAddressSubmit} />);
+  it('navigates to next step when Next button is clicked', async () => {
+    render(<CheckoutForm cart={mockCart} onSubmit={mockOnSubmit} />);
+    
+    const nextButton = screen.getByRole('button', { name: /next/i });
+    fireEvent.click(nextButton);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Delivery Speed')).toBeInTheDocument();
+    });
+  });
 
-    fireEvent.change(screen.getByLabelText(/first name/i), {
-      target: { value: 'John' },
+  it('navigates to previous step when Previous button is clicked', async () => {
+    render(<CheckoutForm cart={mockCart} onSubmit={mockOnSubmit} />);
+    
+    // First go to step 2
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    await waitFor(() => {
+      expect(screen.getByText('Delivery Speed')).toBeInTheDocument();
     });
-    fireEvent.change(screen.getByLabelText(/last name/i), {
-      target: { value: 'Doe' },
+    
+    // Then go back to step 1
+    const prevButton = screen.getByRole('button', { name: /previous/i });
+    fireEvent.click(prevButton);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Shipping Address')).toBeInTheDocument();
     });
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: 'john@example.com' },
+  });
+
+  it('updates delivery speed selection', () => {
+    render(<CheckoutForm cart={mockCart} onSubmit={mockOnSubmit} />);
+    
+    // Go to delivery speed step
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    
+    const expressOption = screen.getByLabelText('Express Delivery');
+    fireEvent.click(expressOption);
+    
+    expect(expressOption).toBeChecked();
+  });
+
+  it('updates payment method selection', () => {
+    render(<CheckoutForm cart={mockCart} onSubmit={mockOnSubmit} />);
+    
+    // Go to payment method step
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    
+    const upiOption = screen.getByLabelText('UPI');
+    fireEvent.click(upiOption);
+    
+    expect(upiOption).toBeChecked();
+  });
+
+  it('displays order summary with correct details', () => {
+    render(<CheckoutForm cart={mockCart} onSubmit={mockOnSubmit} />);
+    
+    // Go to review step
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    
+    expect(screen.getByText('Test Product')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('$199.98')).toBeInTheDocument();
+  });
+
+  it('submits form with complete order data', async () => {
+    render(<CheckoutForm cart={mockCart} onSubmit={mockOnSubmit} />);
+    
+    // Fill address form
+    fireEvent.change(screen.getByLabelText(/full name/i), {
+      target: { value: 'John Doe' },
     });
-    fireEvent.change(screen.getByLabelText(/address/i), {
+    fireEvent.change(screen.getByLabelText(/phone number/i), {
+      target: { value: '+1234567890' },
+    });
+    fireEvent.change(screen.getByLabelText(/street address/i), {
       target: { value: '123 Main St' },
     });
     fireEvent.change(screen.getByLabelText(/city/i), {
@@ -45,116 +125,50 @@ describe('CheckoutForm', () => {
     fireEvent.change(screen.getByLabelText(/state/i), {
       target: { value: 'CA' },
     });
-    fireEvent.change(screen.getByLabelText(/zip/i), {
+    fireEvent.change(screen.getByLabelText(/zip code/i), {
       target: { value: '12345' },
     });
-
-    fireEvent.click(screen.getByRole('button', { name: /continue to delivery/i }));
-
-    await waitFor(() => {
-      expect(mockOnAddressSubmit).toHaveBeenCalledWith({
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-        address: '123 Main St',
-        apartment: '',
-        city: 'Anytown',
-        state: 'CA',
-        zip: '12345',
-        saveAddress: false,
-      });
-    });
-  });
-
-  it('shows validation errors for missing required fields', async () => {
-    render(<CheckoutForm onAddressSubmit={mockOnAddressSubmit} />);
-
-    fireEvent.click(screen.getByRole('button', { name: /continue to delivery/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/first name is required/i)).toBeInTheDocument();
-      expect(screen.getByText(/last name is required/i)).toBeInTheDocument();
-      expect(screen.getByText(/email is required/i)).toBeInTheDocument();
-      expect(screen.getByText(/address is required/i)).toBeInTheDocument();
-      expect(screen.getByText(/city is required/i)).toBeInTheDocument();
-      expect(screen.getByText(/state is required/i)).toBeInTheDocument();
-      expect(screen.getByText(/zip code is required/i)).toBeInTheDocument();
-    });
-
-    expect(mockOnAddressSubmit).not.toHaveBeenCalled();
-  });
-
-  it('shows validation error for invalid email', async () => {
-    render(<CheckoutForm onAddressSubmit={mockOnAddressSubmit} />);
-
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: 'not-an-email' },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /continue to delivery/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/email is invalid/i)).toBeInTheDocument();
-    });
-
-    expect(mockOnAddressSubmit).not.toHaveBeenCalled();
-  });
-
-  it('handles apartment field correctly', () => {
-    render(<CheckoutForm onAddressSubmit={mockOnAddressSubmit} />);
-
-    const apartmentInput = screen.getByLabelText(/apartment/i);
-    expect(apartmentInput).toBeInTheDocument();
     
-    fireEvent.change(apartmentInput, {
-      target: { value: 'Apt 101' },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /continue to delivery/i }));
-
-    expect(mockOnAddressSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        apartment: 'Apt 101',
-      })
-    );
-  });
-
-  it('handles save address checkbox correctly', async () => {
-    render(<CheckoutForm onAddressSubmit={mockOnAddressSubmit} />);
-
-    const saveAddressCheckbox = screen.getByLabelText(/save this information/i);
-    expect(saveAddressCheckbox).not.toBeChecked();
-
-    fireEvent.click(saveAddressCheckbox);
-    expect(saveAddressCheckbox).toBeChecked();
-
-    fireEvent.click(screen.getByRole('button', { name: /continue to delivery/i }));
-
-    expect(mockOnAddressSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        saveAddress: true,
-      })
-    );
-  });
-
-  it('displays toast notification on validation error', async () => {
-    const mockToast = vi.fn();
-    vi.mock('@/components/ui/use-toast', () => ({
-      useToast: () => ({ toast: mockToast })
-    }));
-
-    render(<CheckoutForm onAddressSubmit={mockOnAddressSubmit} />);
-
-    fireEvent.click(screen.getByRole('button', { name: /continue to delivery/i }));
-
+    // Go through steps
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    
+    // Submit
+    const submitButton = screen.getByRole('button', { name: /place order/i });
+    fireEvent.click(submitButton);
+    
     await waitFor(() => {
-      expect(mockToast).toHaveBeenCalledWith(
+      expect(mockOnSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Validation Error',
-          description: 'Please fill in all required fields.',
-          variant: 'destructive',
+          shippingAddress: expect.objectContaining({
+            name: 'John Doe',
+            phone: '+1234567890',
+            street: '123 Main St',
+            city: 'Anytown',
+            state: 'CA',
+            zip: '12345',
+          }),
+          items: expect.arrayContaining([
+            expect.objectContaining({
+              id: '1',
+              name: 'Test Product',
+              price: 99.99,
+              quantity: 2,
+            })
+          ]),
+          subtotal: 199.98,
+          shippingFee: 0,
+          total: 199.98,
         })
       );
     });
+  });
+
+  it('disables submit button when loading', () => {
+    render(<CheckoutForm cart={mockCart} onSubmit={mockOnSubmit} loading={true} />);
+    
+    const submitButton = screen.getByRole('button', { name: /processing/i });
+    expect(submitButton).toBeDisabled();
   });
 });

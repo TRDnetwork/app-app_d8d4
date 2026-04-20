@@ -97,4 +97,90 @@ class EmailService {
    */
   static async sendOrderConfirmation(
     orderId: string, 
-    email: string,
+    email: string, 
+    orderDate: string,
+    items: Array<{name: string, price: number, quantity: number}>,
+    total: number
+  ): Promise<void> {
+    try {
+      const { data, error } = await resend.emails.send({
+        from: process.env.EMAIL_FROM || 'ShopSphere <onboarding@resend.dev>',
+        to: [email],
+        subject: `Order Confirmation #${orderId}`,
+        html: templates.orderConfirmation(orderId, orderDate, items, total),
+      });
+
+      if (error) {
+        console.error('Error sending order confirmation email:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('Order confirmation email sent successfully:', data);
+    } catch (error) {
+      console.error('Failed to send order confirmation email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sends password reset email
+   * @param email - Recipient email address
+   * @param token - Password reset token
+   */
+  static async sendPasswordReset(email: string, token: string): Promise<void> {
+    try {
+      const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
+      
+      const { data, error } = await resend.emails.send({
+        from: process.env.EMAIL_FROM || 'ShopSphere <onboarding@resend.dev>',
+        to: [email],
+        subject: 'Password Reset Request',
+        html: templates.passwordReset(resetUrl),
+      });
+
+      if (error) {
+        console.error('Error sending password reset email:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('Password reset email sent successfully:', data);
+    } catch (error) {
+      console.error('Failed to send password reset email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sends email verification email
+   * @param email - Recipient email address
+   * @param token - Verification token
+   */
+  static async sendEmailVerification(email: string, token: string): Promise<void> {
+    try {
+      const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
+      
+      const { data, error } = await resend.emails.send({
+        from: process.env.EMAIL_FROM || 'ShopSphere <onboarding@resend.dev>',
+        to: [email],
+        subject: 'Verify your email address',
+        html: templates.emailVerification(verificationUrl),
+      });
+
+      if (error) {
+        console.error('Error sending email verification:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('Email verification sent successfully:', data);
+    } catch (error) {
+      console.error('Failed to send email verification:', error);
+      throw error;
+    }
+  }
+}
+
+export default EmailService;
+```
+
+```typescript
+// SECURITY FIX: Use environment variables for client URL
