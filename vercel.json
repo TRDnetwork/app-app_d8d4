@@ -4,10 +4,6 @@
     {
       "source": "/api/:path*",
       "destination": "https://shopsphere-server.onrender.com/api/:path*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/"
     }
   ]
 }

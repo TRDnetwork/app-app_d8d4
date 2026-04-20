@@ -17,7 +17,7 @@ const upload = multer({
       // SECURITY FIX: Use secure temporary directory with proper permissions
       const uploadDir = '/tmp/shopsphere-imports';
       // Ensure directory exists with proper permissions
-      require('fs').mkdirSync(uploadDir, { recursive: true });
+      require('fs').mkdirSync(uploadDir, { recursive: true, mode: 0o700 });
       cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
@@ -42,368 +42,359 @@ const upload = multer({
   }
 });
 
-// Column mapping configuration for different entity types
-const COLUMN_MAPPINGS = {
-  products: {
-    required: ['title', 'price', 'category'],
-    optional: ['description', 'brand', 'sku', 'stock_quantity', 'images'],
-    mapping: {
-      'title': 'title',
-      'name': 'title',
-      'price': 'price',
-      'cost': 'price',
-      'original_price': 'original_price',
-      'discount_percent': 'discount_percent',
-      'description': 'description',
-      'desc': 'description',
-      'category': 'category',
-      'category_id': 'category_id',
-      'brand': 'brand',
-      'sku': 'sku',
-      'stock': 'stock_quantity',
-      'stock_quantity': 'stock_quantity',
-      'images': 'images',
-      'image_urls': 'images',
-      'status': 'status'
-    }
-  },
-  users: {
-    required: ['email', 'name'],
-    optional: ['phone', 'role'],
-    mapping: {
-      'email': 'email',
-      'name': 'name',
-      'full_name': 'name',
-      'first_name': 'name',
-      'phone': 'phone',
-      'mobile': 'phone',
-      'role': 'role',
-      'user_role': 'role'
-    }
-  },
-  orders: {
-    required: ['user_id', 'total', 'items'],
-    optional: ['status', 'delivery_speed'],
-    mapping: {
-      'user_id': 'user_id',
-      'customer_id': 'user_id',
-      'total': 'total',
-      'subtotal': 'subtotal',
-      'delivery_charge': 'delivery_charge',
-      'items': 'items',
-      'order_items': 'items',
-      'status': 'status',
-      'delivery_speed': 'delivery_speed'
-    }
-  },
-  categories: {
-    required: ['name'],
-    optional: ['description', 'parent_id'],
-    mapping: {
-      'name': 'name',
-      'slug': 'slug',
-      'description': 'description',
-      'parent_id': 'parent_id',
-      'parent_category': 'parent_id'
-    }
-  }
-};
-
-/**
- * Upload and preview import file
- * Shows first 5 rows for validation before import
- */
-export const uploadImportFile = async (req: Request, res: Response) => {
+// Import data from CSV/JSON file
+export const importData = async (req: Request, res: Response) => {
   try {
-    // SECURITY FIX: Validate user role for import operations
+    // SECURITY FIX: Validate user authentication and role
     if (!req.user || !['admin', 'seller'].includes(req.user.role)) {
       return res.status(StatusCodes.FORBIDDEN).json({
-        error: 'Insufficient permissions to perform import'
+        success: false,
+        message: 'Insufficient permissions'
       });
     }
 
-    // Use multer to handle file upload
-    upload.single('file')(req, res, async (err) => {
-      if (err) {
-        logger.error('File upload error:', err);
-        return res.status(StatusCodes.BAD_REQUEST).json({
-          error: err.message || 'File upload failed'
-        });
-      }
-
-      if (!req.file) {
-        return res.status(StatusCodes.BAD_REQUEST).json({
-          error: 'No file provided'
-        });
-      }
-
-      const { entity_type } = req.body;
-      
-      if (!entity_type || !COLUMN_MAPPINGS[entity_type]) {
-        return res.status(StatusCodes.BAD_REQUEST).json({
-          error: 'Invalid or missing entity type'
-        });
-      }
-
-      const filePath = req.file.path;
-      const fileExtension = path.extname(req.file.originalname).toLowerCase();
-
-      let previewData;
-      let columnSuggestions = {};
-
-      try {
-        // Parse file based on type
-        if (fileExtension === '.csv') {
-          const parser = new CSVParser();
-          previewData = await parser.parseCSV(filePath, 5);
-          columnSuggestions = parser.suggestColumnMapping(previewData[0], entity_type);
-        } else if (fileExtension === '.json') {
-          const validator = new JSONValidator();
-          previewData = await validator.parseJSON(filePath, 5);
-          columnSuggestions = validator.suggestColumnMapping(previewData[0], entity_type);
-        } else {
-          return res.status(StatusCodes.BAD_REQUEST).json({
-            error: 'Unsupported file format. Please use CSV or JSON.'
-          });
-        }
-
-        // Validate required columns
-        const requiredColumns = COLUMN_MAPPINGS[entity_type].required;
-        const missingColumns = requiredColumns.filter(col => 
-          !Object.values(columnSuggestions).includes(col)
-        );
-
-        res.status(StatusCodes.OK).json({
-          success: true,
-          file_id: path.basename(filePath),
-          entity_type,
-          preview: previewData,
-          suggested_mapping: columnSuggestions,
-          missing_required_columns: missingColumns,
-          total_rows: previewData.length
-        });
-
-      } catch (parseError: any) {
-        logger.error('File parsing error:', parseError);
-        return res.status(StatusCodes.BAD_REQUEST).json({
-          error: parseError.message || 'Failed to parse file'
-        });
-      }
-    });
-
-  } catch (error: any) {
-    logger.error('Upload import file error:', error);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      error: 'Failed to process import file'
-    });
-  }
-};
-
-/**
- * Start import process with column mapping
- * Uses background job queue for large files
- */
-export const startImport = async (req: Request, res: Response) => {
-  try {
-    // SECURITY FIX: Validate user role
-    if (!req.user || !['admin', 'seller'].includes(req.user.role)) {
-      return res.status(StatusCodes.FORBIDDEN).json({
-        error: 'Insufficient permissions to perform import'
-      });
-    }
-
-    const { file_id, entity_type, column_mapping, update_existing = false } = req.body;
-
-    // Validate required fields
-    if (!file_id || !entity_type || !column_mapping) {
+    // SECURITY FIX: Validate request body
+    if (!req.body.entityType) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Missing required fields: file_id, entity_type, column_mapping'
+        success: false,
+        message: 'Entity type is required'
       });
     }
 
-    if (!COLUMN_MAPPINGS[entity_type]) {
+    const validEntityTypes = ['products', 'users', 'orders', 'categories'];
+    if (!validEntityTypes.includes(req.body.entityType)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Invalid entity type'
+        success: false,
+        message: 'Invalid entity type'
       });
     }
 
-    // Validate column mapping
-    const requiredColumns = COLUMN_MAPPINGS[entity_type].required;
-    const missingMapping = requiredColumns.filter(col => 
-      !Object.values(column_mapping).includes(col)
-    );
-
-    if (missingMapping.length > 0) {
+    // SECURITY FIX: Validate file upload
+    if (!req.file) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        error: `Missing required column mappings: ${missingMapping.join(', ')}`
+        success: false,
+        message: 'File is required'
       });
     }
 
-    // SECURITY FIX: Validate file path to prevent directory traversal
-    const sanitizedFileId = sanitizeFilename(file_id);
-    const filePath = path.join('/tmp/shopsphere-imports', sanitizedFileId);
-
-    // Check if file exists
-    try {
-      await require('fs').promises.access(filePath);
-    } catch (error) {
+    // SECURITY FIX: Validate file size
+    if (req.file.size > 10 * 1024 * 1024) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Import file not found or expired'
+        success: false,
+        message: 'File size exceeds 10MB limit'
+      });
+    }
+
+    // SECURITY FIX: Validate file extension
+    const fileExt = path.extname(req.file.originalname).toLowerCase();
+    if (!['.csv', '.json'].includes(fileExt)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Invalid file extension. Only CSV and JSON files are allowed.'
       });
     }
 
     // Create import job
-    const importJob = await importQueue.add('import', {
-      filePath,
-      entity_type,
-      column_mapping,
-      update_existing,
-      user_id: req.user.id,
-      file_id: sanitizedFileId
-    }, {
-      removeOnComplete: true,
-      removeOnFail: 5
+    const importJob = {
+      id: new ObjectId(),
+      userId: req.user._id,
+      entityType: req.body.entityType,
+      fileName: req.file.filename,
+      filePath: req.file.path,
+      fileSize: req.file.size,
+      mimeType: req.file.mimetype,
+      status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    // Add job to queue
+    await importQueue.add('import', importJob);
+
+    logger.info('Import job created', { 
+      jobId: importJob.id, 
+      userId: req.user._id, 
+      entityType: req.body.entityType 
     });
 
-    logger.info('Import job created', {
-      jobId: importJob.id,
-      entity_type,
-      user_id: req.user.id,
-      file_id: sanitizedFileId
-    });
-
-    res.status(StatusCodes.ACCEPTED).json({
+    res.status(StatusCodes.OK).json({
       success: true,
-      message: 'Import process started',
-      job_id: importJob.id,
-      entity_type,
-      status: 'pending'
+      message: 'Import job created successfully',
+      data: {
+        jobId: importJob.id,
+        status: 'pending',
+        entityType: req.body.entityType,
+        fileName: req.file.originalname,
+        fileSize: req.file.size
+      }
     });
-
   } catch (error: any) {
-    logger.error('Start import error:', error);
+    logger.error('Error creating import job:', error);
+    
+    // SECURITY FIX: Don't expose internal error details
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      error: 'Failed to start import process'
+      success: false,
+      message: 'Failed to create import job'
     });
   }
 };
 
-/**
- * Get import status
- * Pollable endpoint for frontend to check import progress
- */
+// Preview import data
+export const previewImport = async (req: Request, res: Response) => {
+  try {
+    // SECURITY FIX: Validate user authentication and role
+    if (!req.user || !['admin', 'seller'].includes(req.user.role)) {
+      return res.status(StatusCodes.FORBIDDEN).json({
+        success: false,
+        message: 'Insufficient permissions'
+      });
+    }
+
+    // SECURITY FIX: Validate request body
+    if (!req.body.entityType || !req.body.file) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Entity type and file are required'
+      });
+    }
+
+    const validEntityTypes = ['products', 'users', 'orders', 'categories'];
+    if (!validEntityTypes.includes(req.body.entityType)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Invalid entity type'
+      });
+    }
+
+    // SECURITY FIX: Validate file data
+    if (!req.body.file.content || !req.body.file.mimeType) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'File content and MIME type are required'
+      });
+    }
+
+    const { content, mimeType } = req.body.file;
+
+    // Parse file content based on MIME type
+    let parsedData;
+    if (mimeType === 'text/csv') {
+      parsedData = await CSVParser.parse(content);
+    } else if (mimeType === 'application/json') {
+      parsedData = JSONValidator.validate(content);
+    } else {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Invalid file type. Only CSV and JSON files are allowed.'
+      });
+    }
+
+    // SECURITY FIX: Limit preview to first 5 rows
+    const previewData = parsedData.slice(0, 5);
+
+    // Map columns based on entity type
+    const columnMapping = getColumnMapping(req.body.entityType);
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data: {
+        preview: previewData,
+        columnMapping,
+        totalRows: parsedData.length
+      }
+    });
+  } catch (error: any) {
+    logger.error('Error previewing import data:', error);
+    
+    // SECURITY FIX: Don't expose internal error details
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Failed to preview import data'
+    });
+  }
+};
+
+// Get import job status
 export const getImportStatus = async (req: Request, res: Response) => {
   try {
-    const { job_id } = req.params;
-
-    if (!job_id) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Job ID is required'
+    // SECURITY FIX: Validate user authentication
+    if (!req.user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'Authentication required'
       });
     }
 
-    const job = await importQueue.getJob(job_id);
+    // SECURITY FIX: Validate job ID format
+    if (!req.params.jobId || !/^[0-9a-fA-F]{24}$/.test(req.params.jobId)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Invalid job ID format'
+      });
+    }
 
+    // SECURITY FIX: Verify job belongs to user or user has admin role
+    const job = await importQueue.getJob(req.params.jobId);
     if (!job) {
       return res.status(StatusCodes.NOT_FOUND).json({
-        error: 'Import job not found'
+        success: false,
+        message: 'Import job not found'
       });
     }
 
-    const jobStatus = await job.getState();
-    const progress = job.progress;
-
-    let responseStatus;
-    switch (jobStatus) {
-      case 'completed':
-        responseStatus = 'completed';
-        break;
-      case 'failed':
-        responseStatus = 'failed';
-        break;
-      case 'delayed':
-      case 'waiting':
-        responseStatus = 'pending';
-        break;
-      case 'active':
-        responseStatus = 'processing';
-        break;
-      default:
-        responseStatus = jobStatus;
-    }
-
-    // Get job result if available
-    let result = null;
-    if (jobStatus === 'completed' || jobStatus === 'failed') {
-      result = await job.finished();
+    if (job.data.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(StatusCodes.FORBIDDEN).json({
+        success: false,
+        message: 'Insufficient permissions'
+      });
     }
 
     res.status(StatusCodes.OK).json({
-      job_id,
-      status: responseStatus,
-      progress,
-      result,
-      created_at: job.timestamp,
-      updated_at: Date.now()
+      success: true,
+      data: {
+        jobId: job.id,
+        status: job.data.status,
+        progress: job.progress,
+        entityType: job.data.entityType,
+        fileName: job.data.fileName,
+        createdAt: job.data.createdAt,
+        updatedAt: job.data.updatedAt,
+        error: job.failedReason
+      }
     });
-
   } catch (error: any) {
-    logger.error('Get import status error:', error);
+    logger.error('Error getting import status:', error);
+    
+    // SECURITY FIX: Don't expose internal error details
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      error: 'Failed to retrieve import status'
+      success: false,
+      message: 'Failed to get import status'
     });
   }
 };
 
-/**
- * Cancel import job
- */
+// Cancel import job
 export const cancelImport = async (req: Request, res: Response) => {
   try {
-    const { job_id } = req.params;
-
-    if (!job_id) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Job ID is required'
+    // SECURITY FIX: Validate user authentication
+    if (!req.user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'Authentication required'
       });
     }
 
-    const job = await importQueue.getJob(job_id);
+    // SECURITY FIX: Validate job ID format
+    if (!req.params.jobId || !/^[0-9a-fA-F]{24}$/.test(req.params.jobId)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Invalid job ID format'
+      });
+    }
 
+    // SECURITY FIX: Verify job belongs to user or user has admin role
+    const job = await importQueue.getJob(req.params.jobId);
     if (!job) {
       return res.status(StatusCodes.NOT_FOUND).json({
-        error: 'Import job not found'
+        success: false,
+        message: 'Import job not found'
       });
     }
 
-    const jobStatus = await job.getState();
+    if (job.data.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(StatusCodes.FORBIDDEN).json({
+        success: false,
+        message: 'Insufficient permissions'
+      });
+    }
 
-    // Only allow cancellation of pending or active jobs
-    if (!['waiting', 'active', 'delayed'].includes(jobStatus)) {
+    // SECURITY FIX: Only allow cancellation of pending jobs
+    if (job.data.status !== 'pending') {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Cannot cancel job in current state'
+        success: false,
+        message: 'Cannot cancel job that is not pending'
       });
     }
 
+    // Remove job from queue
     await job.remove();
 
-    logger.info('Import job cancelled', {
-      job_id,
-      user_id: req.user?.id
+    logger.info('Import job cancelled', { 
+      jobId: req.params.jobId, 
+      userId: req.user._id 
     });
 
     res.status(StatusCodes.OK).json({
       success: true,
       message: 'Import job cancelled successfully'
     });
-
   } catch (error: any) {
-    logger.error('Cancel import error:', error);
+    logger.error('Error cancelling import job:', error);
+    
+    // SECURITY FIX: Don't expose internal error details
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      error: 'Failed to cancel import job'
+      success: false,
+      message: 'Failed to cancel import job'
     });
   }
 };
+
+// Helper function to get column mapping based on entity type
+const getColumnMapping = (entityType: string) => {
+  const mappings: Record<string, Record<string, string>> = {
+    products: {
+      title: 'Title',
+      slug: 'Slug',
+      description: 'Description',
+      price: 'Price',
+      original_price: 'Original Price',
+      discount_percent: 'Discount Percent',
+      sku: 'SKU',
+      stock_quantity: 'Stock Quantity',
+      brand: 'Brand',
+      category_id: 'Category ID',
+      seller_id: 'Seller ID',
+      status: 'Status',
+      is_featured: 'Is Featured',
+      is_sponsored: 'Is Sponsored'
+    },
+    users: {
+      email: 'Email',
+      name: 'Name',
+      phone: 'Phone',
+      role: 'Role',
+      profile_picture_url: 'Profile Picture URL',
+      email_verified: 'Email Verified',
+      loyalty_points: 'Loyalty Points'
+    },
+    orders: {
+      user_id: 'User ID',
+      order_number: 'Order Number',
+      items: 'Items',
+      address: 'Address',
+      delivery_speed: 'Delivery Speed',
+      payment_method: 'Payment Method',
+      subtotal: 'Subtotal',
+      discount: 'Discount',
+      delivery_charge: 'Delivery Charge',
+      total: 'Total',
+      status: 'Status',
+      tracking_number: 'Tracking Number'
+    },
+    categories: {
+      name: 'Name',
+      slug: 'Slug',
+      parent_id: 'Parent ID',
+      image_url: 'Image URL',
+      order: 'Order'
+    }
+  };
+
+  return mappings[entityType] || {};
+};
+
+// Export upload middleware
+export const uploadMiddleware = upload.single('file');
 ```
 
 ```typescript

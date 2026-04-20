@@ -1,0 +1,2 @@
+-- Not applicable — Stripe webhook handler is implemented in the Express backend (server/src/routes/stripe-webhook.ts) by Payment Agent.
+-- Supabase Edge Functions are not used in this project.

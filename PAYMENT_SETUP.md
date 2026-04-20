@@ -1,11 +1,8 @@
-# ShopSphere Payment Setup Guide
+# ShopSphere Payment Integration Setup
 
-## Stripe Integration
+## Stripe Configuration
 
-ShopSphere uses Stripe as the primary payment gateway for secure, global transactions.
-
-### Environment Variables
-
+### 1. Environment Variables
 Add these to your `.env` file:
 
 ```env
@@ -18,65 +15,42 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 FRONTEND_URL=http://localhost:5173
 ```
 
-### Webhook Configuration
-
+### 2. Webhook Setup
 1. Install Stripe CLI: `npm install -g stripe`
 2. Login: `stripe login`
 3. Start webhook forwarding:
-   ```bash
-   stripe listen --forward-to localhost:3000/api/stripe/webhook
-   ```
-4. Copy the webhook secret to `.env` as `STRIPE_WEBHOOK_SECRET`
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+4. Copy the webhook signing secret and add to `.env`
 5. In [Stripe Dashboard](https://dashboard.stripe.com/webhooks), add your production endpoint:
-   ```
-   https://your-api-domain.com/api/stripe/webhook
-   ```
+   - URL: `https://your-api-domain.com/api/stripe/webhook`
+   - Events: `checkout.session.completed`, `payment_intent.succeeded`, `payment_intent.payment_failed`
 
-### Required Webhook Events
+### 3. Payment Flow
+1. User selects address, delivery speed, and payment method in checkout
+2. Frontend calls `/api/stripe/create-checkout-session` with order details
+3. Backend creates pending order in MongoDB and Stripe Checkout Session
+4. User redirected to Stripe Checkout
+5. On payment success, Stripe sends webhook to `/api/stripe/webhook`
+6. Webhook updates order status and reduces product inventory
 
-Ensure these events are enabled in Stripe Dashboard:
-- `checkout.session.completed`
-- `payment_intent.succeeded`
-- `payment_intent.payment_failed`
+### 4. Testing
+Use Stripe test cards:
+- Successful payment: `4242 4242 4242 4242`
+- Requires authentication: `4000 0025 0000 3155`
+- Declined: `4000 0000 0000 0002`
 
-### Testing Payments
+### 5. Security
+- Webhook signatures are verified
+- Idempotency: Orders are checked for duplicate processing
+- JWT authentication on checkout session creation
+- No sensitive data stored client-side
 
-Use these test card numbers:
-
-| Card | Number | Description |
-|------|--------|-------------|
-| Visa | `4242 4242 4242 4242` | Succeeds |
-| Visa (3D Secure) | `4000 0025 0000 3155` | Requires authentication |
-| Declined | `4000 0000 0000 0002` | Always declines |
-
-### Security Best Practices
-
-1. **Never expose secret keys** in frontend code
-2. **Verify webhook signatures** to prevent spoofing
-3. **Use idempotency keys** for critical operations
-4. **Validate all inputs** before processing payments
-5. **Monitor failed payments** and webhook deliveries
-
-### Production Checklist
-
-- [ ] Update to live API keys
-- [ ] Configure production webhook URL
+### 6. Production Checklist
+- [ ] Replace test keys with live keys
+- [ ] Update FRONTEND_URL to production domain
 - [ ] Enable Stripe Radar for fraud protection
 - [ ] Set up payout schedule in Stripe Dashboard
-- [ ] Implement payment failure notifications
-- [ ] Monitor webhook delivery success rate
-- [ ] Set up alerting for failed webhooks
-
-### Troubleshooting
-
-**Issue**: Webhook signature verification failed
-- Solution: Ensure `STRIPE_WEBHOOK_SECRET` matches exactly with Stripe Dashboard
-
-**Issue**: Session not found on confirmation page
-- Solution: Check that `success_url` includes `{CHECKOUT_SESSION_ID}` placeholder
-
-**Issue**: Duplicate orders from webhooks
-- Solution: The system already prevents this by checking for existing `stripe_session_id`
-
-**Issue**: CORS errors during checkout
-- Solution: Ensure your frontend URL is added to Stripe Dashboard > Settings > CORS
+- [ ] Monitor webhook delivery in Stripe Dashboard
+- [ ] Implement alerting for failed webhooks

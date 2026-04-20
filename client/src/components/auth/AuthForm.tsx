@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useAuth } from '../../lib/auth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Google, Facebook } from 'lucide-react';
+import { Google, Facebook, Loader2, Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
 import { toast } from '../ui/use-toast';
 import DOMPurify from 'dompurify';
+import { trackAuthEvent, trackCTAClick, trackFormSubmit } from '../../lib/analytics';
 
 // Validation schemas
 const emailSchema = z.string().email('Please enter a valid email address');
@@ -34,12 +35,25 @@ const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
+const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+const resetPasswordSchema = z.object({
+  newPassword: passwordSchema,
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 interface AuthFormProps {
-  mode: 'login' | 'register';
+  mode: 'login' | 'register' | 'forgot-password' | 'reset-password';
   onSuccess?: () => void;
+  token?: string; // For reset password mode
 }
 
-const AuthForm: React.FC<AuthFormProps> = ({ mode, onSuccess }) => {
+const AuthForm: React.FC<AuthFormProps> = ({ mode, onSuccess, token }) => {
   const [searchParams] = useSearchParams();
   const [formData, setFormData] = useState({
     name: '',
@@ -52,8 +66,23 @@ const AuthForm: React.FC<AuthFormProps> = ({ mode, onSuccess }) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   
-  const { login, register, getAuthError } = useAuth();
+  const { 
+    signIn, 
+    signUp, 
+    signInWithProvider, 
+    handleAuthCallback,
+    forgotPassword,
+    resetPassword
+  } = useAuth();
   const navigate = useNavigate();
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      handleAuthCallback();
+    }
+  }, [searchParams, handleAuthCallback]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,64 +92,22 @@ const AuthForm: React.FC<AuthFormProps> = ({ mode, onSuccess }) => {
 
     try {
       // Validate form data
-      const validationSchema = mode === 'login' ? loginSchema : registerSchema;
-      const result = validationSchema.safeParse(formData);
+      let validationSchema;
+      switch (mode) {
+        case 'login':
+          validationSchema = loginSchema;
+          break;
+        case 'register':
+          validationSchema = registerSchema;
+          break;
+        case 'forgot-password':
+          validationSchema = forgotPasswordSchema;
+          break;
+        case 'reset-password':
+          validationSchema = resetPasswordSchema;
+          break;
+      }
       
-      if (!result.success) {
-        const fieldErrors: Record<string, string> = {};
-        result.error.errors.forEach((error) => {
-          fieldErrors[error.path[0]] = error.message;
-        });
-        setErrors(fieldErrors);
-        return;
-      }
-
-      // Perform authentication
-      if (mode === 'login') {
-        await login(formData.email, formData.password);
-      } else {
-        await register(formData.name, formData.email, formData.password);
-      }
-
-      // Redirect on success
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        const redirect = searchParams.get('redirect') || '/';
-        navigate(redirect);
-      }
-    } catch (error: any) {
-      // Sanitize error message before displaying
-      const sanitizedMessage = DOMPurify.sanitize(error.message || 'An error occurred');
+      const result = validationSchema?.safeParse(formData);
       
-      toast({
-        variant: "destructive",
-        title: "Authentication failed",
-        description: sanitizedMessage,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  // Handle password visibility toggle
-  const togglePasswordVisibility = () => {
-    setIsPasswordVisible(!isPasswordVisible);
-  };
-
-  const toggleConfirmPasswordVisibility =
+      if (!
