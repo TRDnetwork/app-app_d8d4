@@ -1,114 +1,100 @@
-```ts
 import express from 'express';
-import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
-import { logger } from './utils/logger';
-import { errorHandler } from './middleware/errorHandler';
-import { correlationId } from './middleware/correlationId';
-import { requestLogger } from './middleware/requestLogger';
-import { performanceMonitor } from './middleware/performanceMonitor';
+import morgan from 'morgan';
+import { rateLimit } from 'express-rate-limit';
+import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import authRoutes from './routes/authRoutes';
-import oauthRoutes from './routes/oauthRoutes';
-import healthRoutes from './routes/healthRoutes';
-import { initSentry, captureError } from './utils/monitoring';
-import * as Sentry from '@sentry/node';
-import * as Tracing from '@sentry/tracing';
+import productRoutes from './routes/productRoutes';
+import categoryRoutes from './routes/categoryRoutes';
+import cartRoutes from './routes/cartRoutes';
+import orderRoutes from './routes/orderRoutes';
+import reviewRoutes from './routes/reviewRoutes';
+import wishlistRoutes from './routes/wishlistRoutes';
+import searchRoutes from './routes/searchRoutes';
+import sellerRoutes from './routes/sellerRoutes';
+import adminRoutes from './routes/adminRoutes';
+import emailRoutes from './routes/emailRoutes';
+import paymentRoutes from './routes/paymentRoutes';
+import { connectDB } from './config/db';
 
+// Load environment variables
 dotenv.config();
 
-// Initialize Sentry
-initSentry();
+// Connect to database
+connectDB();
 
-// Validate required environment variables
-if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
-}
-
-if (!process.env.JWT_REFRESH_SECRET) {
-  throw new Error('JWT_REFRESH_SECRET environment variable is required');
-}
-
-if (!process.env.MONGODB_URI) {
-  throw new Error('MONGODB_URI environment variable is required');
-}
-
-if (!process.env.CLIENT_URL) {
-  throw new Error('CLIENT_URL environment variable is required');
-}
-
+// Initialize express app
 const app = express();
-
-// Request ID middleware must be first
-app.use(correlationId);
-
-// Sentry request handler must be after correlationId
-app.use(Sentry.Handlers.requestHandler());
-app.use(Sentry.Handlers.tracingHandler());
 
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      fontSrc: ["'self'", "https:", "data:"],
-      connectSrc: ["'self'", "https:"],
-      frameSrc: ["'self'"]
-    }
-  }
+      scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "cdn.jsdelivr.net", "res.cloudinary.com"],
+      fontSrc: ["'self'", "fonts.gstatic.com"],
+      connectSrc: ["'self'", "api.stripe.com"],
+    },
+  },
 }));
 
-// Use exact origin matching instead of dynamic origin
+// Rate limiting
+app.use('/api/', apiLimiter);
+app.use('/api/auth/', authLimiter);
+
+// Body parsing
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// CORS
 app.use(cors({
   origin: process.env.CLIENT_URL,
   credentials: true,
 }));
 
-// Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Logging
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
 
-// Performance monitoring middleware
-app.use(performanceMonitor);
-
-// Request logging middleware
-app.use(requestLogger);
-
-// API Routes
+// API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/auth/oauth', oauthRoutes);
-app.use('/api', healthRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/seller', sellerRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/email', emailRoutes);
+app.use('/api/payment', paymentRoutes);
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK' });
+});
 
 // Error handling middleware
-app.use(Sentry.Handlers.errorHandler());
-app.use(errorHandler);
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error(err.stack);
+  res.status(500).json({
+    message: 'Something went wrong!',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
 
 // 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
-    success: false,
-    message: 'Route not found',
+    message: 'Route not found'
   });
-});
-
-// Global error handler
-process.on('unhandledRejection', (err: Error) => {
-  captureError(err, {
-    type: 'unhandledRejection',
-  });
-  process.exit(1);
-});
-
-process.on('uncaughtException', (err: Error) => {
-  captureError(err, {
-    type: 'uncaughtException',
-  });
-  process.exit(1);
 });
 
 export default app;
-```
