@@ -1,19 +1,17 @@
 const mongoose = require('mongoose');
 
-const questionSchema = new mongoose.Schema({
-  _id: {
-    type: mongoose.Schema.Types.ObjectId,
-    default: () => new mongoose.Types.ObjectId()
-  },
+const QuestionSchema = new mongoose.Schema({
   product_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
-    required: true
+    required: true,
+    index: true
   },
   user_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
+    index: true
   },
   question: {
     type: String,
@@ -29,14 +27,15 @@ const questionSchema = new mongoose.Schema({
   },
   created_at: {
     type: Date,
-    default: Date.now
+    default: Date.now,
+    index: true
   }
 }, {
+  timestamps: false,
   collection: 'app_d8d4_questions'
 });
 
-questionSchema.index({ product_id: 1 });
-questionSchema.index({ user_id: 1 });
-questionSchema.index({ created_at: -1 });
+QuestionSchema.index({ product_id: 1, created_at: -1 });
+QuestionSchema.index({ user_id: 1, product_id: 1 });
 
-module.exports = mongoose.model('Question', questionSchema);
+module.exports = mongoose.model('Question', QuestionSchema);

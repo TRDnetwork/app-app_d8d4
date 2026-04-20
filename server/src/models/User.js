@@ -1,20 +1,17 @@
 const mongoose = require('mongoose');
 
-const userSchema = new mongoose.Schema({
-  _id: {
-    type: mongoose.Schema.Types.ObjectId,
-    default: () => new mongoose.Types.ObjectId()
-  },
+const UserSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
     unique: true,
     trim: true,
-    lowercase: true
+    lowercase: true,
+    index: true
   },
   password_hash: {
     type: String,
-    required: function() { return !this.oauth_provider; } // OAuth users don't need password
+    required: true
   },
   name: {
     type: String,
@@ -24,7 +21,8 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     enum: ['customer', 'seller', 'admin'],
-    default: 'customer'
+    default: 'customer',
+    index: true
   },
   profile_picture_url: {
     type: String,
@@ -38,30 +36,49 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  email_verification_token: {
+    type: String,
+    default: null
+  },
+  email_verification_expires: {
+    type: Date,
+    default: null
+  },
+  reset_password_token: {
+    type: String,
+    default: null
+  },
+  reset_password_expires: {
+    type: Date,
+    default: null
+  },
   oauth_provider: {
     type: String,
-    enum: ['google', 'facebook', null],
-    default: null
+    enum: ['google', 'facebook', 'none'],
+    default: 'none'
   },
   oauth_id: {
     type: String,
-    default: null
+    default: null,
+    index: true
   },
   created_at: {
     type: Date,
-    default: Date.now
+    default: Date.now,
+    index: true
   },
   updated_at: {
     type: Date,
     default: Date.now
   }
 }, {
-  collection: 'app_d8d4_users',
-  timestamps: { updatedAt: 'updated_at' }
+  timestamps: true,
+  collection: 'app_d8d4_users'
 });
 
-userSchema.index({ email: 1 });
-userSchema.index({ role: 1 });
-userSchema.index({ oauth_provider: 1, oauth_id: 1 }, { unique: true, sparse: true });
+UserSchema.pre('save', function(next) {
+  this.updated_at = Date.now();
+  next();
+});
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model('User', UserSchema);

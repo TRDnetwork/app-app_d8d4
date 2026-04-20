@@ -1,27 +1,26 @@
 const mongoose = require('mongoose');
 
-const variantSchema = new mongoose.Schema({
-  size: { type: String },
-  color: { type: String },
-  sku: { type: String, required: true },
-  price: { type: Number },
-  stock: { type: Number, default: 0 }
-}, { _id: false });
+const VariantSchema = new mongoose.Schema({
+  size: { type: String, default: null },
+  color: { type: String, default: null },
+  sku: { type: String, required: true, unique: true },
+  price: { type: Number, required: true },
+  stock: { type: Number, required: true, min: 0 },
+  image: { type: String, default: null }
+});
 
-const productSchema = new mongoose.Schema({
-  _id: {
-    type: mongoose.Schema.Types.ObjectId,
-    default: () => new mongoose.Types.ObjectId()
-  },
+const ProductSchema = new mongoose.Schema({
   seller_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
+    index: true
   },
   title: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    index: true
   },
   description: {
     type: String,
@@ -29,16 +28,21 @@ const productSchema = new mongoose.Schema({
   },
   brand: {
     type: String,
-    trim: true
+    required: true,
+    trim: true,
+    index: true
   },
   category_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
-    required: true
+    required: true,
+    index: true
   },
   subcategory_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Category'
+    ref: 'Category',
+    default: null,
+    index: true
   },
   price: {
     type: Number,
@@ -53,36 +57,44 @@ const productSchema = new mongoose.Schema({
   },
   stock: {
     type: Number,
-    default: 0
+    required: true,
+    min: 0,
+    index: true
   },
   images: [{
     type: String,
-    default: []
+    required: true
   }],
-  variants: [variantSchema],
+  variants: [VariantSchema],
   tags: [{
-    type: String
+    type: String,
+    index: true
   }],
   status: {
     type: String,
     enum: ['active', 'inactive'],
-    default: 'active'
+    default: 'active',
+    index: true
   },
   created_at: {
+    type: Date,
+    default: Date.now,
+    index: true
+  },
+  updated_at: {
     type: Date,
     default: Date.now
   }
 }, {
+  timestamps: true,
   collection: 'app_d8d4_products'
 });
 
-productSchema.index({ seller_id: 1 });
-productSchema.index({ category_id: 1 });
-productSchema.index({ subcategory_id: 1 });
-productSchema.index({ brand: 1 });
-productSchema.index({ status: 1 });
-productSchema.index({ title: 'text', brand: 'text', description: 'text' }); // For search
-productSchema.index({ created_at: -1 });
-productSchema.index({ price: 1 });
+ProductSchema.pre('save', function(next) {
+  this.updated_at = Date.now();
+  next();
+});
 
-module.exports = mongoose.model('Product', productSchema);
+ProductSchema.index({ title: 'text', description: 'text', brand: 'text', tags: 'text' });
+
+module.exports = mongoose.model('Product', ProductSchema);

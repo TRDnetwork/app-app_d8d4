@@ -1,28 +1,32 @@
 const mongoose = require('mongoose');
 
-const wishlistSchema = new mongoose.Schema({
-  _id: {
-    type: mongoose.Schema.Types.ObjectId,
-    default: () => new mongoose.Types.ObjectId()
-  },
+const WishlistSchema = new mongoose.Schema({
   user_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    unique: true
+    unique: true,
+    index: true
   },
   product_ids: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product'
+    ref: 'Product',
+    index: true
   }],
   updated_at: {
     type: Date,
     default: Date.now
   }
 }, {
+  timestamps: false,
   collection: 'app_d8d4_wishlists'
 });
 
-wishlistSchema.index({ user_id: 1 }, { unique: true });
+WishlistSchema.pre('save', function(next) {
+  this.updated_at = Date.now();
+  next();
+});
 
-module.exports = mongoose.model('Wishlist', wishlistSchema);
+WishlistSchema.index({ user_id: 1 });
+
+module.exports = mongoose.model('Wishlist', WishlistSchema);
