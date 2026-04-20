@@ -1,70 +1,55 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
 
-export interface ICoupon extends Document {
-  code: string;
-  discountType: 'percent' | 'fixed';
-  discountValue: number;
-  minOrderValue?: number;
-  expiryDate: Date;
-  usageLimit?: number;
-  usedCount: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const CouponSchema = new Schema<ICoupon>(
+const couponSchema = new Schema(
   {
     code: {
       type: String,
-      required: [true, 'Coupon code is required'],
+      required: true,
       unique: true,
       uppercase: true,
-      trim: true,
-      maxlength: [20, 'Coupon code cannot exceed 20 characters'],
     },
-    discountType: {
+    discount_type: {
       type: String,
       enum: ['percent', 'fixed'],
-      required: [true, 'Discount type is required'],
+      required: true,
     },
-    discountValue: {
+    discount_value: {
       type: Number,
-      required: [true, 'Discount value is required'],
-      min: [0, 'Discount value cannot be negative'],
-      validate: {
-        validator: function (this: ICoupon, value: number) {
-          if (this.discountType === 'percent') return value <= 100;
-          return true;
-        },
-        message: 'Percent discount cannot exceed 100%',
-      },
+      required: true,
+      min: 0,
     },
-    minOrderValue: {
-      type: Number,
-      min: [0, 'Minimum order value cannot be negative'],
-    },
-    expiryDate: {
-      type: Date,
-      required: [true, 'Expiry date is required'],
-    },
-    usageLimit: {
-      type: Number,
-      min: [1, 'Usage limit must be at least 1'],
-    },
-    usedCount: {
+    min_order_value: {
       type: Number,
       default: 0,
-      min: [0, 'Used count cannot be negative'],
+    },
+    max_uses: {
+      type: Number,
+      default: Infinity,
+    },
+    used_count: {
+      type: Number,
+      default: 0,
+    },
+    valid_from: {
+      type: Date,
+      required: true,
+    },
+    valid_until: {
+      type: Date,
+      required: true,
+    },
+    active: {
+      type: Boolean,
+      default: true,
     },
   },
   {
     timestamps: true,
+    collection: 'app_d8d4_coupons',
   }
 );
 
-// Index for coupon code lookup and expiry checks
-CouponSchema.index({ code: 1 });
-CouponSchema.index({ expiryDate: 1 });
-CouponSchema.index({ usedCount: 1 });
+couponSchema.index({ code: 1 }, { unique: true });
+couponSchema.index({ active: 1, valid_from: 1, valid_until: 1 });
 
-export default mongoose.model<ICoupon>('Coupon', CouponSchema);
+export default models.Coupon || model('Coupon', couponSchema);

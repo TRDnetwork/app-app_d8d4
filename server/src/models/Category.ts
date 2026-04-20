@@ -1,45 +1,35 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
 
-export interface ICategory extends Document {
-  name: string;
-  slug: string;
-  parentId?: mongoose.Types.ObjectId;
-  imageUrl?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const CategorySchema = new Schema<ICategory>(
+const categorySchema = new Schema(
   {
     name: {
       type: String,
-      required: [true, 'Category name is required'],
-      trim: true,
-      maxlength: [50, 'Category name cannot exceed 50 characters'],
+      required: true,
     },
     slug: {
       type: String,
-      required: [true, 'Slug is required'],
+      required: true,
       unique: true,
-      lowercase: true,
-      trim: true,
-      match: [/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase, alphanumeric, and hyphen-separated'],
     },
-    parentId: {
+    parent_id: {
       type: Schema.Types.ObjectId,
       ref: 'Category',
     },
-    imageUrl: {
+    image_url: {
       type: String,
+    },
+    order: {
+      type: Number,
+      default: 0,
     },
   },
   {
     timestamps: true,
+    collection: 'app_d8d4_categories',
   }
 );
 
-// Index for parent-child lookups and slug lookup
-CategorySchema.index({ parentId: 1 });
-CategorySchema.index({ slug: 1 });
+categorySchema.index({ slug: 1 }, { unique: true });
+categorySchema.index({ parent_id: 1 });
 
-export default mongoose.model<ICategory>('Category', CategorySchema);
+export default models.Category || model('Category', categorySchema);

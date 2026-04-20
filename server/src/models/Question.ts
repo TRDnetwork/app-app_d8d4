@@ -1,45 +1,38 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
 
-export interface IQuestion extends Document {
-  productId: mongoose.Types.ObjectId;
-  userId: mongoose.Types.ObjectId;
-  question: string;
-  answer?: string;
-  answeredAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const QuestionSchema = new Schema<IQuestion>(
+const questionSchema = new Schema(
   {
-    productId: {
+    product_id: {
       type: Schema.Types.ObjectId,
       ref: 'Product',
       required: true,
     },
-    userId: {
+    user_id: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
     question: {
       type: String,
-      required: [true, 'Question is required'],
-      maxlength: [500, 'Question cannot exceed 500 characters'],
+      required: true,
     },
     answer: {
       type: String,
-      maxlength: [500, 'Answer cannot exceed 500 characters'],
     },
-    answeredAt: Date,
+    answered_by: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    answered_at: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
+    collection: 'app_d8d4_questions',
   }
 );
 
-// Index for product questions and user questions
-QuestionSchema.index({ productId: 1, createdAt: -1 });
-QuestionSchema.index({ userId: 1, createdAt: -1 });
+questionSchema.index({ product_id: 1, created_at: -1 });
 
-export default mongoose.model<IQuestion>('Question', QuestionSchema);
+export default models.Question || model('Question', questionSchema);

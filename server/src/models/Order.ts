@@ -1,104 +1,116 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
 
-export interface IOrderItem {
-  product: mongoose.Types.ObjectId;
-  variant?: string;
-  quantity: number;
-  price: number;
-  sellerId: mongoose.Types.ObjectId;
-}
+const orderItemSchema = new Schema({
+  product_id: {
+    type: Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true,
+  },
+  variant: {
+    size: String,
+    color: String,
+  },
+  quantity: {
+    type: Number,
+    required: true,
+  },
+  price: {
+    type: Number,
+    required: true,
+  },
+  seller_id: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+});
 
-export interface IAddress {
-  label: string;
-  street: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
-}
+const addressSchema = new Schema({
+  label: String,
+  street: String,
+  city: String,
+  state: String,
+  zip: String,
+  country: String,
+});
 
-export interface IOrder extends Document {
-  userId: mongoose.Types.ObjectId;
-  orderNumber: string;
-  items: IOrderItem[];
-  totalAmount: number;
-  discountAmount?: number;
-  deliveryFee: number;
-  taxAmount?: number;
-  paymentMethod?: string;
-  paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';
-  orderStatus: 'placed' | 'confirmed' | 'shipped' | 'out_for_delivery' | 'delivered' | 'cancelled';
-  address: IAddress;
-  trackingNumber?: string;
-  deliverySpeed: string;
-  couponCode?: string;
-  stripeSessionId?: string;
-  stripePaymentIntentId?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deliveredAt?: Date;
-  cancelledAt?: Date;
-}
-
-const OrderSchema = new Schema<IOrder>(
+const orderSchema = new Schema(
   {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    orderNumber: { type: String, unique: true, required: true },
-    items: [
-      {
-        product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
-        variant: { type: String },
-        quantity: { type: Number, required: true },
-        price: { type: Number, required: true },
-        sellerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-      },
-    ],
-    totalAmount: { type: Number, required: true },
-    discountAmount: { type: Number },
-    deliveryFee: { type: Number, required: true },
-    taxAmount: { type: Number },
-    paymentMethod: { type: String },
-    paymentStatus: {
+    user_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    order_number: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    items: [orderItemSchema],
+    total_amount: {
+      type: Number,
+      required: true,
+    },
+    discount_amount: {
+      type: Number,
+      default: 0,
+    },
+    delivery_fee: {
+      type: Number,
+      required: true,
+    },
+    tax_amount: {
+      type: Number,
+      required: true,
+    },
+    payment_method: {
+      type: String,
+      enum: ['card', 'upi', 'cod'],
+      required: true,
+    },
+    payment_status: {
       type: String,
       enum: ['pending', 'completed', 'failed', 'refunded'],
       default: 'pending',
     },
-    orderStatus: {
+    order_status: {
       type: String,
-      enum: ['placed', 'confirmed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'],
+      enum: [
+        'placed',
+        'confirmed',
+        'shipped',
+        'out_for_delivery',
+        'delivered',
+        'cancelled',
+        'returned',
+      ],
       default: 'placed',
     },
-    address: {
-      label: { type: String, required: true },
-      street: { type: String, required: true },
-      city: { type: String, required: true },
-      state: { type: String, required: true },
-      zip: { type: String, required: true },
-      country: { type: String, required: true },
+    address: addressSchema,
+    tracking_number: {
+      type: String,
     },
-    trackingNumber: { type: String },
-    deliverySpeed: { type: String, required: true },
-    couponCode: { type: String },
-    stripeSessionId: { type: String },
-    stripePaymentIntentId: { type: String },
-    deliveredAt: { type: Date },
-    cancelledAt: { type: Date },
+    delivery_speed: {
+      type: String,
+      enum: ['standard', 'express', 'same-day'],
+    },
+    coupon_code: {
+      type: String,
+    },
+    delivered_at: {
+      type: Date,
+    },
+    cancelled_at: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
+    collection: 'app_d8d4_orders',
   }
 );
 
-// Index for user orders and order number lookup
-OrderSchema.index({ userId: 1, createdAt: -1 });
-OrderSchema.index({ orderNumber: 1 }, { unique: true });
+orderSchema.index({ user_id: 1, created_at: -1 });
+orderSchema.index({ order_number: 1 }, { unique: true });
 
-// Generate order number before saving
-OrderSchema.pre('save', function (next) {
-  if (!this.orderNumber) {
-    this.orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  }
-  next();
-});
-
-export default mongoose.model<IOrder>('Order', OrderSchema);
+export default models.Order || model('Order', orderSchema);

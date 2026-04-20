@@ -1,57 +1,41 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
 
-export interface ICartItem {
-  productId: mongoose.Types.ObjectId;
-  quantity: number;
-  variant?: {
-    size?: string;
-    color?: string;
-    sku: string;
-  };
-}
+const cartItemSchema = new Schema({
+  product_id: {
+    type: Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true,
+  },
+  variant_id: {
+    type: String,
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1,
+  },
+  price_snapshot: {
+    type: Number,
+    required: true,
+  },
+});
 
-export interface ICart extends Document {
-  userId: mongoose.Types.ObjectId;
-  items: ICartItem[];
-  updatedAt: Date;
-  createdAt: Date;
-}
-
-const CartSchema = new Schema<ICart>(
+const cartSchema = new Schema(
   {
-    userId: {
+    user_id: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
       unique: true,
     },
-    items: [
-      {
-        productId: {
-          type: Schema.Types.ObjectId,
-          ref: 'Product',
-          required: true,
-        },
-        quantity: {
-          type: Number,
-          required: true,
-          min: 1,
-          max: 99,
-        },
-        variant: {
-          size: String,
-          color: String,
-          sku: String,
-        },
-      },
-    ],
+    items: [cartItemSchema],
   },
   {
     timestamps: true,
+    collection: 'app_d8d4_cart',
   }
 );
 
-// Index for user cart lookup
-CartSchema.index({ userId: 1 });
+cartSchema.index({ user_id: 1 }, { unique: true });
 
-export default mongoose.model<ICart>('Cart', CartSchema);
+export default models.Cart || model('Cart', cartSchema);

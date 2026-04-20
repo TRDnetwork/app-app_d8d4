@@ -1,64 +1,56 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
 
-export interface IReview extends Document {
-  productId: mongoose.Types.ObjectId;
-  userId: mongoose.Types.ObjectId;
-  rating: number;
-  title?: string;
-  comment: string;
-  images?: string[];
-  helpfulVotes: mongoose.Types.ObjectId[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const ReviewSchema = new Schema<IReview>(
+const reviewSchema = new Schema(
   {
-    productId: {
+    product_id: {
       type: Schema.Types.ObjectId,
       ref: 'Product',
       required: true,
     },
-    userId: {
+    user_id: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
+    order_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'Order',
+      required: true,
+    },
     rating: {
       type: Number,
-      required: [true, 'Rating is required'],
-      min: [1, 'Rating must be at least 1'],
-      max: [5, 'Rating cannot exceed 5'],
+      required: true,
+      min: 1,
+      max: 5,
     },
     title: {
       type: String,
-      maxlength: [100, 'Review title cannot exceed 100 characters'],
+      trim: true,
     },
     comment: {
       type: String,
-      required: [true, 'Comment is required'],
-      maxlength: [1000, 'Review comment cannot exceed 1000 characters'],
     },
     images: [
       {
         type: String,
       },
     ],
-    helpfulVotes: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-      },
-    ],
+    helpful_votes: {
+      type: Number,
+      default: 0,
+    },
+    verified_purchase: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,
+    collection: 'app_d8d4_reviews',
   }
 );
 
-// Compound index for product reviews and user reviews
-ReviewSchema.index({ productId: 1, createdAt: -1 });
-ReviewSchema.index({ userId: 1, createdAt: -1 });
-ReviewSchema.index({ productId: 1, userId: 1 }, { unique: true }); // One review per user per product
+reviewSchema.index({ product_id: 1, created_at: -1 });
+reviewSchema.index({ user_id: 1 });
 
-export default mongoose.model<IReview>('Review', ReviewSchema);
+export default models.Review || model('Review', reviewSchema);

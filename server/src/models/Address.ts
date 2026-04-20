@@ -1,65 +1,47 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
 
-export interface IAddress extends Document {
-  userId: mongoose.Types.ObjectId;
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
-  isDefault: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const AddressSchema = new Schema<IAddress>(
+const addressSchema = new Schema(
   {
-    userId: {
+    user_id: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
-    addressLine1: {
+    label: {
       type: String,
-      required: [true, 'Address line 1 is required'],
-      maxlength: [100, 'Address line 1 cannot exceed 100 characters'],
+      required: true,
     },
-    addressLine2: {
+    street: {
       type: String,
-      maxlength: [100, 'Address line 2 cannot exceed 100 characters'],
+      required: true,
     },
     city: {
       type: String,
-      required: [true, 'City is required'],
-      maxlength: [50, 'City cannot exceed 50 characters'],
+      required: true,
     },
     state: {
       type: String,
-      required: [true, 'State is required'],
-      maxlength: [50, 'State cannot exceed 50 characters'],
+      required: true,
     },
     zip: {
       type: String,
-      required: [true, 'ZIP code is required'],
-      maxlength: [10, 'ZIP code too long'],
+      required: true,
     },
     country: {
       type: String,
-      required: [true, 'Country is required'],
-      maxlength: [50, 'Country cannot exceed 50 characters'],
+      required: true,
     },
-    isDefault: {
+    is_default: {
       type: Boolean,
       default: false,
     },
   },
   {
     timestamps: true,
+    collection: 'app_d8d4_addresses',
   }
 );
 
-// Index for user address lookups
-AddressSchema.index({ userId: 1, isDefault: 1 });
+addressSchema.index({ user_id: 1 });
 
-export default mongoose.model<IAddress>('Address', AddressSchema);
+export default models.Address || model('Address', addressSchema);
