@@ -4,10 +4,10 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Email templates
-import { orderConfirmationTemplate } from '../src/emails/order-confirmation';
-import { passwordResetTemplate } from '../src/emails/password-reset';
-import { welcomeTemplate } from '../src/emails/welcome';
-import { sellerApplicationReceivedTemplate } from '../src/emails/seller-application-received';
+import orderConfirmationTemplate from '../../src/emails/order-confirmation';
+import passwordResetTemplate from '../../src/emails/password-reset';
+import welcomeTemplate from '../../src/emails/welcome';
+import sellerApplicationReceivedTemplate from '../../src/emails/seller-application-received';
 
 const FROM_EMAIL = 'onboarding@resend.dev';
 const TO_EMAIL = process.env.NODE_ENV === 'production' 
@@ -19,7 +19,7 @@ type EmailType = 'order_confirmation' | 'password_reset' | 'welcome' | 'seller_a
 interface EmailPayload {
   to?: string;
   type: EmailType;
-  data: any;
+  data: Record<string, any>;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -27,65 +27,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const { to, type, data } = req.body as EmailPayload;
+
+  // Validate required fields
+  if (!type || !data) {
+    return res.status(400).json({ error: 'Missing required fields: type, data' });
+  }
+
   try {
-    const { to, type, data } = req.body as EmailPayload;
-
-    // Validate required fields
-    if (!type || !data) {
-      return res.status(400).json({ error: 'Missing required fields: type, data' });
-    }
-
+    let htmlContent = '';
     let subject = '';
-    let html = '';
 
-    // Select template based on type
     switch (type) {
       case 'order_confirmation':
-        subject = `Order Confirmed - ${data.orderNumber}`;
-        html = orderConfirmationTemplate(data);
+        subject = `Order Confirmed - #${data.orderNumber}`;
+        htmlContent = orderConfirmationTemplate(data);
         break;
       case 'password_reset':
         subject = 'Reset Your ShopSphere Password';
-        html = passwordResetTemplate(data);
+        htmlContent = passwordResetTemplate(data);
         break;
       case 'welcome':
         subject = 'Welcome to ShopSphere!';
-        html = welcomeTemplate(data);
+        htmlContent = welcomeTemplate(data);
         break;
       case 'seller_application_received':
         subject = 'Seller Application Received';
-        html = sellerApplicationReceivedTemplate(data);
+        htmlContent = sellerApplicationReceivedTemplate(data);
         break;
       default:
-        return res.status(400).json({ error: `Invalid email type: ${type}` });
+        return res.status(400).json({ error: `Unsupported email type: ${type}` });
     }
 
-    // Use provided email or fallback
-    const recipient = to || TO_EMAIL;
+    const emailTo = to || TO_EMAIL;
 
-    // Send email
     const emailResponse = await resend.emails.send({
       from: FROM_EMAIL,
-      to: recipient,
+      to: emailTo,
       subject,
-      html,
+      html: htmlContent,
     });
 
     if (emailResponse.error) {
       console.error('Resend error:', emailResponse.error);
-      return res.status(500).json({ error: 'Failed to send email', details: emailResponse.error });
+      return res.status(500).json({ error: emailResponse.error.message });
     }
 
-    return res.status(200).json({ 
-      message: 'Email sent successfully', 
-      id: emailResponse.data?.id 
-    });
-
+    return res.status(200).json({ success: true, id: emailResponse.data?.id });
   } catch (error: any) {
     console.error('Email sending failed:', error);
-    return res.status(500).json({ 
-      error: 'Internal server error',
-      message: error.message 
-    });
+    return res.status(500).json({ error: error.message || 'Failed to send email' });
   }
 }
