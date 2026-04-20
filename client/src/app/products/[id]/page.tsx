@@ -1,128 +1,252 @@
-import { notFound } from 'next/navigation';
-import { getProduct } from '@/lib/api';
+'use client';
 
-export default async function ProductDetailPage({ params }: { params: { id: string } }) {
-  const product = await getProduct(params.id);
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Image from 'next/image';
+import { useToast } from '@/components/ui/use-toast';
+import { StarIcon } from 'lucide-react';
 
-  if (!product) return notFound();
+export default function ProductDetail({ params }: { params: { id: string } }) {
+  const [product, setProduct] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const res = await fetch(`/api/products/${params.id}`);
+        const data = await res.json();
+        if (data.success) {
+          setProduct(data.product);
+        } else {
+          throw new Error(data.message);
+        }
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error.message || 'Failed to load product',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [params.id]);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="animate-pulse">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div className="w-full h-96 bg-gray-200 rounded-lg"></div>
+              <div className="grid grid-cols-4 gap-2">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-20 bg-gray-200 rounded"></div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-10 bg-gray-200 rounded w-1/3"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <h2 className="text-2xl font-bold">Product not found</h2>
+      </div>
+    );
+  }
+
+  const discountedPrice = product.price * (1 - product.discount_percent / 100);
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* Image Gallery */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          <div className="relative aspect-square overflow-hidden rounded-lg bg-surface">
-            <img
-              src={product.images[0]}
+          <div className="relative w-full h-96 mb-4">
+            <Image
+              src={product.images[selectedImage]}
               alt={product.title}
-              className="h-full w-full object-cover"
+              fill
+              className="object-cover rounded-lg"
             />
           </div>
-          <div className="mt-4 grid grid-cols-4 gap-2">
-            {product.images.slice(0, 4).map((img, i) => (
-              <img
-                key={i}
-                src={img}
-                alt={`${product.title} ${i + 1}`}
-                className="aspect-square cursor-pointer rounded border hover:border-accent"
-              />
+          <div className="grid grid-cols-4 gap-2">
+            {product.images.map((img: string, idx: number) => (
+              <div
+                key={idx}
+                className={`relative w-full h-20 rounded cursor-pointer ${
+                  selectedImage === idx ? 'ring-2 ring-orange-500' : ''
+                }`}
+                onClick={() => setSelectedImage(idx)}
+              >
+                <Image src={img} alt={`Thumbnail ${idx}`} fill className="object-cover rounded" />
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Product Info */}
         <div>
-          <h1 className="mb-2 text-2xl font-bold">{product.title}</h1>
-          <p className="mb-4 text-text_dim">{product.brand}</p>
+          <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
+          <p className="text-gray-600 mb-4">{product.brand}</p>
 
-          <div className="mb-4 flex items-center gap-2">
-            <span className="text-2xl font-bold text-accent">${product.price}</span>
-            {product.discount_percent > 0 && (
-              <>
-                <span className="text-lg text-text_dim line-through">
-                  ${((product.price * 100) / (100 - product.discount_percent)).toFixed(2)}
-                </span>
-                <span className="rounded bg-accent px-2 py-1 text-sm text-white">
-                  {product.discount_percent}% off
-                </span>
-              </>
-            )}
-          </div>
-
-          <p className="mb-4 text-text_dim">{product.description}</p>
-
-          {/* Variants */}
-          <div className="mb-4">
-            <h3 className="mb-2 font-medium">Color</h3>
-            <div className="flex gap-2">
-              {['Red', 'Blue', 'Black'].map((color) => (
-                <button
-                  key={color}
-                  className="h-8 w-8 rounded-full border-2 border-border bg-red-500 hover:border-accent"
-                ></button>
+          <div className="flex items-center mb-4">
+            <div className="flex">
+              {[...Array(5)].map((_, i) => (
+                <StarIcon
+                  key={i}
+                  className={`w-5 h-5 ${i < Math.round(product.average_rating) ? 'text-yellow-400' : 'text-gray-300'}`}
+                  fill="currentColor"
+                />
               ))}
             </div>
+            <span className="ml-2 text-sm text-gray-600">({product.review_count} reviews)</span>
+          </div>
+
+          <div className="mb-4">
+            <div className="text-3xl font-bold text-orange-600">${discountedPrice.toFixed(2)}</div>
+            <div className="flex items-center">
+              <span className="text-lg text-gray-500 line-through">${product.price.toFixed(2)}</span>
+              <span className="ml-2 text-sm font-medium text-green-600">{product.discount_percent}% off</span>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+              product.stock > 10 ? 'bg-green-100 text-green-800' : product.stock > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+            }`}>
+              {product.stock > 10 ? 'In Stock' : product.stock > 0 ? 'Low Stock' : 'Out of Stock'}
+            </span>
           </div>
 
           <div className="mb-6">
-            <h3 className="mb-2 font-medium">Size</h3>
-            <div className="flex gap-2">
-              {['S', 'M', 'L', 'XL'].map((size) => (
-                <button
-                  key={size}
-                  className="flex h-10 min-w-10 items-center justify-center rounded border border-border hover:border-accent hover:bg-accent hover:text-white"
-                >
-                  {size}
-                </button>
-              ))}
+            <label className="block text-sm font-medium mb-2">Quantity</label>
+            <div className="flex items-center border rounded">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                className="h-10 w-10"
+              >
+                -
+              </Button>
+              <Input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                className="h-10 w-16 text-center border-0"
+                min="1"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setQuantity(quantity + 1)}
+                className="h-10 w-10"
+              >
+                +
+              </Button>
             </div>
           </div>
 
-          <div className="mb-6 flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <button className="rounded-l border p-2 hover:bg-gray-100">-</button>
-              <span className="w-12 text-center">1</span>
-              <button className="rounded-r border p-2 hover:bg-gray-100">+</button>
-            </div>
-            <button className="flex-1 rounded bg-accent px-6 py-3 text-white hover:bg-orange-600">
+          <div className="space-y-3 mb-6">
+            <Button className="w-full h-12 text-lg bg-orange-600 hover:bg-orange-700">
               Add to Cart
-            </button>
+            </Button>
+            <Button variant="outline" className="w-full h-12 text-lg">
+              Buy Now
+            </Button>
           </div>
 
-          <div className="rounded border p-4">
-            <h3 className="mb-2 font-medium">Delivery & Returns</h3>
-            <p className="text-sm text-text_dim">Free delivery on orders over $50</p>
-            <p className="text-sm text-text_dim">30-day return policy</p>
+          <div className="text-sm text-gray-600">
+            <p>Free delivery: Estimated between {new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString()} - {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}</p>
+            <p className="mt-1">EMI options available</p>
           </div>
         </div>
       </div>
 
-      {/* Reviews Section */}
-      <section className="mt-12">
-        <h2 className="mb-6 text-xl font-semibold">Customer Reviews</h2>
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded border p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <div className="flex">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <svg
-                      key={star}
-                      className="h-4 w-4 text-yellow-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
+      <Tabs defaultValue="description" className="mt-12">
+        <TabsList>
+          <TabsTrigger value="description">Description</TabsTrigger>
+          <TabsTrigger value="reviews">Reviews</TabsTrigger>
+          <TabsTrigger value="qa">Q&A</TabsTrigger>
+          <TabsTrigger value="frequently-bought">Frequently Bought Together</TabsTrigger>
+        </TabsList>
+        <TabsContent value="description" className="mt-6">
+          <p className="text-gray-700 leading-relaxed">{product.description}</p>
+        </TabsContent>
+        <TabsContent value="reviews" className="mt-6">
+          <div className="space-y-4">
+            {product.reviews?.slice(0, 3).map((review: any) => (
+              <div key={review._id} className="border-b pb-4">
+                <div className="flex items-center mb-2">
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <StarIcon
+                        key={i}
+                        className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                        fill="currentColor"
+                      />
+                    ))}
+                  </div>
+                  <span className="ml-2 font-medium">{review.user_name}</span>
                 </div>
-                <span className="text-sm text-text_dim">5 stars</span>
+                <h4 className="font-medium">{review.title}</h4>
+                <p className="text-gray-700 mt-1">{review.comment}</p>
+                {review.images?.length > 0 && (
+                  <div className="flex gap-2 mt-2">
+                    {review.images.slice(0, 3).map((img: string, idx: number) => (
+                      <div key={idx} className="relative w-20 h-20">
+                        <Image src={img} alt="Review" fill className="object-cover rounded" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center mt-2 text-sm text-gray-500">
+                  <button className="hover:text-gray-700">Helpful</button>
+                  <span className="mx-2">•</span>
+                  <span>{review.helpful_votes?.length || 0} found this helpful</span>
+                </div>
               </div>
-              <p className="text-text">Great product! Highly recommend.</p>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="qa" className="mt-6">
+          <div className="space-y-4">
+            {product.questions?.map((q: any) => (
+              <div key={q._id} className="border-b pb-4">
+                <p className="font-medium">Q: {q.question}</p>
+                {q.answer ? (
+                  <p className="text-gray-700 mt-2">A: {q.answer}</p>
+                ) : (
+                  <p className="text-gray-500 text-sm mt-2">No answer yet</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="frequently-bought" className="mt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {product.frequently_bought_together?.map((item: any) => (
+              <ProductCard key={item._id} product={item} />
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
