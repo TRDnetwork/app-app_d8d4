@@ -1,3 +1,3 @@
--- No database required — app uses MongoDB via custom Express backend.
--- All data stored in MongoDB collections (e.g., app_d8d4_users, app_d8d4_products).
--- Supabase is not used for database, auth, or storage.
+-- No database required — ShopSphere uses MongoDB (Mongoose) for data persistence.
+-- All collections are managed via Mongoose in the Express backend (server/src/models).
+-- Supabase services (PostgreSQL, Auth, Storage, Realtime, Edge Functions) are not used.

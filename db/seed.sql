@@ -1,1 +1,1 @@
--- No seed data in PostgreSQL — MongoDB will be seeded separately via db/seed.ts
+-- No seed data in PostgreSQL — sample data is provided in db/seed.js for MongoDB.

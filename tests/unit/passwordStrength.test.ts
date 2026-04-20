@@ -1,42 +1,41 @@
 import { describe, it, expect } from 'vitest';
-import { checkPasswordStrength } from '../../client/src/lib/passwordStrength';
+import { checkPasswordStrength } from '../../src/lib/validation';
 
-describe('checkPasswordStrength', () => {
-  it('returns "weak" for passwords with less than 8 characters', () => {
-    expect(checkPasswordStrength('123')).toBe('weak');
-    expect(checkPasswordStrength('abc')).toBe('weak');
+describe('Password Strength Checker', () => {
+  it('returns weak for short password', () => {
+    const result = checkPasswordStrength('abc123');
+    expect(result.score).toBe(0);
+    expect(result.feedback).toContain('at least 8 characters');
   });
 
-  it('returns "weak" for passwords with only letters', () => {
-    expect(checkPasswordStrength('password')).toBe('weak');
-    expect(checkPasswordStrength('abcdefgh')).toBe('weak');
+  it('returns weak for missing uppercase', () => {
+    const result = checkPasswordStrength('password123');
+    expect(result.score).toBe(1);
+    expect(result.feedback).toContain('uppercase letter');
   });
 
-  it('returns "weak" for passwords with only numbers', () => {
-    expect(checkPasswordStrength('12345678')).toBe('weak');
+  it('returns weak for missing lowercase', () => {
+    const result = checkPasswordStrength('PASSWORD123');
+    expect(result.score).toBe(1);
+    expect(result.feedback).toContain('lowercase letter');
   });
 
-  it('returns "medium" for passwords with letters and numbers', () => {
-    expect(checkPasswordStrength('password123')).toBe('medium');
-    expect(checkPasswordStrength('abc123def')).toBe('medium');
+  it('returns weak for missing number', () => {
+    const result = checkPasswordStrength('Password');
+    expect(result.score).toBe(1);
+    expect(result.feedback).toContain('number');
   });
 
-  it('returns "medium" for passwords with letters and special characters', () => {
-    expect(checkPasswordStrength('password!@#')).toBe('medium');
+  it('returns medium for password with uppercase, lowercase, and number', () => {
+    const result = checkPasswordStrength('Password1');
+    expect(result.score).toBe(2);
+    expect(result.feedback).toContain('special character');
   });
 
-  it('returns "strong" for passwords with letters, numbers, and special characters', () => {
-    expect(checkPasswordStrength('Password123!')).toBe('strong');
-    expect(checkPasswordStrength('SecurePass123@')).toBe('strong');
-  });
-
-  it('returns "strong" for passwords with mixed case, numbers, and special characters', () => {
-    expect(checkPasswordStrength('SecurePass123!@#')).toBe('strong');
-    expect(checkPasswordStrength('MyPass123$%^')).toBe('strong');
-  });
-
-  it('handles edge cases', () => {
-    expect(checkPasswordStrength('')).toBe('weak');
-    expect(checkPasswordStrength('   ')).toBe('weak');
+  it('returns strong for password with all requirements', () => {
+    const result = checkPasswordStrength('Password1!');
+    expect(result.score).toBe(3);
+    expect(result.feedback).toBe('Strong password!');
   });
 });
+```

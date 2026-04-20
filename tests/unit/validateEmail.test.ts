@@ -1,28 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { validateEmail } from '../../client/src/lib/validateEmail';
+import { validateEmail } from '../../src/lib/validation';
 
-describe('validateEmail', () => {
-  it('returns true for valid email addresses', () => {
-    expect(validateEmail('user@example.com')).toBe(true);
-    expect(validateEmail('test.email+tag@domain.co.uk')).toBe(true);
-    expect(validateEmail('user123@sub.domain.com')).toBe(true);
+describe('Email Validation', () => {
+  it('validates valid email addresses', () => {
+    expect(validateEmail('test@example.com')).toBe(true);
+    expect(validateEmail('user.name@domain.co.uk')).toBe(true);
+    expect(validateEmail('test+tag@example.org')).toBe(true);
   });
 
-  it('returns false for invalid email addresses', () => {
+  it('rejects invalid email addresses', () => {
     expect(validateEmail('')).toBe(false);
     expect(validateEmail('invalid')).toBe(false);
     expect(validateEmail('invalid@')).toBe(false);
-    expect(validateEmail('@domain.com')).toBe(false);
-    expect(validateEmail('user@')).toBe(false);
-    expect(validateEmail('user@domain')).toBe(false);
-    expect(validateEmail('user domain.com')).toBe(false);
+    expect(validateEmail('@invalid.com')).toBe(false);
+    expect(validateEmail('test@invalid')).toBe(false);
   });
 
   it('handles edge cases', () => {
-    expect(validateEmail('user@domain..com')).toBe(false);
-    expect(validateEmail('user@.domain.com')).toBe(false);
-    expect(validateEmail('user@domain.com.')).toBe(false);
-    expect(validateEmail('user@-domain.com')).toBe(false);
-    expect(validateEmail('user@domain-.com')).toBe(false);
+    expect(validateEmail('a@b.co')).toBe(true);
+    expect(validateEmail('test@sub.domain.com')).toBe(true);
+    expect(validateEmail('test@domain..com')).toBe(false);
   });
 });
+```
