@@ -1,0 +1,1 @@
+-- No seed data for PostgreSQL — MongoDB handles seeding via db/seed.js.

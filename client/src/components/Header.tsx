@@ -3,67 +3,107 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, ShoppingCart, User, Menu, X, Heart } from 'lucide-react';
+import { Search, ShoppingCart, User, Menu, X, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { LanguageSwitcher } from '@/i18n/navigation';
-import { useAppSelector } from '@/store';
+import { usePathname } from 'next/navigation';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const cart = useAppSelector((state) => state.cart);
+  const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-sm">
+    <header className="sticky top-0 z-50 bg-white shadow-sm" role="banner">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
-            <Link href="/" className="text-2xl font-bold text-accent">
+            <Link href="/" className="text-2xl font-bold text-accent" aria-label="ShopSphere home">
               ShopSphere
             </Link>
           </div>
 
           <div className="hidden flex-1 max-w-xl px-8 md:block">
             <div className="relative">
+              <label htmlFor="search" className="sr-only">Search for products</label>
               <Input
+                id="search"
                 type="text"
                 placeholder="Search for products..."
                 className="pr-10"
+                aria-label="Search for products"
               />
-              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text_dim" />
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text_dim" aria-hidden="true" />
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/search" aria-label="Search">
-                <Search className="h-5 w-5 md:hidden" />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/wishlist" aria-label="Wishlist">
-                <Heart className="h-5 w-5" />
-                <span className="sr-only">Wishlist</span>
-              </Link>
-            </Button>
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/cart" aria-label="Shopping cart">
+            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              <SheetTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="md:hidden"
+                  aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+                >
+                  {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <nav className="flex flex-col space-y-4 py-4" role="navigation" aria-label="Main navigation">
+                  <Link 
+                    href="/products" 
+                    className={`py-2 ${pathname === '/products' ? 'text-accent font-medium' : 'text-text_dim'}`}
+                    onClick={() => setIsMenuOpen(false)}
+                    aria-current={pathname === '/products' ? 'page' : undefined}
+                  >
+                    Products
+                  </Link>
+                  <Link 
+                    href="/cart" 
+                    className={`py-2 ${pathname === '/cart' ? 'text-accent font-medium' : 'text-text_dim'}`}
+                    onClick={() => setIsMenuOpen(false)}
+                    aria-current={pathname === '/cart' ? 'page' : undefined}
+                  >
+                    Cart
+                  </Link>
+                  <Link 
+                    href="/orders" 
+                    className={`py-2 ${pathname === '/orders' ? 'text-accent font-medium' : 'text-text_dim'}`}
+                    onClick={() => setIsMenuOpen(false)}
+                    aria-current={pathname === '/orders' ? 'page' : undefined}
+                  >
+                    Orders
+                  </Link>
+                  <Link 
+                    href="/wishlist" 
+                    className={`py-2 ${pathname === '/wishlist' ? 'text-accent font-medium' : 'text-text_dim'}`}
+                    onClick={() => setIsMenuOpen(false)}
+                    aria-current={pathname === '/wishlist' ? 'page' : undefined}
+                  >
+                    Wishlist
+                  </Link>
+                  <Link 
+                    href="/profile" 
+                    className={`py-2 ${pathname === '/profile' ? 'text-accent font-medium' : 'text-text_dim'}`}
+                    onClick={() => setIsMenuOpen(false)}
+                    aria-current={pathname === '/profile' ? 'page' : undefined}
+                  >
+                    Profile
+                  </Link>
+                </nav>
+              </SheetContent>
+            </Sheet>
+            <Button variant="ghost" size="icon" asChild className="relative">
+              <Link href="/cart" aria-label="View shopping cart">
                 <ShoppingCart className="h-5 w-5" />
-                {cart.items.length > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs text-white">
-                    {cart.items.length}
-                  </span>
-                )}
-                <span className="sr-only">Cart</span>
+                <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
               </Link>
             </Button>
             <Button variant="ghost" size="icon" asChild>
-              <Link href="/account" aria-label="Account">
+              <Link href="/auth/login" aria-label="Account login">
                 <User className="h-5 w-5" />
-                <span className="sr-only">Account</span>
               </Link>
             </Button>
           </div>
@@ -72,46 +112,17 @@ export default function Header() {
         {/* Mobile search */}
         <div className="py-2 md:hidden">
           <div className="relative">
+            <label htmlFor="mobile-search" className="sr-only">Search for products</label>
             <Input
+              id="mobile-search"
               type="text"
               placeholder="Search for products..."
               className="pr-10"
+              aria-label="Search for products"
             />
-            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text_dim" />
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text_dim" aria-hidden="true" />
           </div>
         </div>
-
-        {/* Mobile menu */}
-        {isMenuOpen && (
-          <div className="border-t md:hidden">
-            <nav className="flex flex-col space-y-4 py-4">
-              <Link href="/" className="px-4 py-2 text-text_dim hover:text-text">
-                Home
-              </Link>
-              <Link href="/products" className="px-4 py-2 text-text_dim hover:text-text">
-                Products
-              </Link>
-              <Link href="/categories" className="px-4 py-2 text-text_dim hover:text-text">
-                Categories
-              </Link>
-              <Link href="/deals" className="px-4 py-2 text-text_dim hover:text-text">
-                Deals
-              </Link>
-              <Link href="/cart" className="px-4 py-2 text-text_dim hover:text-text">
-                Cart
-              </Link>
-              <Link href="/orders" className="px-4 py-2 text-text_dim hover:text-text">
-                Orders
-              </Link>
-              <Link href="/wishlist" className="px-4 py-2 text-text_dim hover:text-text">
-                Wishlist
-              </Link>
-              <Link href="/profile" className="px-4 py-2 text-text_dim hover:text-text">
-                Profile
-              </Link>
-            </nav>
-          </div>
-        )}
       </div>
     </header>
   );
