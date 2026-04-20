@@ -1,12 +1,11 @@
 import express from 'express';
-import cors from 'cors';
 import helmet from 'helmet';
-import { initVectorDB } from './db/vector';
-import documentsRouter from './routes/documents';
+import cors from 'cors';
 import { errorHandler, requestLogger, correlationId } from './middleware/logging';
 import { securityHeaders } from './middleware/securityHeaders';
 import { corsMiddleware } from './middleware/cors';
-import { env } from './config/env';
+import apiRoutes from './routes/api';
+import healthRoutes from './routes/health';
 
 const app = express();
 
@@ -22,27 +21,19 @@ app.use(correlationId);
 app.use(requestLogger);
 
 // Parse JSON
-app.use(express.json({ limit: '10mb' }));
-
-// Health check route
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    version: env.npm_package_version || '1.0.0',
-  });
-});
+app.use(express.json());
 
 // API routes
-app.use('/api/documents', documentsRouter);
+app.use('/api', apiRoutes);
+
+// Health check routes
+app.use('/api', healthRoutes);
 
 // Error handling middleware (should be last)
 app.use(errorHandler);
-
-// Initialize vector database
-initVectorDB().catch(console.error);
 
 export default app;
 ```
 
 ```typescript
+// SECURITY FIX: Update package.json to use Vite

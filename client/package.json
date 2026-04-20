@@ -1,35 +1,34 @@
 {
   "name": "shopsphere-client",
   "version": "1.0.0",
+  "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx",
     "type-check": "tsc --noEmit",
-    "test": "vitest",
-    "coverage": "vitest run --coverage",
-    "sentry-upload": "sentry-cli sourcemaps upload ./dist --url-prefix '~/static/js' --org your-org-slug --project your-project-slug"
+    "test": "vitest"
   },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@sentry/react": "^7.85.0",
-    "@sentry/tracing": "^7.85.0",
-    "web-vitals": "^3.3.1"
+    "react-router-dom": "^6.8.0",
+    "zustand": "^4.3.8"
   },
   "devDependencies": {
-    "@types/react": "^18.0.28",
-    "@types/react-dom": "^18.0.11",
+    "@types/react": "^18.0.27",
+    "@types/react-dom": "^18.0.10",
     "@vitejs/plugin-react": "^4.0.0",
     "typescript": "^5.0.2",
-    "vite": "^4.3.9",
-    "@sentry/cli": "^2.20.1",
+    "vite": "^4.2.0",
     "eslint": "^8.38.0",
-    "vitest": "^0.34.4"
+    "@typescript-eslint/eslint-plugin": "^5.57.0",
+    "@typescript-eslint/parser": "^5.57.0",
+    "vitest": "^0.32.0"
   }
 }
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for source maps
+// SECURITY FIX: Update server package.json

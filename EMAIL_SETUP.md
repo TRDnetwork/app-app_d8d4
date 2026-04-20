@@ -1,72 +1,61 @@
 # ShopSphere Email Setup Guide
 
-## 1. Get Your Resend API Key
+## 1. Get Resend API Key
 1. Go to [resend.com](https://resend.com) and create an account
 2. Navigate to Dashboard → API Keys
-3. Create a new API key with full access
-4. Copy the API key (it starts with `re_`)
+3. Create a new API key with email sending permissions
+4. Copy the API key (starts with `re_`)
 
 ## 2. Configure Environment Variables
-**DO NOT** use VITE_* variables for the API key (they're exposed to the client).
+Add these variables to your Vercel project environment (NOT in client-side `.env` files):
 
-In your Vercel project:
 ```bash
-# Add to Vercel environment variables (Server Environment Variables)
-RESEND_API_KEY=your_api_key_here
-FRONTEND_URL=https://shopsphere.com
+# Vercel Dashboard → Project → Settings → Environment Variables
+RESEND_API_KEY=re_XXXXXXXXXXXXXXXX  # Server-side only
+FRONTEND_URL=https://shopsphere.vercel.app  # Your production URL
 ```
 
-Or in `.env` file (never commit to git):
-```env
-RESEND_API_KEY=re_12345678_your_actual_key_here
-FRONTEND_URL=http://localhost:5173
-```
+**Critical Security Note**: Never use `VITE_RESEND_API_KEY` or expose the API key to the client bundle.
 
-## 3. Verify Your Sending Domain
-1. In Resend dashboard, go to Domains
-2. Add your domain (e.g., `shopsphere.com` or `localhost`)
-3. Add the required DNS records (TXT and CNAME) to verify ownership
-4. Once verified, you can send from any address on that domain
+## 3. Verify Sending Domain
+1. In Resend Dashboard, go to Domains
+2. Add and verify your domain (e.g., `shopsphere.vercel.app`)
+3. Update DNS records as instructed by Resend
+4. Once verified, update the `from` address in your email calls to use your domain
 
 ## 4. Frontend Integration
-The frontend calls the serverless function - never imports Resend directly:
+The frontend calls the serverless function without importing email libraries:
 
-```javascript
-// Example: Sending order confirmation
+```typescript
+// Example: Sending password reset email
 await fetch('/api/send-email', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    type: 'order_confirmation',
+    to: 'user@example.com',
+    type: 'password_reset',
     data: {
-      customerName: 'John Doe',
-      orderNumber: 'SSP-12345',
-      total: 299.99,
-      estimatedDelivery: '2024-01-15',
-      items: [
-        { name: 'Wireless Headphones', quantity: 1, price: 199.99, image: 'https://...' },
-        { name: 'Charging Cable', quantity: 2, price: 49.99, image: 'https://...' }
-      ]
+      resetLink: `${window.location.origin}/reset-password?token=abc123`
     }
   })
 });
 ```
 
-## 5. Test Your Setup
-1. Use `delivered@resend.dev` as the recipient for testing
-2. Check the Resend dashboard for sent emails and delivery status
-3. Monitor Vercel logs for any errors
+## 5. Available Email Types
+- `order_confirmation`: { orderNumber, total, items[] }
+- `password_reset`: { resetLink }
+- `welcome`: { name }
+- `seller_application_received`: { businessName }
 
-## 6. Production Notes
+## 6. Testing
+- Use `delivered@resend.dev` as a test recipient to verify emails without sending
+- Monitor sent emails in Resend Dashboard → Emails
+- Check Vercel logs for serverless function errors
+
+## 7. Production Requirements
+- Verify your sending domain in Resend for better deliverability
 - Replace `onboarding@resend.dev` with your verified domain email
-- Set up email templates in Resend dashboard for brand consistency
-- Monitor sending limits and upgrade plan as needed
 - Implement proper error handling and retry logic for critical emails
-
-## Troubleshooting
-- **Emails not sending**: Check Vercel logs for API errors
-- **API key errors**: Verify RESEND_API_KEY is set as server environment variable (not VITE_*)
-- **Domain not verified**: Complete DNS verification in Resend dashboard
-- **Rate limits**: Resend has sending limits based on your plan
+- Never log sensitive data from email requests/responses
