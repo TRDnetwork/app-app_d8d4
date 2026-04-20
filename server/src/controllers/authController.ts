@@ -15,7 +15,10 @@ export const register = async (req: Request, res: Response) => {
   // Check if user exists
   const userExists = await User.findOne({ email });
   if (userExists) {
-    return res.status(400).json({ message: 'User already exists' });
+    return res.status(400).json({ 
+      success: false,
+      message: 'User already exists' 
+    });
   }
 
   // Create verification token
@@ -46,12 +49,16 @@ export const register = async (req: Request, res: Response) => {
     });
 
     res.status(201).json({
+      success: true,
       message: 'User registered. Please check your email to verify your account.',
     });
   } catch (error) {
     // Rollback user creation if email fails
     await User.deleteOne({ _id: user._id });
-    return res.status(500).json({ message: 'Email could not be sent' });
+    return res.status(500).json({ 
+      success: false,
+      message: 'Email could not be sent' 
+    });
   }
 };
 
@@ -67,7 +74,10 @@ export const verifyEmail = async (req: Request, res: Response) => {
   });
 
   if (!user) {
-    return res.status(400).json({ message: 'Invalid or expired token' });
+    return res.status(400).json({ 
+      success: false,
+      message: 'Invalid or expired token' 
+    });
   }
 
   user.emailVerified = true;
@@ -75,7 +85,10 @@ export const verifyEmail = async (req: Request, res: Response) => {
   user.verificationTokenExpiresAt = undefined;
   await user.save();
 
-  res.json({ message: 'Email verified successfully' });
+  res.json({ 
+    success: true,
+    message: 'Email verified successfully' 
+  });
 };
 
 // @desc    Authenticate user & get token
@@ -86,15 +99,22 @@ export const login = async (req: Request, res: Response) => {
 
   const user = await User.findOne({ email }).select('+password');
   if (!user) {
-    return res.status(401).json({ message: 'Invalid email or password' });
+    return res.status(401).json({ 
+      success: false,
+      message: 'Invalid email or password' 
+    });
   }
 
   if (!(await user.comparePassword(password))) {
-    return res.status(401).json({ message: 'Invalid email or password' });
+    return res.status(401).json({ 
+      success: false,
+      message: 'Invalid email or password' 
+    });
   }
 
   if (!user.emailVerified) {
     return res.status(401).json({
+      success: false,
       message:
         'Email not verified. Please check your inbox to verify your email.',
     });
@@ -114,6 +134,7 @@ export const login = async (req: Request, res: Response) => {
   });
 
   res.json({
+    success: true,
     token,
     user: {
       _id: user._id,
@@ -133,7 +154,10 @@ export const refreshToken = async (req: Request, res: Response) => {
   const { refreshToken: refreshTokenCookie } = req.cookies;
 
   if (!refreshTokenCookie) {
-    return res.status(401).json({ message: 'Not authorized, no refresh token' });
+    return res.status(401).json({ 
+      success: false,
+      message: 'Not authorized, no refresh token' 
+    });
   }
 
   try {
@@ -144,7 +168,10 @@ export const refreshToken = async (req: Request, res: Response) => {
 
     const user = await User.findById(decoded.id).select('-password');
     if (!user) {
-      return res.status(401).json({ message: 'User not found' });
+      return res.status(401).json({ 
+        success: false,
+        message: 'User not found' 
+      });
     }
 
     const token = generateToken({ id: user._id, role: user.role });
@@ -158,6 +185,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     });
 
     res.json({
+      success: true,
       token,
       user: {
         _id: user._id,
@@ -169,7 +197,10 @@ export const refreshToken = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    return res.status(401).json({ message: 'Invalid refresh token' });
+    return res.status(401).json({ 
+      success: false,
+      message: 'Invalid refresh token' 
+    });
   }
 };
 
@@ -178,7 +209,10 @@ export const refreshToken = async (req: Request, res: Response) => {
 // @access  Private
 export const logout = (req: Request, res: Response) => {
   res.clearCookie('refreshToken');
-  res.json({ message: 'Logged out successfully' });
+  res.json({ 
+    success: true,
+    message: 'Logged out successfully' 
+  });
 };
 
 // @desc    Forgot password
@@ -189,10 +223,13 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
   const user = await User.findOne({ email });
   if (!user) {
-    return res.status(404).json({ message: 'User not found' });
+    return res.status(404).json({ 
+      success: false,
+      message: 'User not found' 
+    });
   }
 
-  // SECURITY FIX: Use longer random token and hash before storing
+  // Use longer random token and hash before storing
   const resetToken = crypto.randomBytes(64).toString('hex');
   const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
   
@@ -214,12 +251,18 @@ export const forgotPassword = async (req: Request, res: Response) => {
       `,
     });
 
-    res.json({ message: 'Password reset email sent' });
+    res.json({ 
+      success: true,
+      message: 'Password reset email sent' 
+    });
   } catch (error) {
     user.resetPasswordToken = undefined;
     user.resetPasswordTokenExpiresAt = undefined;
     await user.save();
-    return res.status(500).json({ message: 'Email could not be sent' });
+    return res.status(500).json({ 
+      success: false,
+      message: 'Email could not be sent' 
+    });
   }
 };
 
@@ -229,7 +272,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
 export const resetPassword = async (req: Request, res: Response) => {
   const { token, password } = req.body;
 
-  // SECURITY FIX: Hash the token before searching
+  // Hash the token before searching
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
   const user = await User.findOne({
@@ -238,7 +281,10 @@ export const resetPassword = async (req: Request, res: Response) => {
   });
 
   if (!user) {
-    return res.status(400).json({ message: 'Invalid or expired token' });
+    return res.status(400).json({ 
+      success: false,
+      message: 'Invalid or expired token' 
+    });
   }
 
   user.password = password;
@@ -246,6 +292,9 @@ export const resetPassword = async (req: Request, res: Response) => {
   user.resetPasswordTokenExpiresAt = undefined;
   await user.save();
 
-  res.json({ message: 'Password reset successful' });
+  res.json({ 
+    success: true,
+    message: 'Password reset successful' 
+  });
 };
 ```

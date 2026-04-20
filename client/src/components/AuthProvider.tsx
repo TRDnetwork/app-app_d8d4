@@ -34,16 +34,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Check for token in localStorage or cookies
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
-    
-    setLoading(false);
+    // Check for token in cookies (httpOnly) - this would be handled by the backend
+    // For now, we'll rely on the backend setting the token in cookies
+    // and making authenticated requests that return user data
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/me', {
+          credentials: 'include' // Include cookies in the request
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+          setToken(data.token); // Token would come from Authorization header
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -53,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, password }),
+      credentials: 'include' // Include cookies in the request
     });
 
     if (!res.ok) {
@@ -65,8 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Store token and user
     setToken(data.token);
     setUser(data.user);
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
     
     router.push('/dashboard');
   };
@@ -75,12 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear token and user
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
     
     // Call backend to clear refresh token cookie
     fetch('/api/auth/logout', {
       method: 'POST',
+      credentials: 'include' // Include cookies in the request
     });
     
     router.push('/');
@@ -93,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ name, email, password }),
+      credentials: 'include' // Include cookies in the request
     });
 
     if (!res.ok) {
@@ -111,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email }),
+      credentials: 'include' // Include cookies in the request
     });
 
     if (!res.ok) {
@@ -126,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ token, password }),
+      credentials: 'include' // Include cookies in the request
     });
 
     if (!res.ok) {
@@ -141,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ token }),
+      credentials: 'include' // Include cookies in the request
     });
 
     if (!res.ok) {

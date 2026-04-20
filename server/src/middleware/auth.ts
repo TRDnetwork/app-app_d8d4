@@ -20,12 +20,13 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 
   if (!token) {
     return res.status(StatusCodes.UNAUTHORIZED).json({
+      success: false,
       message: 'Not authorized, no token'
     });
   }
 
   try {
-    // Verify token using JWT_SECRET
+    // Verify token using JWT_SECRET from environment variable
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
     
     // Find user and attach to request
@@ -33,6 +34,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
     
     if (!user) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
         message: 'User not found'
       });
     }
@@ -41,6 +43,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
     next();
   } catch (error) {
     return res.status(StatusCodes.UNAUTHORIZED).json({
+      success: false,
       message: 'Not authorized, token failed'
     });
   }
@@ -51,12 +54,14 @@ export const authorize = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
         message: 'Not authorized'
       });
     }
 
     if (!roles.includes(req.user.role)) {
       return res.status(StatusCodes.FORBIDDEN).json({
+        success: false,
         message: `User role ${req.user.role} is not authorized to access this route`
       });
     }
