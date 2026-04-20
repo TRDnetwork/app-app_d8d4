@@ -2,11 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 
 // Security headers middleware
 export const securityHeaders = (req: Request, res: Response, next: NextFunction) => {
-  // Content Security Policy
+  // Content Security Policy - removed unsafe-inline and unsafe-eval
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+    "script-src 'self'; " +
     "style-src 'self' 'unsafe-inline'; " +
     "img-src 'self' data: https:; " +
     "font-src 'self' data:; " +
@@ -45,5 +45,3 @@ export const securityHeaders = (req: Request, res: Response, next: NextFunction)
   next();
 };
 ```
-
-```typescript

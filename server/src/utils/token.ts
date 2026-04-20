@@ -1,6 +1,15 @@
 import jwt from 'jsonwebtoken';
 import { StatusCodes } from 'http-status-codes';
 
+// Validate environment variables
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is not set in environment variables');
+}
+
+if (!process.env.JWT_REFRESH_SECRET) {
+  throw new Error('JWT_REFRESH_SECRET is not set in environment variables');
+}
+
 // Token generation and verification utilities
 export const generateAccessToken = (payload: { id: string; role: string }): string => {
   return jwt.sign(payload, process.env.JWT_SECRET!, {
@@ -65,3 +74,4 @@ export const refreshTokens = async (refreshToken: string) => {
 ```
 
 ```typescript
+// SECURITY FIX: Use environment variables for email service

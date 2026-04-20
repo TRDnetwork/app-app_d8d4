@@ -1,16 +1,17 @@
 import bcrypt from 'bcryptjs';
 
-// Password hashing and verification utilities
+// Hash password
 export const hashPassword = async (password: string): Promise<string> => {
-  const saltRounds = 12;
-  return await bcrypt.hash(password, saltRounds);
+  const salt = await bcrypt.genSalt(12);
+  return bcrypt.hash(password, salt);
 };
 
+// Verify password
 export const verifyPassword = async (password: string, hashedPassword: string): Promise<boolean> => {
-  return await bcrypt.compare(password, hashedPassword);
+  return bcrypt.compare(password, hashedPassword);
 };
 
-// Password strength validation
+// Validate password strength
 export const validatePasswordStrength = (password: string): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
@@ -36,7 +37,7 @@ export const validatePasswordStrength = (password: string): { isValid: boolean; 
   
   return {
     isValid: errors.length === 0,
-    errors,
+    errors
   };
 };
 ```

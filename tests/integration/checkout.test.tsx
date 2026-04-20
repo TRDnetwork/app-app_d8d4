@@ -1,152 +1,271 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { CheckoutPage } from '../../src/pages/Checkout';
-import { useCartStore } from '../../src/stores/cart';
+import { AddressStep } from '../../src/components/Checkout/AddressStep';
+import { DeliveryStep } from '../../src/components/Checkout/DeliveryStep';
+import { PaymentStep } from '../../src/components/Checkout/PaymentStep';
+import { ReviewStep } from '../../src/components/Checkout/ReviewStep';
+import { useCheckoutStore } from '../../src/stores/checkoutStore';
 import { useAuth } from '../../src/lib/auth';
-import { apiClient } from '../../src/lib/api';
 
-describe('Checkout Flow', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+// Mock dependencies
+vi.mock('../../src/stores/checkoutStore', () => ({
+  useCheckoutStore: vi.fn()
+}));
+
+vi.mock('../../src/lib/auth', () => ({
+  useAuth: vi.fn()
+}));
+
+vi.mock('@stripe/stripe-js', () => ({
+  loadStripe: vi.fn().mockResolvedValue({
+    redirectToCheckout: vi.fn().mockResolvedValue({ error: null })
+  })
+}));
+
+describe('Checkout Components', () => {
+  const mockUser = {
+    _id: 'user123',
+    name: 'John Doe',
+    email: 'john@example.com',
+    role: 'customer',
+    addresses: [
+      {
+        _id: 'addr1',
+        street: '123 Main St',
+        city: 'New York',
+        state: 'NY',
+        zip: '10001',
+        country: 'USA',
+        phone: '+1234567890',
+        label: 'Home',
+        is_default: true
+      }
+    ]
+  };
 
   const mockCartItems = [
     {
       _id: 'item1',
       product_id: 'prod1',
-      variant_id: 'var1',
-      quantity: 1,
-      price: 99.99,
-      title: 'Test Product',
-      image: 'https://example.com/product.jpg'
+      title: 'Wireless Headphones',
+      price: 29.99,
+      quantity: 2,
+      image: 'https://example.com/headphones.jpg'
     }
   ];
 
-  const mockUser = {
-    _id: 'user123',
-    name: 'Test User',
-    email: 'test@example.com',
-    role: 'customer'
-  };
-
-  it('displays order summary with correct totals', async () => {
-    vi.mock('../../src/stores/cart', () => ({
-      useCartStore: vi.fn().mockReturnValue({
-        items: mockCartItems,
-        getTotalItems: vi.fn().mockReturnValue(1),
-        getTotalPrice: vi.fn().mockReturnValue(99.99)
-      })
-    }));
-
-    vi.mock('../../src/lib/auth', () => ({
-      useAuth: vi.fn().mockReturnValue({
-        user: mockUser,
-        isAuthenticated: true,
-        isLoading: false
-      })
-    }));
-
-    render(<CheckoutPage />);
-
-    // Wait for component to render
-    await waitFor(() => {
-      expect(screen.getByText('Checkout')).toBeInTheDocument();
-    });
-
-    // Check order summary
-    expect(screen.getByText('Test Product × 1')).toBeInTheDocument();
-    expect(screen.getByText('$99.99')).toBeInTheDocument();
-    expect(screen.getByText('Subtotal')).toBeInTheDocument();
-    expect(screen.getByText('Delivery')).toBeInTheDocument();
-    expect(screen.getByText('Total')).toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (useAuth as vi.Mock).mockReturnValue({ user: mockUser });
   });
 
-  it('navigates through checkout steps', async () => {
-    vi.mock('../../src/stores/cart', () => ({
-      useCartStore: vi.fn().mockReturnValue({
-        items: mockCartItems,
-        getTotalItems: vi.fn().mockReturnValue(1),
-        getTotalPrice: vi.fn().mockReturnValue(99.99)
-      })
-    }));
+  describe('AddressStep Component', () => {
+    it('displays saved addresses and allows selection', () => {
+      const mockSetAddress = vi.fn();
+      const mockOnNext = vi.fn();
+      (useCheckoutStore as vi.Mock).mockReturnValue({
+        address: null,
+        setAddress: mockSetAddress
+      });
 
-    vi.mock('../../src/lib/auth', () => ({
-      useAuth: vi.fn().mockReturnValue({
-        user: mockUser,
-        isAuthenticated: true,
-        isLoading: false
-      })
-    }));
+      render(<AddressStep onNext={mockOnNext} />);
 
-    // Mock API call for addresses
-    const mockAddresses = [
-      {
-        _id: 'addr1',
-        label: 'Home',
-        street: '123 Main St',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        zip: '400001',
-        country: 'India',
-        is_default: true
-      }
-    ];
+      expect(screen.getByText(/shipping address/i)).toBeInTheDocument();
+      expect(screen.getByText(/home/i)).toBeInTheDocument();
+      expect(screen.getByText(/123 main st/i)).toBeInTheDocument();
 
-    vi.mock('../../src/lib/api', () => ({
-      apiClient: vi.fn().mockResolvedValue({
-        addresses: mockAddresses
-      })
-    }));
+      const addressElement = screen.getByText(/home/i).closest('div');
+      fireEvent.click(addressElement!);
 
-    render(<CheckoutPage />);
-
-    // Wait for component to render
-    await waitFor(() => {
-      expect(screen.getByText('Shipping Address')).toBeInTheDocument();
+      expect(mockSetAddress).toHaveBeenCalledWith(mockUser.addresses[0]);
+      expect(mockOnNext).toHaveBeenCalled();
     });
 
-    // Select address
-    fireEvent.click(screen.getByText('Home'));
+    it('allows adding new address', async () => {
+      const mockSetAddress = vi.fn();
+      const mockOnNext = vi.fn();
+      (useCheckoutStore as vi.Mock).mockReturnValue({
+        address: null,
+        setAddress: mockSetAddress
+      });
 
-    // Continue to delivery
-    fireEvent.click(screen.getByRole('button', { name: /continue to delivery/i }));
+      render(<AddressStep onNext={mockOnNext} />);
 
-    // Wait for delivery step
-    await waitFor(() => {
-      expect(screen.getByText('Delivery Method')).toBeInTheDocument();
-    });
+      const addNewButton = screen.getByRole('button', { name: /add new address/i });
+      fireEvent.click(addNewButton);
 
-    // Select delivery option
-    fireEvent.click(screen.getByLabelText('Standard Delivery'));
+      expect(screen.getByLabelText(/street address/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/city/i)).toBeInTheDocument();
 
-    // Continue to payment
-    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }));
+      fireEvent.change(screen.getByLabelText(/street/i), {
+        target: { value: '456 Oak Ave' }
+      });
+      fireEvent.change(screen.getByLabelText(/city/i), {
+        target: { value: 'Boston' }
+      });
+      fireEvent.change(screen.getByLabelText(/state/i), {
+        target: { value: 'MA' }
+      });
+      fireEvent.change(screen.getByLabelText(/zip/i), {
+        target: { value: '02101' }
+      });
+      fireEvent.change(screen.getByLabelText(/country/i), {
+        target: { value: 'USA' }
+      });
+      fireEvent.change(screen.getByLabelText(/phone/i), {
+        target: { value: '+1987654321' }
+      });
 
-    // Wait for payment step
-    await waitFor(() => {
-      expect(screen.getByText('Payment Method')).toBeInTheDocument();
+      const saveButton = screen.getByRole('button', { name: /save & continue/i });
+      fireEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockSetAddress).toHaveBeenCalledWith(expect.objectContaining({
+          street: '456 Oak Ave',
+          city: 'Boston',
+          state: 'MA',
+          zip: '02101',
+          country: 'USA',
+          phone: '+1987654321'
+        }));
+        expect(mockOnNext).toHaveBeenCalled();
+      });
     });
   });
 
-  it('shows login prompt when user is not authenticated', () => {
-    vi.mock('../../src/stores/cart', () => ({
-      useCartStore: vi.fn().mockReturnValue({
-        items: mockCartItems,
-        getTotalItems: vi.fn().mockReturnValue(1),
-        getTotalPrice: vi.fn().mockReturnValue(99.99)
-      })
-    }));
+  describe('DeliveryStep Component', () => {
+    it('displays delivery options and allows selection', () => {
+      const mockSetDeliveryOption = vi.fn();
+      const mockOnNext = vi.fn();
+      const mockOnBack = vi.fn();
+      (useCheckoutStore as vi.Mock).mockReturnValue({
+        deliveryOption: null,
+        setDeliveryOption: mockSetDeliveryOption
+      });
 
-    vi.mock('../../src/lib/auth', () => ({
-      useAuth: vi.fn().mockReturnValue({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false
-      })
-    }));
+      render(<DeliveryStep onNext={mockOnNext} onBack={mockOnBack} />);
 
-    render(<CheckoutPage />);
+      expect(screen.getByText(/delivery method/i)).toBeInTheDocument();
+      expect(screen.getByText(/standard delivery/i)).toBeInTheDocument();
+      expect(screen.getByText(/express delivery/i)).toBeInTheDocument();
+      expect(screen.getByText(/same day delivery/i)).toBeInTheDocument();
 
-    expect(screen.getByText('Please log in to continue checkout.')).toBeInTheDocument();
+      const expressOption = screen.getByText(/express delivery/i).closest('div');
+      fireEvent.click(expressOption!);
+
+      expect(mockSetDeliveryOption).toHaveBeenCalledWith(expect.objectContaining({
+        id: 'express',
+        price: 9.99
+      }));
+      expect(mockOnNext).toHaveBeenCalled();
+    });
+
+    it('disables continue button when no option is selected', () => {
+      const mockOnNext = vi.fn();
+      const mockOnBack = vi.fn();
+      (useCheckoutStore as vi.Mock).mockReturnValue({
+        deliveryOption: null,
+        setDeliveryOption: vi.fn()
+      });
+
+      render(<DeliveryStep onNext={mockOnNext} onBack={mockOnBack} />);
+
+      const continueButton = screen.getByRole('button', { name: /continue to payment/i });
+      expect(continueButton).toBeDisabled();
+    });
   });
-});
+
+  describe('PaymentStep Component', () => {
+    it('displays payment methods and allows selection', () => {
+      const mockSetPaymentMethod = vi.fn();
+      const mockOnNext = vi.fn();
+      const mockOnBack = vi.fn();
+      (useCheckoutStore as vi.Mock).mockReturnValue({
+        paymentMethod: null,
+        setPaymentMethod: mockSetPaymentMethod,
+        cartTotal: 59.98,
+        deliveryOption: { price: 9.99 }
+      });
+
+      render(<PaymentStep onNext={mockOnNext} onBack={mockOnBack} />);
+
+      expect(screen.getByText(/payment method/i)).toBeInTheDocument();
+      expect(screen.getByText(/credit\/debit card/i)).toBeInTheDocument();
+      expect(screen.getByText(/upi/i)).toBeInTheDocument();
+      expect(screen.getByText(/cash on delivery/i)).toBeInTheDocument();
+
+      const cardOption = screen.getByText(/credit\/debit card/i).closest('div');
+      fireEvent.click(cardOption!);
+
+      expect(mockSetPaymentMethod).toHaveBeenCalledWith('card');
+    });
+
+    it('displays card form when card payment is selected', () => {
+      const mockOnNext = vi.fn();
+      const mockOnBack = vi.fn();
+      (useCheckoutStore as vi.Mock).mockReturnValue({
+        paymentMethod: 'card',
+        setPaymentMethod: vi.fn(),
+        cartTotal: 59.98,
+        deliveryOption: { price: 9.99 }
+      });
+
+      render(<PaymentStep onNext={mockOnNext} onBack={mockOnBack} />);
+
+      expect(screen.getByLabelText(/name on card/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/card number/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/expiry date/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/cvv/i)).toBeInTheDocument();
+    });
+
+    it('processes card payment and redirects to checkout', async () => {
+      const mockOnNext = vi.fn();
+      const mockOnBack = vi.fn();
+      (useCheckoutStore as vi.Mock).mockReturnValue({
+        paymentMethod: 'card',
+        setPaymentMethod: vi.fn(),
+        cartTotal: 59.98,
+        deliveryOption: { price: 9.99 }
+      });
+
+      render(<PaymentStep onNext={mockOnNext} onBack={mockOnBack} />);
+
+      fireEvent.change(screen.getByLabelText(/name on card/i), {
+        target: { value: 'John Doe' }
+      });
+      fireEvent.change(screen.getByLabelText(/card number/i), {
+        target: { value: '4242 4242 4242 4242' }
+      });
+      fireEvent.change(screen.getByLabelText(/expiry/i), {
+        target: { value: '12/25' }
+      });
+      fireEvent.change(screen.getByLabelText(/cvv/i), {
+        target: { value: '123' }
+      });
+
+      const payButton = screen.getByRole('button', { name: /pay now/i });
+      fireEvent.click(payButton);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith('/api/stripe/create-checkout-session', expect.any(Object));
+      });
+    });
+
+    it('proceeds to order confirmation for non-card payments', async () => {
+      const mockOnNext = vi.fn();
+      const mockOnBack = vi.fn();
+      (useCheckoutStore as vi.Mock).mockReturnValue({
+        paymentMethod: 'cod',
+        setPaymentMethod: vi.fn(),
+        cartTotal: 59.98,
+        deliveryOption: { price: 9.99 }
+      });
+
+      render(<PaymentStep onNext={mockOnNext} onBack={mockOnBack} />);
+
+      const continueButton = screen.getByRole('button', { name: /continue/i });
+      fireEvent.click(continueButton);
+
+      await waitFor(() => {
+        expect(mockOnNext).toHaveBeenCalled();
+      });

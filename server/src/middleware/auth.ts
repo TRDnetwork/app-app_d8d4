@@ -11,6 +11,7 @@ declare global {
         id: string;
         role: string;
       };
+      userId?: string;
     }
   }
 }
@@ -46,6 +47,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       id: decoded.id,
       role: decoded.role,
     };
+    req.userId = decoded.id;
 
     next();
   } catch (error) {
@@ -83,41 +85,7 @@ export const authorize = (...roles: string[]) => {
     next();
   };
 };
-
-// Rate limiting middleware for authentication endpoints
-export const authRateLimit = (windowMs: number = 15 * 60 * 1000, max: number = 5) => {
-  const limiter = new Map<string, { count: number; resetTime: number }>();
-  
-  return (req: Request, res: Response, next: NextFunction) => {
-    const ip = req.ip;
-    const now = Date.now();
-    
-    if (!limiter.has(ip)) {
-      limiter.set(ip, { count: 1, resetTime: now + windowMs });
-    } else {
-      const record = limiter.get(ip)!;
-      
-      if (now > record.resetTime) {
-        // Reset counter if window has passed
-        record.count = 1;
-        record.resetTime = now + windowMs;
-      } else {
-        record.count++;
-      }
-    }
-    
-    const record = limiter.get(ip)!;
-    
-    if (record.count > max) {
-      return res.status(StatusCodes.TOO_MANY_REQUESTS).json({
-        success: false,
-        message: 'Too many requests, please try again later',
-      });
-    }
-    
-    next();
-  };
-};
 ```
 
 ```typescript
+// SECURITY FIX: Update routes to use RLS middleware

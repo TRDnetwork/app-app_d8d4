@@ -26,7 +26,6 @@ passport.use(new GoogleStrategy({
         // Update existing user with OAuth info
         existingUser.oauthProvider = 'google';
         existingUser.oauthId = profile.id;
-        existingUser.emailVerified = true;
         user = await existingUser.save();
       } else {
         // Create new user
@@ -42,16 +41,11 @@ passport.use(new GoogleStrategy({
     }
 
     // Generate tokens
-    const payload = { id: user._id.toString(), role: user.role };
+    const payload = { id: user._id, role: user.role };
     const token = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
-    return done(null, { 
-      id: user._id.toString(), 
-      role: user.role,
-      token,
-      refreshToken
-    });
+    return done(null, { user, token, refreshToken });
   } catch (error) {
     return done(error as Error, undefined);
   }
@@ -80,7 +74,6 @@ passport.use(new FacebookStrategy({
         // Update existing user with OAuth info
         existingUser.oauthProvider = 'facebook';
         existingUser.oauthId = profile.id;
-        existingUser.emailVerified = true;
         user = await existingUser.save();
       } else {
         // Create new user
@@ -96,24 +89,19 @@ passport.use(new FacebookStrategy({
     }
 
     // Generate tokens
-    const payload = { id: user._id.toString(), role: user.role };
+    const payload = { id: user._id, role: user.role };
     const token = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
-    return done(null, { 
-      id: user._id.toString(), 
-      role: user.role,
-      token,
-      refreshToken
-    });
+    return done(null, { user, token, refreshToken });
   } catch (error) {
     return done(error as Error, undefined);
   }
 }));
 
 // Serialize user
-passport.serializeUser((user: any, done) => {
-  done(null, user.id);
+passport.serializeUser((user, done) => {
+  done(null, (user as any).id);
 });
 
 // Deserialize user

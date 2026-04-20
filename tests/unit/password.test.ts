@@ -1,67 +1,76 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import bcrypt from 'bcryptjs';
 import { hashPassword, verifyPassword, validatePasswordStrength } from '../../server/src/utils/password';
+
+vi.mock('bcryptjs');
 
 describe('Password Utilities', () => {
   describe('hashPassword', () => {
-    it('hashes password successfully', async () => {
-      const password = 'testpassword123!';
-      const hash = await hashPassword(password);
-      expect(hash).not.toBe(password);
-      expect(typeof hash).toBe('string');
-      expect(hash.length).toBeGreaterThan(0);
+    it('hashes password using bcrypt with proper salt rounds', async () => {
+      const mockHash = 'hashed-password';
+      (bcrypt.genSalt as vi.Mock).mockResolvedValue('salt');
+      (bcrypt.hash as vi.Mock).mockResolvedValue(mockHash);
+      
+      const result = await hashPassword('password123');
+      
+      expect(bcrypt.genSalt).toHaveBeenCalledWith(12);
+      expect(bcrypt.hash).toHaveBeenCalledWith('password123', 'salt');
+      expect(result).toBe(mockHash);
     });
   });
 
   describe('verifyPassword', () => {
-    it('verifies correct password', async () => {
-      const password = 'testpassword123!';
-      const hash = await hashPassword(password);
-      const isValid = await verifyPassword(password, hash);
-      expect(isValid).toBe(true);
+    it('verifies password against hashed password', async () => {
+      (bcrypt.compare as vi.Mock).mockResolvedValue(true);
+      
+      const result = await verifyPassword('password123', 'hashed-password');
+      
+      expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashed-password');
+      expect(result).toBe(true);
     });
 
-    it('rejects incorrect password', async () => {
-      const password = 'testpassword123!';
-      const wrongPassword = 'wrongpassword';
-      const hash = await hashPassword(password);
-      const isValid = await verifyPassword(wrongPassword, hash);
-      expect(isValid).toBe(false);
+    it('returns false for incorrect password', async () => {
+      (bcrypt.compare as vi.Mock).mockResolvedValue(false);
+      
+      const result = await verifyPassword('wrong-password', 'hashed-password');
+      
+      expect(result).toBe(false);
     });
   });
 
   describe('validatePasswordStrength', () => {
-    it('returns true for strong passwords', () => {
+    it('validates strong passwords correctly', () => {
       const result = validatePasswordStrength('StrongPass123!');
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
-    it('returns false for passwords missing uppercase', () => {
+    it('detects missing uppercase letter', () => {
       const result = validatePasswordStrength('weakpass123!');
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Password must contain at least one uppercase letter');
     });
 
-    it('returns false for passwords missing lowercase', () => {
-      const result = validatePasswordStrength('WEAKPASS123!');
+    it('detects missing lowercase letter', () => {
+      const result = validatePasswordStrength('STRONPASS123!');
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Password must contain at least one lowercase letter');
     });
 
-    it('returns false for passwords missing numbers', () => {
-      const result = validatePasswordStrength('WeakPass!');
+    it('detects missing number', () => {
+      const result = validatePasswordStrength('StrongPass!');
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Password must contain at least one number');
     });
 
-    it('returns false for passwords missing special characters', () => {
-      const result = validatePasswordStrength('WeakPass123');
+    it('detects missing special character', () => {
+      const result = validatePasswordStrength('StrongPass123');
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Password must contain at least one special character');
     });
 
-    it('returns false for passwords too short', () => {
-      const result = validatePasswordStrength('Sh1!');
+    it('detects short password', () => {
+      const result = validatePasswordStrength('Short1!');
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Password must be at least 8 characters long');
     });

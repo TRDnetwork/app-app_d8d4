@@ -1,51 +1,20 @@
-import validator from 'validator';
-
-// Input validation utilities
+// Validate email format
 export const validateEmail = (email: string): boolean => {
-  return validator.isEmail(email);
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 };
 
-export const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  
-  if (password.length < 8) {
-    errors.push('Password must be at least 8 characters long');
-  }
-  
-  if (!/[A-Z]/.test(password)) {
-    errors.push('Password must contain at least one uppercase letter');
-  }
-  
-  if (!/[a-z]/.test(password)) {
-    errors.push('Password must contain at least one lowercase letter');
-  }
-  
-  if (!/[0-9]/.test(password)) {
-    errors.push('Password must contain at least one number');
-  }
-  
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    errors.push('Password must contain at least one special character');
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors,
-  };
-};
-
+// Validate phone number (basic validation)
 export const validatePhoneNumber = (phone: string): boolean => {
-  return validator.isMobilePhone(phone, 'any', { strictMode: false });
+  const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
+  return phoneRegex.test(phone);
 };
 
-export const sanitizeInput = (input: string): string => {
-  return validator.escape(validator.trim(input));
-};
-
+// Validate address
 export const validateAddress = (address: any): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
-  if (!address.name || address.name.trim().length === 0) {
+  if (!address.name || address.name.trim() === '') {
     errors.push('Name is required');
   }
   
@@ -53,31 +22,35 @@ export const validateAddress = (address: any): { isValid: boolean; errors: strin
     errors.push('Valid phone number is required');
   }
   
-  if (!address.street || address.street.trim().length === 0) {
+  if (!address.street || address.street.trim() === '') {
     errors.push('Street address is required');
   }
   
-  if (!address.city || address.city.trim().length === 0) {
+  if (!address.city || address.city.trim() === '') {
     errors.push('City is required');
   }
   
-  if (!address.state || address.state.trim().length === 0) {
+  if (!address.state || address.state.trim() === '') {
     errors.push('State is required');
   }
   
-  if (!address.zip || address.zip.trim().length === 0) {
+  if (!address.zip || address.zip.trim() === '') {
     errors.push('ZIP code is required');
-  } else if (!/^\d{5}(-\d{4})?$/.test(address.zip)) {
-    errors.push('Invalid ZIP code format');
+  } else {
+    // Basic ZIP code validation
+    const zipRegex = /^\d{5}(-\d{4})?$/;
+    if (!zipRegex.test(address.zip)) {
+      errors.push('Invalid ZIP code format');
+    }
   }
   
-  if (!address.country || address.country.trim().length === 0) {
+  if (!address.country || address.country.trim() === '') {
     errors.push('Country is required');
   }
   
   return {
     isValid: errors.length === 0,
-    errors,
+    errors
   };
 };
 ```

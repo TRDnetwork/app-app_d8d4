@@ -3,45 +3,50 @@
 ## Deploy to Vercel
 
 1. Push code to GitHub repository
-2. Log in to Vercel and import the project from GitHub
-3. During setup:
-   - Framework Preset: Auto (detected as Vite)
-   - Build Command: `npm run build` (monorepo-aware)
-   - Output Directory: `client/dist` (Vite default)
-4. Add environment variables (from `.env.example`) in Vercel dashboard
-5. Deploy
+2. Log in to Vercel dashboard (vercel.com)
+3. Click "New Project" and import the ShopSphere repository
+4. Configure project settings:
+   - Framework: Auto-detected (Vite)
+   - Root Directory: project root
+   - Build Command: `npm run build` (in client directory)
+   - Output Directory: `dist` (or `build` if using different config)
+5. Add environment variables from `.env.example` (VITE_* variables only)
+6. Click "Deploy"
 
 ## Environment Variables
 
-Required in Vercel project settings:
+### Frontend (Vercel Environment Variables)
+- `VITE_API_BASE_URL`: Base URL of deployed backend API (e.g., `https://shopsphere-backend.onrender.com/api`)
+- `VITE_STRIPE_PUBLIC_KEY`: Stripe public key for payment forms
 
-| Key | Value |
-|-----|-------|
-| `VITE_STRIPE_PUBLISHABLE_KEY` | Your Stripe publishable key |
-| `VITE_API_BASE_URL` | `/api` (proxy to backend) |
-
-Backend variables must be set in Railway/Render:
-
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `MONGODB_URI`
-- `JWT_SECRET`
-- `JWT_REFRESH_SECRET`
-- `AWS_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY`
-- `S3_BUCKET`
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`
+### Backend (Set in backend hosting - Render/Railway)
+- `MONGODB_URI`: MongoDB connection string
+- `JWT_SECRET`: Secret key for JWT token signing
+- `JWT_REFRESH_SECRET`: Secret key for JWT refresh token signing
+- `STRIPE_SECRET_KEY`: Stripe secret key for server-side payments
+- `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret
+- `RESEND_API_KEY`: Resend API key for transactional emails
+- `GOOGLE_CLIENT_ID`: Google OAuth client ID
+- `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
+- `FACEBOOK_APP_ID`: Facebook App ID
+- `FACEBOOK_APP_SECRET`: Facebook App secret
+- `FRONTEND_URL`: Frontend URL for redirect URLs (e.g., `https://shopsphere.vercel.app`)
+- `CLIENT_URL`: Same as FRONTEND_URL
 
 ## First-time Setup
 
-1. Deploy backend to Railway or Render with all environment variables
-2. Run database seeding:
+1. Deploy backend service first (to Render/Railway) and obtain the base URL
+2. Set backend environment variables in the backend hosting platform
+3. Run database migrations and seed data:
    ```bash
-   npm run seed --prefix server
+   # SSH into backend or run via script
+   node db/seed.js
    ```
-3. Set up Stripe webhook:
-   - Endpoint: `https://your-backend.onrender.com/api/stripe/webhook`
-   - Events: `checkout.session.completed`, `payment_intent.succeeded`
-4. Configure S3 bucket with public-read ACL for product images
-5. Verify email SMTP settings with test email
-6. Enable CORS in backend to allow Vercel app URL
+4. Configure Stripe:
+   - Set webhook endpoint to `https://shopsphere-backend.onrender.com/api/stripe/webhook`
+   - Verify and copy the webhook secret to backend environment variables
+5. Configure OAuth providers:
+   - Set Google/Facebook OAuth redirect URLs to `/api/auth/oauth/callback`
+   - Add credentials to backend environment variables
+6. Deploy frontend to Vercel with frontend environment variables
+7. Verify deployment by accessing the Vercel app URL

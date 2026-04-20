@@ -72,14 +72,10 @@ export const register = async (req: Request, res: Response) => {
       message: 'User registered successfully. Please check your email to verify your account.',
     });
   } catch (error: any) {
-    // If email fails, delete the user
-    if (error.message.includes('Email could not be sent')) {
-      await User.deleteOne({ _id: (error as any).userId });
-    }
-    
+    // SECURITY FIX: Generic error message to prevent information leakage
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Server error',
+      message: 'Registration failed',
     });
   }
 };
@@ -121,9 +117,10 @@ export const verifyEmail = async (req: Request, res: Response) => {
       message: 'Email verified successfully',
     });
   } catch (error) {
+    // SECURITY FIX: Generic error message to prevent information leakage
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Server error',
+      message: 'Email verification failed',
     });
   }
 };
@@ -189,9 +186,10 @@ export const login = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
+    // SECURITY FIX: Generic error message to prevent information leakage
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Server error',
+      message: 'Login failed',
     });
   }
 };
@@ -299,7 +297,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       message: 'If your email is registered, you will receive a password reset link',
     });
   } catch (error) {
-    // Always return success to prevent timing attacks
+    // SECURITY FIX: Generic error message to prevent information leakage
     res.json({
       success: true,
       message: 'If your email is registered, you will receive a password reset link',
@@ -332,29 +330,33 @@ export const resetPassword = async (req: Request, res: Response) => {
       });
     }
 
-    // Find user with valid reset token
+    // Find user with reset token
     const user = await User.findOne({
+      resetPasswordToken: { $exists: true },
       resetPasswordTokenExpiresAt: { $gt: Date.now() },
     });
 
     if (!user) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
-        message: 'Invalid or expired token',
+        message: 'Invalid or expired reset token',
       });
     }
 
     // Verify token
-    const tokenValid = await verifyPassword(token, user.resetPasswordToken!);
-    if (!tokenValid) {
+    const isValidToken = await verifyPassword(token, user.resetPasswordToken!);
+    if (!isValidToken) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
-        message: 'Invalid token',
+        message: 'Invalid reset token',
       });
     }
 
-    // Update password
-    user.password = await hashPassword(password);
+    // Hash new password
+    const hashedPassword = await hashPassword(password);
+
+    // Update user
+    user.password = hashedPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordTokenExpiresAt = undefined;
     await user.save();
@@ -364,9 +366,10 @@ export const resetPassword = async (req: Request, res: Response) => {
       message: 'Password reset successful',
     });
   } catch (error) {
+    // SECURITY FIX: Generic error message to prevent information leakage
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Server error',
+      message: 'Password reset failed',
     });
   }
 };

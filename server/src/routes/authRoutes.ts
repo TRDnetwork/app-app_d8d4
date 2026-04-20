@@ -1,6 +1,7 @@
 import express from 'express';
 import { authRateLimit } from '../middleware/rateLimit';
 import { authController } from '../controllers/authController';
+import { rls } from '../middleware/rls';
 
 const router = express.Router();
 
@@ -15,10 +16,11 @@ router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 
 // Protected routes
-router.post('/refresh', authController.refreshToken);
-router.post('/logout', authController.logout);
+router.post('/refresh', rls, authController.refreshToken);
+router.post('/logout', rls, authController.logout);
 
 export default router;
 ```
 
 ```typescript
+// SECURITY FIX: Update cart routes to use RLS
