@@ -1,5 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Facebook, Instagram, Twitter, Youtube } from 'lucide-react';
 
 const Footer: React.FC = () => {
   return (
@@ -7,44 +9,58 @@ const Footer: React.FC = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-xl font-bold text-accent mb-4 font-display">ShopSphere</h3>
-            <p className="text-text-dim mb-4">Premium e-commerce platform with fast delivery and secure payments.</p>
-            <div className="flex space-x-4">
-              <a href="#" className="text-text-dim hover:text-accent transition-colors">FB</a>
-              <a href="#" className="text-text-dim hover:text-accent transition-colors">TW</a>
-              <a href="#" className="text-text-dim hover:text-accent transition-colors">IG</a>
+            <h3 className="text-lg font-bold text-text mb-4">ShopSphere</h3>
+            <p className="text-text-dim text-sm mb-4">
+              Premium e-commerce platform with AI recommendations, secure checkout, and real-time order tracking.
+            </p>
+            <div className="flex gap-4">
+              <Button variant="ghost" size="icon">
+                <Facebook className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon">
+                <Twitter className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon">
+                <Instagram className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon">
+                <Youtube className="h-5 w-5" />
+              </Button>
             </div>
           </div>
+
           <div>
-            <h4 className="font-semibold text-text mb-4">Shop</h4>
-            <ul className="space-y-2">
-              <li><Link to="/products" className="text-text-dim hover:text-accent transition-colors">All Products</Link></li>
-              <li><Link to="/categories" className="text-text-dim hover:text-accent transition-colors">Categories</Link></li>
-              <li><Link to="/deals" className="text-text-dim hover:text-accent transition-colors">Deals</Link></li>
-              <li><Link to="/new-arrivals" className="text-text-dim hover:text-accent transition-colors">New Arrivals</Link></li>
+            <h4 className="font-medium text-text mb-4">Shop</h4>
+            <ul className="space-y-2 text-sm text-text-dim">
+              <li><a href="#" className="hover:text-text transition-colors">All Products</a></li>
+              <li><a href="#" className="hover:text-text transition-colors">Deals</a></li>
+              <li><a href="#" className="hover:text-text transition-colors">New Arrivals</a></li>
+              <li><a href="#" className="hover:text-text transition-colors">Best Sellers</a></li>
             </ul>
           </div>
+
           <div>
-            <h4 className="font-semibold text-text mb-4">Support</h4>
-            <ul className="space-y-2">
-              <li><Link to="/contact" className="text-text-dim hover:text-accent transition-colors">Contact Us</Link></li>
-              <li><Link to="/faq" className="text-text-dim hover:text-accent transition-colors">FAQ</Link></li>
-              <li><Link to="/shipping" className="text-text-dim hover:text-accent transition-colors">Shipping</Link></li>
-              <li><Link to="/returns" className="text-text-dim hover:text-accent transition-colors">Returns</Link></li>
+            <h4 className="font-medium text-text mb-4">Support</h4>
+            <ul className="space-y-2 text-sm text-text-dim">
+              <li><a href="#" className="hover:text-text transition-colors">Help Center</a></li>
+              <li><a href="#" className="hover:text-text transition-colors">Contact Us</a></li>
+              <li><a href="#" className="hover:text-text transition-colors">Returns & Refunds</a></li>
+              <li><a href="#" className="hover:text-text transition-colors">Shipping Info</a></li>
             </ul>
           </div>
+
           <div>
-            <h4 className="font-semibold text-text mb-4">Account</h4>
-            <ul className="space-y-2">
-              <li><Link to="/profile" className="text-text-dim hover:text-accent transition-colors">My Account</Link></li>
-              <li><Link to="/orders" className="text-text-dim hover:text-accent transition-colors">Order History</Link></li>
-              <li><Link to="/wishlist" className="text-text-dim hover:text-accent transition-colors">Wishlist</Link></li>
-              <li><Link to="/settings" className="text-text-dim hover:text-accent transition-colors">Settings</Link></li>
-            </ul>
+            <h4 className="font-medium text-text mb-4">Stay Updated</h4>
+            <p className="text-text-dim text-sm mb-4">Subscribe to our newsletter</p>
+            <div className="flex gap-2">
+              <Input type="email" placeholder="Your email" className="bg-card border-border" />
+              <Button>Join</Button>
+            </div>
           </div>
         </div>
-        <div className="border-t border-border mt-8 pt-8 text-center text-text-dim">
-          <p>&copy; {new Date().getFullYear()} ShopSphere. All rights reserved.</p>
+
+        <div className="border-t border-border mt-8 pt-8 text-center text-sm text-text-dim">
+          &copy; {new Date().getFullYear()} ShopSphere. All rights reserved.
         </div>
       </div>
     </footer>

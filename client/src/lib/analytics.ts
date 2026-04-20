@@ -1,175 +1,168 @@
-import { authStore } from '../stores/authStore';
-import { cartStore } from '../stores/cartStore';
+import posthog from 'posthog-js';
 
-// Replace with actual GA4 measurement ID
-const GA4_MEASUREMENT_ID = '/* ANALYTICS_KEY */';
-
-// Check if analytics should be enabled (DNT, etc.)
-const isAnalyticsEnabled = () => {
-  // Respect Do Not Track
-  if (navigator.doNotTrack === "1" || window.doNotTrack === "1") {
-    return false;
-  }
-  
-  // Additional privacy checks could be added here
-  return true;
-};
-
-// Send event to GA4
-const sendEvent = (eventName: string, params: Record<string, any> = {}) => {
-  if (!isAnalyticsEnabled()) return;
-  
-  // Add user ID if available
-  const user = authStore.getState().user;
-  if (user) {
-    params.user_id = user.id;
-  }
-  
-  // Add cart info if available
-  const cart = cartStore.getState();
-  if (cart.items.length > 0) {
-    params.cart_total = cart.getTotal();
-    params.cart_items = cart.items.length;
-  }
-  
-  // Send to GA4
-  if (window.gtag) {
-    window.gtag('event', eventName, params);
-  }
-};
-
-// Page view tracking
-export const trackPageView = (path: string, title: string) => {
-  if (!isAnalyticsEnabled()) return;
-  
-  sendEvent('page_view', {
-    page_path: path,
-    page_title: title
-  });
-};
-
-// CTA clicks
-export const trackCTAClick = (ctaName: string, location: string) => {
-  sendEvent('cta_click', {
-    cta_name: ctaName,
-    location: location
-  });
-};
-
-// Form submissions
-export const trackFormSubmit = (formName: string, success: boolean) => {
-  sendEvent('form_submit', {
-    form_name: formName,
-    success: success
-  });
-};
-
-// Authentication events
-export const trackAuthEvent = (eventType: string) => {
-  sendEvent('auth_event', {
-    auth_type: eventType
-  });
-};
-
-// Search events
-export const trackSearch = (query: string, resultCount: number) => {
-  sendEvent('search', {
-    search_term: query,
-    result_count: resultCount
-  });
-};
-
-// Product events
-export const trackProductView = (productId: string, productName: string) => {
-  sendEvent('view_item', {
-    items: [{
-      item_id: productId,
-      item_name: productName
-    }]
-  });
-};
-
-export const trackAddToCart = (
-  productId: string, 
-  productName: string, 
-  price: number, 
-  quantity: number
-) => {
-  sendEvent('add_to_cart', {
-    currency: 'USD',
-    value: price * quantity,
-    items: [{
-      item_id: productId,
-      item_name: productName,
-      price: price,
-      quantity: quantity
-    }]
-  });
-};
-
-export const trackWishlistEvent = (action: 'add' | 'remove', productId: string) => {
-  sendEvent('wishlist_event', {
-    action: action,
-    product_id: productId
-  });
-};
-
-// Purchase event
-export const trackPurchase = (
-  orderId: string,
-  total: number,
-  items: Array<{
-    productId: string,
-    name: string,
-    price: number,
-    quantity: number
-  }>
-) => {
-  sendEvent('purchase', {
-    transaction_id: orderId,
-    value: total,
-    currency: 'USD',
-    items: items.map(item => ({
-      item_id: item.productId,
-      item_name: item.name,
-      price: item.price,
-      quantity: item.quantity
-    }))
-  });
-};
-
-// Initialize analytics
+// Initialize PostHog with environment variable
 export const initAnalytics = () => {
-  // Track initial page view
-  trackPageView(window.location.pathname, document.title);
-  
-  // Listen for route changes in SPA
-  let lastPath = window.location.pathname;
-  const checkUrlChange = () => {
-    const currentPath = window.location.pathname;
-    if (currentPath !== lastPath) {
-      trackPageView(currentPath, document.title);
-      lastPath = currentPath;
+  if (typeof window !== 'undefined') {
+    // Respect Do Not Track
+    if (navigator.doNotTrack === '1' || window.doNotTrack === '1') {
+      return;
     }
-  };
-  
-  // Check for URL changes (for SPA routing)
-  setInterval(checkUrlChange, 250);
+
+    posthog.init(/* ANALYTICS_KEY */, {
+      api_host: 'https://app.posthog.com',
+      autocapture: false, // Disable automatic event capture for privacy
+      capture_pageview: false, // We'll handle page views manually
+      loaded: (posthog) => {
+        // Identify user after login/registration
+        if (posthog.get_distinct_id()) {
+          posthog.identify(posthog.get_distinct_id());
+        }
+      }
+    });
+  }
 };
 
-// Export for use in components
-export default {
-  trackPageView,
-  trackCTAClick,
-  trackFormSubmit,
-  trackAuthEvent,
-  trackSearch,
-  trackProductView,
-  trackAddToCart,
-  trackWishlistEvent,
-  trackPurchase,
-  initAnalytics
+// Track page views
+export const trackPageView = (pageName: string, properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('$pageview', {
+      $current_url: window.location.href,
+      page_name: pageName,
+      ...properties
+    });
+  }
 };
-```
 
-```typescript
+// Track CTA clicks
+export const trackCTAClick = (ctaName: string, location: string, properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('cta_clicked', {
+      cta_name: ctaName,
+      location,
+      ...properties
+    });
+  }
+};
+
+// Track authentication events
+export const trackAuthEvent = (eventType: 'login' | 'register' | 'logout', properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('auth_event', {
+      event_type: eventType,
+      ...properties
+    });
+  }
+};
+
+// Track search events
+export const trackSearch = (query: string, resultCount: number, properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('search_performed', {
+      search_query: query,
+      result_count: result_count,
+      ...properties
+    });
+  }
+};
+
+// Track product events
+export const trackProductView = (productId: string, properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('product_viewed', {
+      product_id: productId,
+      ...properties
+    });
+  }
+};
+
+export const trackAddToCart = (productId: string, quantity: number, price: number, properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('product_added_to_cart', {
+      product_id: productId,
+      quantity,
+      price,
+      ...properties
+    });
+  }
+};
+
+export const trackRemoveFromCart = (productId: string, quantity: number, properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('product_removed_from_cart', {
+      product_id: productId,
+      quantity,
+      ...properties
+    });
+  }
+};
+
+// Track checkout events
+export const trackCheckoutStarted = (cartValue: number, properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('checkout_started', {
+      cart_value: cartValue,
+      ...properties
+    });
+  }
+};
+
+export const trackCheckoutStep = (step: string, properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('checkout_step_completed', {
+      step,
+      ...properties
+    });
+  }
+};
+
+// Track purchase
+export const trackPurchase = (orderId: string, value: number, properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('purchase_completed', {
+      order_id: orderId,
+      value,
+      ...properties
+    });
+  }
+};
+
+// Track wishlist events
+export const trackWishlistAdd = (productId: string, properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('product_added_to_wishlist', {
+      product_id: productId,
+      ...properties
+    });
+  }
+};
+
+export const trackWishlistRemove = (productId: string, properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('product_removed_from_wishlist', {
+      product_id: productId,
+      ...properties
+    });
+  }
+};
+
+// Track review events
+export const trackReviewSubmitted = (productId: string, rating: number, properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('review_submitted', {
+      product_id: productId,
+      rating,
+      ...properties
+    });
+  }
+};
+
+// Track form submissions
+export const trackFormSubmit = (formName: string, success: boolean, properties?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && window.posthog) {
+    posthog.capture('form_submitted', {
+      form_name: formName,
+      success,
+      ...properties
+    });
+  }
+};

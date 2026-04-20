@@ -18,10 +18,5 @@ export const checkoutStore = create<CheckoutState>((set) => ({
   setAddress: (address) => set({ address }),
   setDeliverySpeed: (speed) => set({ deliverySpeed: speed }),
   setPaymentMethod: (method) => set({ paymentMethod: method }),
-  reset: () =>
-    set({
-      address: null,
-      deliverySpeed: 'standard',
-      paymentMethod: 'stripe',
-    }),
+  reset: () => set({ address: null, deliverySpeed: 'standard', paymentMethod: 'stripe' }),
 }));

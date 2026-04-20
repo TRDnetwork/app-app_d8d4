@@ -1,82 +1,56 @@
-import React from 'react';
-import { AddressSelector } from '../components/checkout/AddressSelector';
-import { DeliveryOptions } from '../components/checkout/DeliveryOptions';
-import { PaymentMethods } from '../components/checkout/PaymentMethods';
-import { OrderReview } from '../components/checkout/OrderReview';
-import { checkoutStore } from '../stores/checkoutStore';
+import React, { useState } from 'react';
 import { Button } from '../components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import AddressSelector from '../components/checkout/AddressSelector';
+import DeliveryOptions from '../components/checkout/DeliveryOptions';
+import PaymentMethods from '../components/checkout/PaymentMethods';
+import OrderReview from '../components/checkout/OrderReview';
+import { useCart } from '../context/CartContext';
 
-const steps = ['Address', 'Delivery', 'Payment', 'Review'];
+const Checkout: React.FC = () => {
+  const [currentStep, setCurrentStep] = useState(1);
+  const { cart } = useCart();
+  const [address, setAddress] = useState('');
+  const [deliverySpeed, setDeliverySpeed] = useState('standard');
+  const [paymentMethod, setPaymentMethod] = useState('card');
 
-const Checkout = () => {
-  const [currentStep, setCurrentStep] = React.useState(0);
-  const { address, deliverySpeed, paymentMethod } = checkoutStore();
-  const navigate = useNavigate();
+  if (cart.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Your cart is empty</h1>
+          <Button onClick={() => window.location.href = '/products'}>
+            Continue Shopping
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-  const nextStep = () => {
-    if (currentStep < steps.length - 1) setCurrentStep(currentStep + 1);
+  const handleNext = () => {
+    if (currentStep === 1 && !address) return;
+    if (currentStep === 2 && !deliverySpeed) return;
+    if (currentStep === 3 && !paymentMethod) return;
+    
+    setCurrentStep(currentStep + 1);
   };
 
-  const prevStep = () => {
-    if (currentStep > 0) setCurrentStep(currentStep - 1);
-  };
-
-  const handlePlaceOrder = () => {
-    // Finalize order
-    navigate('/order-confirmation');
-  };
-
-  const renderStep = () => {
-    switch (currentStep) {
-      case 0:
-        return <AddressSelector />;
-      case 1:
-        return <DeliveryOptions />;
-      case 2:
-        return <PaymentMethods />;
-      case 3:
-        return <OrderReview onPlaceOrder={handlePlaceOrder} />;
-      default:
-        return null;
-    }
+  const handleBack = () => {
+    setCurrentStep(currentStep - 1);
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Checkout</h1>
-
-      <div className="flex justify-center mb-8">
-        <div className="flex items-center">
-          {steps.map((step, i) => (
-            <React.Fragment key={step}>
-              <div className={`px-4 py-2 rounded-full text-sm font-medium ${i <= currentStep ? 'bg-primary text-primary-foreground' : 'bg-muted text-text-dim'}`}>
-                {step}
-              </div>
-              {i < steps.length - 1 && <div className="w-8 h-0.5 bg-border mx-2"></div>}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto">
-        {renderStep()}
-      </div>
-
-      <div className="flex justify-between mt-8">
-        <Button variant="secondary" onClick={prevStep} disabled={currentStep === 0}>
-          Previous
-        </Button>
-        {currentStep < steps.length - 1 ? (
-          <Button onClick={nextStep} disabled={!address || !deliverySpeed || !paymentMethod}>
-            Next
-          </Button>
-        ) : (
-          <Button onClick={handlePlaceOrder}>Place Order</Button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default Checkout;
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          {/* Progress Steps */}
+          <div className="flex items-center justify-between mb-8">
+            {['Address', 'Delivery', 'Payment', 'Review'].map((step, index) => (
+              <div key={step} className={`flex items-center ${index < currentStep - 1 ? 'text-orange-500' : 'text-gray-500'}`}>
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center border-2 mr-2 ${
+                    index < currentStep - 1
+                      ? 'border-orange-500 bg-orange-500 text-white'
+                      : index === currentStep - 1
+                      ? 'border-orange-500 bg-transparent'
