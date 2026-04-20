@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useCheckoutStore } from '../stores/checkoutStore';
 import { useCartStore } from '../stores/cartStore';
 import { formatCurrency } from '../lib/utils';
-import { analytics } from '../lib/analytics';
+import { trackPurchase, trackCTAClick } from '../lib/analytics';
 
 const OrderConfirmation: React.FC = () => {
   const navigate = useNavigate();
@@ -14,16 +14,29 @@ const OrderConfirmation: React.FC = () => {
   const { selectedAddress, deliveryOption } = useCheckoutStore();
   const { items, total, clearCart } = useCartStore();
 
-  // Generate order ID
-  const orderId = `ORD-${Date.now().toString().slice(-6).toUpperCase()}`;
-
-  // Track purchase on successful order
+  // In production, verify session with backend
   React.useEffect(() => {
-    if (session_id && items.length > 0) {
-      analytics.trackPurchase(orderId, total + (deliveryOption?.price || 0), items);
+    if (session_id) {
+      // Clear cart after successful order
       clearCart();
+      
+      // Track purchase event
+      trackPurchase(
+        `ORD-${Date.now().toString().slice(-6).toUpperCase()}`,
+        total + (deliveryOption?.price || 0)
+      );
     }
-  }, [session_id, items, total, deliveryOption, clearCart, orderId]);
+  }, [session_id, clearCart, total, deliveryOption]);
+
+  const handleViewOrderStatus = () => {
+    trackCTAClick('view_order_status', 'order_confirmation');
+    navigate('/orders');
+  };
+
+  const handleContinueShopping = () => {
+    trackCTAClick('continue_shopping', 'order_confirmation');
+    navigate('/');
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
@@ -42,7 +55,7 @@ const OrderConfirmation: React.FC = () => {
         <CardContent className="space-y-6">
           <div>
             <h3 className="font-medium mb-2">Order Number</h3>
-            <p className="text-2xl font-bold text-accent">{orderId}</p>
+            <p className="text-2xl font-bold text-accent">ORD-{Date.now().toString().slice(-6).toUpperCase()}</p>
           </div>
 
           <div>
@@ -77,43 +90,4 @@ const OrderConfirmation: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span>Delivery</span>
-                <span>{deliveryOption?.price === 0 ? 'Free' : formatCurrency(deliveryOption?.price)}</span>
-              </div>
-              <div className="border-t pt-2 font-bold flex justify-between">
-                <span>Total</span>
-                <span>
-                  {formatCurrency(total + (deliveryOption?.price || 0))}
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-3">
-          <Button
-            onClick={() => {
-              // Track order status click
-              analytics.trackCTAClick('view_order_status', 'confirmation');
-              navigate('/orders');
-            }}
-            className="w-full bg-accent hover:bg-orange-600"
-          >
-            View Order Status
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              // Track continue shopping click
-              analytics.trackCTAClick('continue_shopping', 'confirmation');
-              navigate('/');
-            }}
-            className="w-full"
-          >
-            Continue Shopping
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
-  );
-};
-
-export default OrderConfirmation;
+                <span>{deliveryOption?.price === 0 ? 'Free' : formatCurrency(delivery

@@ -1,226 +1,88 @@
 /**
- * Analytics tracking service for ShopSphere e-commerce platform
- * Implements GA4 event tracking with privacy considerations
+ * Analytics tracking for ShopSphere e-commerce platform
+ * Lightweight (<2KB) implementation with privacy considerations
  */
 
-// Type definitions for analytics events
-type EventCategory = 
-  | 'engagement'
-  | 'ecommerce'
-  | 'auth'
-  | 'navigation'
-  | 'form';
-
-type EventAction = 
-  | 'page_view'
-  | 'click'
-  | 'submit'
-  | 'login'
-  | 'register'
-  | 'add_to_cart'
-  | 'remove_from_cart'
-  | 'begin_checkout'
-  | 'purchase'
-  | 'search'
-  | 'view_item'
-  | 'view_item_list'
-  | 'select_item'
-  | 'add_to_wishlist';
-
-interface EventParams {
-  category?: EventCategory;
-  action: EventAction;
-  label?: string;
-  value?: number;
-  [key: string]: any;
-}
-
-/**
- * Check if analytics should be enabled based on DNT and environment
- */
-const shouldTrack = (): boolean => {
-  // Disable in development
-  if (import.meta.env.DEV) return false;
-  
-  // Respect Do Not Track
-  if (window.navigator.doNotTrack === '1') return false;
-  
-  return true;
-};
-
-/**
- * Track a custom event in GA4
- */
-const trackEvent = (params: EventParams): void => {
-  if (!shouldTrack()) return;
-  
-  try {
-    if (window.gtag) {
-      window.gtag('event', params.action, {
-        event_category: params.category || 'engagement',
-        event_label: params.label,
-        value: params.value,
-        ...params
-      });
-    }
-  } catch (error) {
-    console.debug('Analytics tracking error:', error);
+// Track page views
+export const trackPageView = (path: string, title?: string) => {
+  if (typeof window !== 'undefined' && window.gtag && !navigator.doNotTrack) {
+    window.gtag('config', '/* ANALYTICS_KEY */', {
+      page_path: path,
+      page_title: title,
+      anonymize_ip: true
+    });
   }
 };
 
-/**
- * Track page views
- */
-const trackPageView = (path: string): void => {
-  if (!shouldTrack()) return;
-  
-  try {
-    if (window.gtag) {
-      window.gtag('config', '/* ANALYTICS_KEY */', {
-        page_path: path
-      });
-    }
-  } catch (error) {
-    console.debug('Page view tracking error:', error);
+// Track events
+export const trackEvent = (
+  action: string, 
+  category: string, 
+  label?: string, 
+  value?: number
+) => {
+  if (typeof window !== 'undefined' && window.gtag && !navigator.doNotTrack) {
+    window.gtag('event', action, {
+      event_category: category,
+      event_label: label,
+      value: value,
+      anonymize_ip: true
+    });
   }
 };
 
-/**
- * Track form submissions
- */
-const trackFormSubmit = (formName: string, success: boolean = true): void => {
-  trackEvent({
-    category: 'form',
-    action: 'submit',
-    label: `${formName}_${success ? 'success' : 'error'}`
-  });
+// Track form submissions
+export const trackFormSubmission = (formName: string) => {
+  trackEvent('form_submit', 'engagement', formName);
 };
 
-/**
- * Track CTA clicks
- */
-const trackCTAClick = (ctaName: string, location: string): void => {
-  trackEvent({
-    category: 'engagement',
-    action: 'click',
-    label: `${ctaName}_cta_${location}`
-  });
+// Track CTA clicks
+export const trackCTAClick = (ctaName: string, location: string) => {
+  trackEvent('cta_click', 'engagement', `${location}_${ctaName}`);
 };
 
-/**
- * Track product views
- */
-const trackProductView = (productId: string, productName: string): void => {
-  trackEvent({
-    category: 'ecommerce',
-    action: 'view_item',
-    label: productId,
-    items: [{
-      item_id: productId,
-      item_name: productName
-    }]
-  });
+// Track authentication events
+export const trackAuthEvent = (action: 'login' | 'register' | 'logout') => {
+  trackEvent(action, 'authentication');
 };
 
-/**
- * Track add to cart
- */
-const trackAddToCart = (
+// Track purchase events (e-commerce)
+export const trackPurchase = (
+  transactionId: string, 
+  value: number, 
+  currency: string = 'USD'
+) => {
+  if (typeof window !== 'undefined' && window.gtag && !navigator.doNotTrack) {
+    window.gtag('event', 'purchase', {
+      transaction_id: transactionId,
+      value: value,
+      currency: currency,
+      anonymize_ip: true
+    });
+  }
+};
+
+// Track product view
+export const trackProductView = (productId: string, productName: string) => {
+  trackEvent('view_item', 'engagement', productName, 1);
+};
+
+// Track add to cart
+export const trackAddToCart = (
   productId: string, 
   productName: string, 
   price: number, 
   quantity: number = 1
-): void => {
-  trackEvent({
-    category: 'ecommerce',
-    action: 'add_to_cart',
-    label: productId,
-    value: price * quantity,
-    items: [{
-      item_id: productId,
-      item_name: productName,
-      price: price,
-      quantity: quantity
-    }]
-  });
+) => {
+  trackEvent('add_to_cart', 'engagement', productName, price * quantity);
 };
 
-/**
- * Track checkout steps
- */
-const trackCheckoutStep = (step: number, option?: string): void => {
-  const stepNames = ['address', 'delivery', 'payment', 'review'];
-  trackEvent({
-    category: 'ecommerce',
-    action: 'begin_checkout',
-    label: stepNames[step - 1],
-    value: step,
-    checkout_step: step,
-    checkout_option: option
-  });
+// Track wishlist interaction
+export const trackWishlistEvent = (action: 'add' | 'remove', productId: string) => {
+  trackEvent(`wishlist_${action}`, 'engagement', productId);
 };
 
-/**
- * Track purchases
- */
-const trackPurchase = (
-  orderId: string, 
-  total: number, 
-  items: Array<{
-    id: string;
-    name: string;
-    price: number;
-    quantity: number;
-  }>
-): void => {
-  trackEvent({
-    category: 'ecommerce',
-    action: 'purchase',
-    label: orderId,
-    value: total,
-    transaction_id: orderId,
-    currency: 'USD',
-    items: items.map(item => ({
-      item_id: item.id,
-      item_name: item.name,
-      price: item.price,
-      quantity: item.quantity
-    }))
-  });
-};
-
-/**
- * Track searches
- */
-const trackSearch = (query: string, resultCount: number): void => {
-  trackEvent({
-    category: 'engagement',
-    action: 'search',
-    label: query,
-    value: resultCount
-  });
-};
-
-/**
- * Track authentication events
- */
-const trackAuthEvent = (action: 'login' | 'register' | 'logout', method: string): void => {
-  trackEvent({
-    category: 'auth',
-    action: action,
-    label: method
-  });
-};
-
-export const analytics = {
-  trackEvent,
-  trackPageView,
-  trackFormSubmit,
-  trackCTAClick,
-  trackProductView,
-  trackAddToCart,
-  trackCheckoutStep,
-  trackPurchase,
-  trackSearch,
-  trackAuthEvent
+// Track search
+export const trackSearch = (query: string, resultCount: number) => {
+  trackEvent('search', 'engagement', query, resultCount);
 };

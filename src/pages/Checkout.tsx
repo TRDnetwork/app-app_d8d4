@@ -1,26 +1,13 @@
-import React from 'react';
-import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
-import CheckoutForm from '../components/Checkout/CheckoutForm';
+import React, { lazy, Suspense } from 'react';
 import { useAuthStore } from '../stores/authStore';
-import { analytics } from '../lib/analytics';
+import { trackCTAClick } from '../lib/analytics';
 
-// Load Stripe publishable key from environment
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+// Lazy load Stripe Elements to reduce bundle size
+const Elements = lazy(() => import('@stripe/react-stripe-js').then(m => ({ default: m.Elements })));
+const loadStripe = lazy(() => import('@stripe/stripe-js').then(m => ({ default: m.loadStripe })));
 
 const CheckoutPage: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
-
-  // Track checkout initiation
-  useEffect(() => {
-    if (isAuthenticated) {
-      analytics.trackEvent({
-        category: 'ecommerce',
-        action: 'begin_checkout',
-        label: 'checkout_initiated'
-      });
-    }
-  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return (
@@ -29,8 +16,7 @@ const CheckoutPage: React.FC = () => {
         <p className="text-text_dim mb-4">Please log in to continue with checkout.</p>
         <button
           onClick={() => {
-            // Track login CTA click
-            analytics.trackCTAClick('login', 'checkout');
+            trackCTAClick('login_to_checkout', 'checkout_page');
             window.location.href = '/login';
           }}
           className="px-6 py-2 bg-accent text-background rounded hover:bg-orange-600"
@@ -42,10 +28,15 @@ const CheckoutPage: React.FC = () => {
   }
 
   return (
-    <Elements stripe={stripePromise}>
-      <CheckoutForm />
-    </Elements>
+    <Suspense fallback={<div className="skeleton h-96 w-full"></div>}>
+      <Elements stripe={loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)}>
+        <CheckoutForm />
+      </Elements>
+    </Suspense>
   );
 };
+
+// Lazy load CheckoutForm to enable code splitting
+const CheckoutForm = lazy(() => import('../components/Checkout/CheckoutForm'));
 
 export default CheckoutPage;

@@ -9,6 +9,7 @@ import { fetchWithAuth } from '../lib/api';
 import { cartStore } from '../stores/cartStore';
 import { wishlistStore } from '../stores/wishlistStore';
 import { Heart, ShoppingCart, Share2 } from 'lucide-react';
+import { trackProductView, trackAddToCart, trackWishlistEvent } from '../lib/analytics';
 
 const ProductDetail: React.FC = () => {
   const { slug } = useParams();
@@ -27,6 +28,11 @@ const ProductDetail: React.FC = () => {
         if (res.data.variants?.length > 0) {
           setSelectedVariant(res.data.variants[0]);
         }
+        
+        // Track product view
+        if (res.data) {
+          trackProductView(res.data._id, res.data.title);
+        }
       } catch (err) {
         console.error('Failed to load product:', err);
         navigate('/products');
@@ -44,7 +50,19 @@ const ProductDetail: React.FC = () => {
       price: selectedVariant?.price || product.price,
       quantity,
     });
-    // Show toast
+    
+    // Track add to cart event
+    trackAddToCart(
+      product._id, 
+      product.title, 
+      selectedVariant?.price || product.price, 
+      quantity
+    );
+  };
+
+  const handleWishlistToggle = () => {
+    toggle(product._id);
+    trackWishlistEvent(has(product._id) ? 'remove' : 'add', product._id);
   };
 
   if (!product) {
@@ -123,7 +141,7 @@ const ProductDetail: React.FC = () => {
               <span>Add to Cart</span>
             </button>
             <button
-              onClick={() => toggle(product._id)}
+              onClick={handleWishlistToggle}
               className={`btn px-6 py-3 ${has(product._id) ? 'text-accent' : 'text-text-dim'}`}
             >
               <Heart size={20} fill={has(product._id) ? '#FF9900' : 'none'} />
@@ -134,4 +152,28 @@ const ProductDetail: React.FC = () => {
           </div>
 
           <div className="border-t border-border pt-6">
-            <h3 className="
+            <h3 className="font-medium mb-3">Product Details</h3>
+            <ul className="space-y-2 text-text-dim">
+              <li>Category: {product.category}</li>
+              <li>Brand: {product.brand}</li>
+              <li>SKU: {product.sku}</li>
+              <li>Availability: {product.stock_quantity > 0 ? 'In Stock' : 'Out of Stock'}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold mb-6 font-display">Product Reviews</h2>
+        <ReviewList productId={product._id} />
+      </div>
+
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold mb-6 font-display">Questions & Answers</h2>
+        <QASection productId={product._id} />
+      </div>
+    </div>
+  );
+};
+
+export default ProductDetail;

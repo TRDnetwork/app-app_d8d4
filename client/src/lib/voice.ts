@@ -1,176 +1,214 @@
-import { toast } from '@/components/ui/use-toast';
+import { useState, useRef, useEffect } from 'react';
 
-// Speech-to-Text using Web Speech API
-class SpeechToText {
+// Type definitions
+interface SpeechRecognitionError {
+  error: string;
+  message: string;
+}
+
+interface SpeechRecognitionResult {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognitionEvent {
+  results: SpeechRecognitionResult[][];
+  resultIndex: number;
+}
+
+interface SpeechSynthesisUtterance {
+  text: string;
+  voice: SpeechSynthesisVoice | null;
+  rate: number;
+  pitch: number;
+}
+
+// Voice Agent for TRD Network
+export class VoiceAgent {
   private recognition: SpeechRecognition | null = null;
-  private isListening = false;
-  private interimResults: string[] = [];
-  private finalResults: string[] = [];
+  private synth: SpeechSynthesis | null = null;
+  private isListening: boolean = false;
+  private isSpeaking: boolean = false;
+  private interimTranscript: string = '';
+  private finalTranscript: string = '';
+  private onTranscriptChange: ((transcript: string) => void) | null = null;
+  private onFinalTranscript: ((transcript: string) => void) | null = null;
+  private onError: ((error: SpeechRecognitionError) => void) | null = null;
+  private onCommand: ((command: string) => void) | null = null;
+  private voices: SpeechSynthesisVoice[] = [];
 
   constructor() {
-    if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-      console.warn('Speech Recognition not supported in this browser');
-      return;
-    }
+    // Initialize browser APIs
+    this.synth = window.speechSynthesis;
+    this.recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    // Set up event listeners
+    this.setupRecognition();
+    this.loadVoices();
+  }
 
-    this.recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  private setupRecognition(): void {
+    if (!this.recognition) return;
+
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
     this.recognition.lang = 'en-US'; // Default language
 
-    this.recognition.onresult = (event) => {
-      this.interimResults = [];
-      this.finalResults = [];
+    this.recognition.onresult = (event: SpeechRecognitionEvent) => {
+      this.interimTranscript = '';
+      this.finalTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         
         if (event.results[i].isFinal) {
-          this.finalResults.push(transcript);
+          this.finalTranscript += transcript;
+          if (this.onFinalTranscript) {
+            this.onFinalTranscript(this.finalTranscript);
+          }
+          
+          // Process voice commands
+          this.processCommand(this.finalTranscript);
         } else {
-          this.interimResults.push(transcript);
+          this.interimTranscript += transcript;
+          if (this.onTranscriptChange) {
+            this.onTranscriptChange(this.interimTranscript);
+          }
         }
       }
     };
 
-    this.recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      toast({
-        variant: 'destructive',
-        title: 'Voice Recognition Error',
-        description: `Error: ${event.error}`,
-      });
+    this.recognition.onerror = (event: any) => {
+      const error: SpeechRecognitionError = {
+        error: event.error,
+        message: event.message || 'Speech recognition error'
+      };
+      
+      if (this.onError) {
+        this.onError(error);
+      }
+      
+      this.stopListening();
     };
 
     this.recognition.onend = () => {
       this.isListening = false;
+      
+      // Restart recognition if it was stopped unexpectedly
       if (this.isListening) {
-        // Restart if continuous listening is enabled
-        this.start();
+        this.startListening();
       }
     };
   }
 
-  async start(): Promise<void> {
+  private loadVoices(): void {
+    if (!this.synth) return;
+    
+    // Get voices immediately if available
+    this.voices = this.synth.getVoices();
+    
+    // Add event listener for when voices are loaded
+    this.synth.onvoiceschanged = () => {
+      this.voices = this.synth?.getVoices() || [];
+    };
+  }
+
+  private processCommand(transcript: string): void {
+    // Convert to lowercase for easier matching
+    const lowerTranscript = transcript.toLowerCase().trim();
+    
+    // Define command patterns
+    const commands = [
+      { pattern: /^add task (.+)/i, action: 'addTask' },
+      { pattern: /^search for (.+)/i, action: 'search' },
+      { pattern: /^go to (.+)/i, action: 'navigate' },
+      { pattern: /^open (.+)/i, action: 'navigate' },
+      { pattern: /^play (.+)/i, action: 'play' },
+      { pattern: /^pause/i, action: 'pause' },
+      { pattern: /^stop/i, action: 'stop' },
+      { pattern: /^volume up/i, action: 'volumeUp' },
+      { pattern: /^volume down/i, action: 'volumeDown' },
+      { pattern: /^mute/i, action: 'mute' },
+      { pattern: /^unmute/i, action: 'unmute' },
+      { pattern: /^what time is it/i, action: 'time' },
+      { pattern: /^what day is it/i, action: 'date' },
+      { pattern: /^weather/i, action: 'weather' },
+      { pattern: /^help/i, action: 'help' }
+    ];
+
+    // Check for matching commands
+    for (const command of commands) {
+      const match = lowerTranscript.match(command.pattern);
+      if (match) {
+        const action = command.action;
+        const value = match[1] || '';
+        
+        if (this.onCommand) {
+          this.onCommand(action + (value ? `:${value}` : ''));
+        }
+        
+        // Speak confirmation
+        this.speak(`Executing ${action} command`);
+        return;
+      }
+    }
+  }
+
+  // Speech-to-Text methods
+  startListening(): void {
     if (!this.recognition) {
-      toast({
-        variant: 'destructive',
-        title: 'Voice Recognition Not Supported',
-        description: 'Your browser does not support speech recognition',
-      });
+      this.fallbackToWhisper();
       return;
     }
 
     try {
-      await this.recognition.start();
       this.isListening = true;
-      toast({
-        title: 'Listening...',
-        description: 'Speak now. Click the microphone again to stop.',
-      });
+      this.recognition.start();
     } catch (error) {
       console.error('Error starting speech recognition:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Could Not Start Listening',
-        description: 'Please check your microphone permissions',
-      });
+      this.fallbackToWhisper();
     }
   }
 
-  stop(): void {
+  stopListening(): void {
     if (this.recognition && this.isListening) {
-      this.recognition.stop();
       this.isListening = false;
+      this.recognition.stop();
     }
   }
 
-  getInterimResults(): string[] {
-    return [...this.interimResults];
-  }
-
-  getFinalResults(): string[] {
-    return [...this.finalResults];
-  }
-
-  clearResults(): void {
-    this.interimResults = [];
-    this.finalResults = [];
-  }
-
-  isAvailable(): boolean {
-    return !!this.recognition;
-  }
-
-  isCurrentlyListening(): boolean {
+  isListeningActive(): boolean {
     return this.isListening;
   }
-}
 
-// Text-to-Speech using Web Speech API
-class TextToSpeech {
-  private voices: SpeechSynthesisVoice[] = [];
-  private isSpeaking = false;
-
-  constructor() {
-    if (!window.speechSynthesis) {
-      console.warn('Speech Synthesis not supported in this browser');
-      return;
-    }
-
-    // Load available voices
-    this.loadVoices();
-    
-    // Listen for voice changes
-    window.speechSynthesis.onvoiceschanged = () => {
-      this.loadVoices();
-    };
-  }
-
-  private loadVoices(): void {
-    this.voices = window.speechSynthesis.getVoices();
-  }
-
-  async speak(text: string, options?: {
-    voice?: SpeechSynthesisVoice;
-    rate?: number;
-    pitch?: number;
-    volume?: number;
-  }): Promise<void> {
-    if (!window.speechSynthesis) {
-      toast({
-        variant: 'destructive',
-        title: 'Text-to-Speech Not Supported',
-        description: 'Your browser does not support text-to-speech',
-      });
+  // Text-to-Speech methods
+  speak(text: string, options?: { voice?: SpeechSynthesisVoice; rate?: number; pitch?: number }): void {
+    if (!this.synth) {
+      console.error('Speech synthesis not supported');
       return;
     }
 
     if (this.isSpeaking) {
-      this.stop();
+      this.synth.cancel();
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Set voice
+    // Set voice if specified
     if (options?.voice) {
       utterance.voice = options.voice;
-    } else if (this.voices.length > 0) {
-      // Default to first English voice
-      const englishVoice = this.voices.find(v => v.lang.includes('en'));
-      utterance.voice = englishVoice || this.voices[0];
+    }
+    
+    // Set rate if specified (0.1 to 10)
+    if (options?.rate) {
+      utterance.rate = Math.max(0.1, Math.min(10, options.rate));
+    }
+    
+    // Set pitch if specified (0 to 2)
+    if (options?.pitch) {
+      utterance.pitch = Math.max(0, Math.min(2, options.pitch));
     }
 
-    // Set rate (0.1 to 10, default 1)
-    utterance.rate = options?.rate || 1;
-    
-    // Set pitch (0 to 2, default 1)
-    utterance.pitch = options?.pitch || 1;
-    
-    // Set volume (0 to 1, default 1)
-    utterance.volume = options?.volume || 1;
-
-    // Event handlers
     utterance.onstart = () => {
       this.isSpeaking = true;
     };
@@ -182,314 +220,213 @@ class TextToSpeech {
     utterance.onerror = (event) => {
       console.error('Speech synthesis error:', event);
       this.isSpeaking = false;
-      toast({
-        variant: 'destructive',
-        title: 'Speech Error',
-        description: 'Could not speak the text',
-      });
     };
 
-    window.speechSynthesis.speak(utterance);
+    this.synth.speak(utterance);
   }
 
-  stop(): void {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
+  stopSpeaking(): void {
+    if (this.synth && this.isSpeaking) {
+      this.synth.cancel();
       this.isSpeaking = false;
     }
   }
 
-  getVoices(): SpeechSynthesisVoice[] {
-    return [...this.voices];
-  }
-
-  isAvailable(): boolean {
-    return !!window.speechSynthesis;
-  }
-
-  isCurrentlySpeaking(): boolean {
+  isSpeakingActive(): boolean {
     return this.isSpeaking;
   }
-}
-
-// Voice Command Processor
-class VoiceCommandProcessor {
-  private commands: Map<string, () => void> = new Map();
-  private stt: SpeechToText;
-  private tts: TextToSpeech;
-
-  constructor(stt: SpeechToText, tts: TextToSpeech) {
-    this.stt = stt;
-    this.tts = tts;
-    this.initializeCommands();
-  }
-
-  private initializeCommands(): void {
-    // Add navigation commands
-    this.commands.set('add task', () => {
-      this.tts.speak('Creating a new task');
-      // In a real app, this would trigger a navigation or action
-      console.log('Creating a new task');
-    });
-
-    this.commands.set('search for', (query: string) => {
-      this.tts.speak(`Searching for ${query}`);
-      // In a real app, this would trigger a search
-      console.log(`Searching for: ${query}`);
-    });
-
-    this.commands.set('go to cart', () => {
-      this.tts.speak('Opening your shopping cart');
-      // In a real app, this would navigate to the cart
-      console.log('Navigating to cart');
-    });
-
-    this.commands.set('go to checkout', () => {
-      this.tts.speak('Proceeding to checkout');
-      // In a real app, this would navigate to checkout
-      console.log('Navigating to checkout');
-    });
-
-    this.commands.set('go to profile', () => {
-      this.tts.speak('Opening your profile');
-      // In a real app, this would navigate to profile
-      console.log('Navigating to profile');
-    });
-
-    this.commands.set('go to orders', () => {
-      this.tts.speak('Opening your order history');
-      // In a real app, this would navigate to orders
-      console.log('Navigating to orders');
-    });
-
-    this.commands.set('go to home', () => {
-      this.tts.speak('Returning to home page');
-      // In a real app, this would navigate to home
-      console.log('Navigating to home');
-    });
-  }
-
-  processCommand(text: string): boolean {
-    const lowerText = text.toLowerCase().trim();
-    
-    // Check for exact matches first
-    if (this.commands.has(lowerText)) {
-      this.commands.get(lowerText)?.();
-      return true;
-    }
-
-    // Check for commands with parameters
-    for (const [command, action] of this.commands.entries()) {
-      if (lowerText.startsWith(command)) {
-        const param = lowerText.substring(command.length).trim();
-        if (param) {
-          action(param);
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  getAvailableCommands(): string[] {
-    return Array.from(this.commands.keys());
-  }
-}
-
-// Audio Recorder using MediaRecorder API
-class AudioRecorder {
-  private stream: MediaStream | null = null;
-  private mediaRecorder: MediaRecorder | null = null;
-  private audioChunks: Blob[] = [];
-  private isRecording = false;
-  private audioUrl: string | null = null;
-
-  async start(): Promise<void> {
-    try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      this.mediaRecorder = new MediaRecorder(this.stream);
-      this.audioChunks = [];
-      
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          this.audioChunks.push(event.data);
-        }
-      };
-
-      this.mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-        this.audioUrl = URL.createObjectURL(audioBlob);
-      };
-
-      this.mediaRecorder.start();
-      this.isRecording = true;
-      
-      toast({
-        title: 'Recording Started',
-        description: 'Recording audio...',
-      });
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Microphone Access Denied',
-        description: 'Please allow microphone access to record audio',
-      });
-      throw error;
-    }
-  }
-
-  stop(): void {
-    if (this.mediaRecorder && this.isRecording) {
-      this.mediaRecorder.stop();
-      this.isRecording = false;
-      
-      // Stop all tracks to release the microphone
-      if (this.stream) {
-        this.stream.getTracks().forEach(track => track.stop());
-      }
-      
-      toast({
-        title: 'Recording Stopped',
-        description: 'Audio recording complete',
-      });
-    }
-  }
-
-  getAudioUrl(): string | null {
-    return this.audioUrl;
-  }
-
-  getAudioBlob(): Blob | null {
-    if (this.audioChunks.length === 0) return null;
-    return new Blob(this.audioChunks, { type: 'audio/webm' });
-  }
-
-  clear(): void {
-    this.audioChunks = [];
-    this.audioUrl = null;
-  }
-
-  isAvailable(): boolean {
-    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-  }
-
-  isCurrentlyRecording(): boolean {
-    return this.isRecording;
-  }
-}
-
-// Main Voice Agent class that combines all functionality
-export class VoiceAgent {
-  private stt: SpeechToText;
-  private tts: TextToSpeech;
-  private commandProcessor: VoiceCommandProcessor;
-  private recorder: AudioRecorder;
-
-  constructor() {
-    this.stt = new SpeechToText();
-    this.tts = new TextToSpeech();
-    this.commandProcessor = new VoiceCommandProcessor(this.stt, this.tts);
-    this.recorder = new AudioRecorder();
-  }
-
-  // Speech-to-Text methods
-  async startListening(): Promise<void> {
-    await this.stt.start();
-  }
-
-  stopListening(): void {
-    this.stt.stop();
-  }
-
-  getTranscript(): { interim: string[]; final: string[] } {
-    return {
-      interim: this.stt.getInterimResults(),
-      final: this.stt.getFinalResults()
-    };
-  }
-
-  clearTranscript(): void {
-    this.stt.clearResults();
-  }
-
-  // Text-to-Speech methods
-  async speak(text: string, options?: {
-    voice?: SpeechSynthesisVoice;
-    rate?: number;
-    pitch?: number;
-    volume?: number;
-  }): Promise<void> {
-    await this.tts.speak(text, options);
-  }
-
-  stopSpeaking(): void {
-    this.tts.stop();
-  }
 
   getVoices(): SpeechSynthesisVoice[] {
-    return this.tts.getVoices();
+    return this.voices;
   }
 
-  // Voice Command methods
-  processCommand(text: string): boolean {
-    return this.commandProcessor.processCommand(text);
+  // Audio recording methods
+  async startRecording(): Promise<MediaRecorder | null> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      
+      return mediaRecorder;
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      return null;
+    }
   }
 
-  getAvailableCommands(): string[] {
-    return this.commandProcessor.getAvailableCommands();
+  // Fallback methods
+  private async fallbackToWhisper(): Promise<void> {
+    // Implement Whisper API fallback
+    console.warn('Using Whisper API fallback for speech recognition');
+    
+    // This would make a request to the Whisper API
+    // Implementation depends on your backend setup
   }
 
-  // Audio Recording methods
-  async startRecording(): Promise<void> {
-    await this.recorder.start();
+  // Event handlers
+  setOnTranscriptChange(callback: (transcript: string) => void): void {
+    this.onTranscriptChange = callback;
   }
 
-  stopRecording(): void {
-    this.recorder.stop();
+  setOnFinalTranscript(callback: (transcript: string) => void): void {
+    this.onFinalTranscript = callback;
   }
 
-  getRecordingUrl(): string | null {
-    return this.recorder.getAudioUrl();
+  setOnError(callback: (error: SpeechRecognitionError) => void): void {
+    this.onError = callback;
   }
 
-  getRecordingBlob(): Blob | null {
-    return this.recorder.getAudioBlob();
+  setOnCommand(callback: (command: string) => void): void {
+    this.onCommand = callback;
   }
 
-  clearRecording(): void {
-    this.recorder.clear();
-  }
-
-  // Status methods
-  isSpeechToTextAvailable(): boolean {
-    return this.stt.isAvailable();
-  }
-
-  isTextToSpeechAvailable(): boolean {
-    return this.tts.isAvailable();
-  }
-
-  isAudioRecordingAvailable(): boolean {
-    return this.recorder.isAvailable();
-  }
-
-  isListening(): boolean {
-    return this.stt.isCurrentlyListening();
-  }
-
-  isSpeaking(): boolean {
-    return this.tts.isCurrentlySpeaking();
-  }
-
-  isRecording(): boolean {
-    return this.recorder.isCurrentlyRecording();
+  // Cleanup
+  destroy(): void {
+    this.stopListening();
+    this.stopSpeaking();
+    
+    if (this.recognition) {
+      this.recognition.onresult = null;
+      this.recognition.onerror = null;
+      this.recognition.onend = null;
+    }
+    
+    if (this.synth) {
+      this.synth.onvoiceschanged = null;
+    }
   }
 }
 
-// Export a singleton instance
-export const voiceAgent = new VoiceAgent();
+// Hook for using voice features in React components
+export function useVoice() {
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [finalTranscript, setFinalTranscript] = useState('');
+  const [error, setError] = useState<SpeechRecognitionError | null>(null);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [currentVoice, setCurrentVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [speechRate, setSpeechRate] = useState(1);
+  const [speechPitch, setSpeechPitch] = useState(1);
+
+  const voiceAgent = useRef<VoiceAgent | null>(null);
+
+  useEffect(() => {
+    // Initialize voice agent
+    voiceAgent.current = new VoiceAgent();
+    
+    // Set up event handlers
+    voiceAgent.current.setOnTranscriptChange((transcript) => {
+      setTranscript(transcript);
+    });
+    
+    voiceAgent.current.setOnFinalTranscript((transcript) => {
+      setFinalTranscript(transcript);
+    });
+    
+    voiceAgent.current.setOnError((error) => {
+      setError(error);
+    });
+    
+    voiceAgent.current.setOnCommand((command) => {
+      console.log('Voice command:', command);
+      // Handle commands here
+    });
+    
+    // Load voices
+    setVoices(voiceAgent.current.getVoices());
+    
+    // Set default voice
+    const defaultVoice = voiceAgent.current.getVoices().find(voice => 
+      voice.name.includes('Google') || voice.name.includes('US')
+    ) || voiceAgent.current.getVoices()[0] || null;
+    
+    setCurrentVoice(defaultVoice);
+
+    // Cleanup
+    return () => {
+      if (voiceAgent.current) {
+        voiceAgent.current.destroy();
+      }
+    };
+  }, []);
+
+  const startListening = () => {
+    if (voiceAgent.current) {
+      voiceAgent.current.startListening();
+      setIsListening(true);
+    }
+  };
+
+  const stopListening = () => {
+    if (voiceAgent.current) {
+      voiceAgent.current.stopListening();
+      setIsListening(false);
+    }
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
+  const speak = (text: string) => {
+    if (voiceAgent.current && currentVoice) {
+      voiceAgent.current.speak(text, {
+        voice: currentVoice,
+        rate: speechRate,
+        pitch: speechPitch
+      });
+      setIsSpeaking(true);
+    }
+  };
+
+  const stopSpeaking = () => {
+    if (voiceAgent.current) {
+      voiceAgent.current.stopSpeaking();
+      setIsSpeaking(false);
+    }
+  };
+
+  const selectVoice = (voice: SpeechSynthesisVoice) => {
+    setCurrentVoice(voice);
+  };
+
+  const setRate = (rate: number) => {
+    setSpeechRate(rate);
+  };
+
+  const setPitch = (pitch: number) => {
+    setSpeechPitch(pitch);
+  };
+
+  return {
+    isListening,
+    isSpeaking,
+    transcript,
+    finalTranscript,
+    error,
+    voices,
+    currentVoice,
+    speechRate,
+    speechPitch,
+    startListening,
+    stopListening,
+    toggleListening,
+    speak,
+    stopSpeaking,
+    selectVoice,
+    setRate,
+    setPitch
+  };
+}
+
+// Initialize voice agent
+const voiceAgent = new VoiceAgent();
+
+export default voiceAgent;
 ```
 
 ```typescript
