@@ -1,40 +1,26 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 interface WishlistItem {
-  productId: string;
-  addedAt: number;
+  product_id: string;
+  name: string;
+  price: number;
+  image: string;
 }
 
 interface WishlistState {
   items: WishlistItem[];
-  has: (productId: string) => boolean;
-  add: (productId: string) => void;
-  remove: (productId: string) => void;
-  toggle: (productId: string) => void;
+  add: (item: WishlistItem) => void;
+  remove: (product_id: string) => void;
+  has: (product_id: string) => boolean;
 }
 
-export const useWishlistStore = create<WishlistState>()(
-  persist(
-    (set, get) => ({
-      items: [],
-      has: (productId) => get().items.some((item) => item.productId === productId),
-      add: (productId) =>
-        set((state) => ({
-          items: [{ productId, addedAt: Date.now() }, ...state.items],
-        })),
-      remove: (productId) =>
-        set((state) => ({
-          items: state.items.filter((item) => item.productId !== productId),
-        })),
-      toggle: (productId) => {
-        const has = get().has(productId);
-        if (has) get().remove(productId);
-        else get().add(productId);
-      },
-    }),
-    {
-      name: 'wishlist-storage',
+export const useWishlistStore = create<WishlistState>((set, get) => ({
+  items: [],
+  add: (item) => {
+    if (!get().has(item.product_id)) {
+      set({ items: [...get().items, item] });
     }
-  )
-);
+  },
+  remove: (product_id) => set({ items: get().items.filter((i) => i.product_id !== product_id) }),
+  has: (product_id) => get().items.some((i) => i.product_id === product_id),
+}));

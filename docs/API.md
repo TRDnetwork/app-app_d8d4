@@ -1,1089 +1,792 @@
 # ShopSphere API Documentation
 
+This document provides comprehensive documentation for all API endpoints in the ShopSphere e-commerce platform.
+
 ## Authentication
 
 ### Register User
-- **Endpoint**: `POST /api/auth/register`
-- **Description**: Register a new user with email and password
-- **Request Body**:
-```json
-{
-  "email": "user@example.com",
-  "password": "password123",
-  "name": "John Doe"
-}
-```
-- **Response**:
-```json
-{
-  "user": {
-    "_id": "user_id",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "role": "customer"
-  },
-  "token": "jwt_token"
-}
-```
-- **Example**:
-```bash
-curl -X POST http://localhost:5000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123","name":"John Doe"}'
-```
+Create a new user account.
 
-### Login User
-- **Endpoint**: `POST /api/auth/login`
-- **Description**: Login with email and password
-- **Request Body**:
+**Endpoint:** `POST /api/auth/register`  
+**Authentication:** None
+
+**Request Body:**
 ```json
 {
-  "email": "user@example.com",
+  "name": "John Doe",
+  "email": "john@example.com",
   "password": "password123"
 }
 ```
-- **Response**:
+
+**Response (201 Created):**
 ```json
 {
+  "token": "jwt_token_here",
   "user": {
-    "_id": "user_id",
-    "email": "user@example.com",
+    "id": "user_id",
+    "email": "john@example.com",
     "name": "John Doe",
-    "role": "customer"
-  },
-  "token": "jwt_token",
-  "refreshToken": "refresh_token"
+    "role": "customer",
+    "email_verified": false
+  }
 }
-```
-- **Example**:
-```bash
-curl -X POST http://localhost:5000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123"}'
 ```
 
-### Refresh Token
-- **Endpoint**: `POST /api/auth/refresh`
-- **Description**: Refresh access token using refresh token
-- **Request Body**:
-```json
-{
-  "refreshToken": "refresh_token"
-}
-```
-- **Response**:
-```json
-{
-  "token": "new_jwt_token"
-}
-```
-- **Example**:
+**Example cURL:**
 ```bash
-curl -X POST http://localhost:5000/api/auth/refresh \
+curl -X POST https://api.shopsphere.com/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"refreshToken":"refresh_token"}'
+  -d '{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "password123"
+  }'
+```
+
+### Login User
+Authenticate user and receive JWT token.
+
+**Endpoint:** `POST /api/auth/login`  
+**Authentication:** None
+
+**Request Body:**
+```json
+{
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "token": "jwt_token_here",
+  "refresh_token": "refresh_token_here",
+  "user": {
+    "id": "user_id",
+    "email": "john@example.com",
+    "name": "John Doe",
+    "role": "customer",
+    "email_verified": true
+  }
+}
+```
+
+**Example cURL:**
+```bash
+curl -X POST https://api.shopsphere.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john@example.com",
+    "password": "password123"
+  }'
 ```
 
 ### Verify Email
-- **Endpoint**: `POST /api/auth/verify-email`
-- **Description**: Verify user email with token
-- **Request Body**:
+Verify user's email address using verification token.
+
+**Endpoint:** `POST /api/auth/verify-email`  
+**Authentication:** None
+
+**Request Body:**
 ```json
 {
-  "token": "verification_token"
+  "token": "verification_token_here"
 }
 ```
-- **Response**: `200 OK`
-- **Example**:
+
+**Response (200 OK):**
+```json
+{
+  "message": "Email verified successfully",
+  "user": {
+    "id": "user_id",
+    "email": "john@example.com",
+    "name": "John Doe",
+    "email_verified": true
+  }
+}
+```
+
+**Example cURL:**
 ```bash
-curl -X POST http://localhost:5000/api/auth/verify-email \
+curl -X POST https://api.shopsphere.com/api/auth/verify-email \
   -H "Content-Type: application/json" \
-  -d '{"token":"verification_token"}'
+  -d '{
+    "token": "verification_token_here"
+  }'
 ```
 
 ### Forgot Password
-- **Endpoint**: `POST /api/auth/forgot-password`
-- **Description**: Send password reset email
-- **Request Body**:
+Request password reset email.
+
+**Endpoint:** `POST /api/auth/forgot-password`  
+**Authentication:** None
+
+**Request Body:**
 ```json
 {
-  "email": "user@example.com"
+  "email": "john@example.com"
 }
 ```
-- **Response**: `200 OK`
-- **Example**:
+
+**Response (200 OK):**
+```json
+{
+  "message": "Password reset email sent if account exists"
+}
+```
+
+**Example cURL:**
 ```bash
-curl -X POST http://localhost:5000/api/auth/forgot-password \
+curl -X POST https://api.shopsphere.com/api/auth/forgot-password \
   -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com"}'
+  -d '{
+    "email": "john@example.com"
+  }'
 ```
 
 ### Reset Password
-- **Endpoint**: `POST /api/auth/reset-password`
-- **Description**: Reset password with token
-- **Request Body**:
+Reset password using reset token.
+
+**Endpoint:** `POST /api/auth/reset-password`  
+**Authentication:** None
+
+**Request Body:**
 ```json
 {
-  "token": "reset_token",
-  "newPassword": "new_password123"
+  "token": "reset_token_here",
+  "password": "new_password123"
 }
 ```
-- **Response**: `200 OK`
-- **Example**:
+
+**Response (200 OK):**
+```json
+{
+  "message": "Password reset successfully"
+}
+```
+
+**Example cURL:**
 ```bash
-curl -X POST http://localhost:5000/api/auth/reset-password \
+curl -X POST https://api.shopsphere.com/api/auth/reset-password \
   -H "Content-Type: application/json" \
-  -d '{"token":"reset_token","newPassword":"new_password123"}'
+  -d '{
+    "token": "reset_token_here",
+    "password": "new_password123"
+  }'
+```
+
+### Google OAuth
+Redirect to Google OAuth login.
+
+**Endpoint:** `GET /api/auth/oauth/google`  
+**Authentication:** None
+
+**Response:** Redirect to Google OAuth page
+
+**Example cURL:**
+```bash
+curl -X GET https://api.shopsphere.com/api/auth/oauth/google
+```
+
+### Google OAuth Callback
+Handle Google OAuth callback.
+
+**Endpoint:** `GET /api/auth/oauth/google/callback`  
+**Authentication:** None
+
+**Query Parameters:**
+- `code`: Authorization code from Google
+- `state`: CSRF protection state
+
+**Response:** Redirect to frontend with JWT token
+
+**Example cURL:**
+```bash
+curl -X GET "https://api.shopsphere.com/api/auth/oauth/google/callback?code=auth_code&state=csrf_state"
 ```
 
 ## Users
 
-### Get Profile
-- **Endpoint**: `GET /api/users/profile`
-- **Description**: Get current user profile
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**:
+### Get User Profile
+Get current user's profile information.
+
+**Endpoint:** `GET /api/users/profile`  
+**Authentication:** Bearer Token
+
+**Response (200 OK):**
 ```json
 {
-  "user": {
-    "_id": "user_id",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "phone": "+1234567890",
-    "profile_picture_url": "https://example.com/avatar.jpg",
-    "loyalty_points": 250,
-    "role": "customer"
-  }
+  "id": "user_id",
+  "email": "john@example.com",
+  "name": "John Doe",
+  "phone": "+1234567890",
+  "profile_picture_url": "https://example.com/avatar.jpg",
+  "role": "customer",
+  "loyalty_points": 150,
+  "email_verified": true,
+  "created_at": "2023-01-15T10:30:00Z"
 }
 ```
-- **Example**:
+
+**Example cURL:**
 ```bash
-curl -X GET http://localhost:5000/api/users/profile \
-  -H "Authorization: Bearer jwt_token"
+curl -X GET https://api.shopsphere.com/api/users/profile \
+  -H "Authorization: Bearer jwt_token_here"
 ```
 
-### Update Profile
-- **Endpoint**: `PUT /api/users/profile`
-- **Description**: Update user profile
-- **Headers**: `Authorization: Bearer <token>`
-- **Request Body**:
+### Update User Profile
+Update user's profile information.
+
+**Endpoint:** `PUT /api/users/profile`  
+**Authentication:** Bearer Token
+
+**Request Body:**
 ```json
 {
-  "name": "John Doe",
+  "name": "John Smith",
   "phone": "+1234567890"
 }
 ```
-- **Response**:
+
+**Response (200 OK):**
 ```json
 {
-  "user": {
-    "_id": "user_id",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "phone": "+1234567890",
-    "profile_picture_url": "https://example.com/avatar.jpg",
-    "loyalty_points": 250,
-    "role": "customer"
-  }
+  "id": "user_id",
+  "email": "john@example.com",
+  "name": "John Smith",
+  "phone": "+1234567890",
+  "profile_picture_url": "https://example.com/avatar.jpg",
+  "role": "customer",
+  "loyalty_points": 150,
+  "email_verified": true,
+  "created_at": "2023-01-15T10:30:00Z",
+  "updated_at": "2023-01-20T14:20:00Z"
 }
 ```
-- **Example**:
+
+**Example cURL:**
 ```bash
-curl -X PUT http://localhost:5000/api/users/profile \
-  -H "Authorization: Bearer jwt_token" \
+curl -X PUT https://api.shopsphere.com/api/users/profile \
+  -H "Authorization: Bearer jwt_token_here" \
   -H "Content-Type: application/json" \
-  -d '{"name":"John Doe","phone":"+1234567890"}'
+  -d '{
+    "name": "John Smith",
+    "phone": "+1234567890"
+  }'
 ```
 
 ### Upload Profile Picture
-- **Endpoint**: `PUT /api/users/profile/picture`
-- **Description**: Upload profile picture to S3
-- **Headers**: `Authorization: Bearer <token>`
-- **Request Body**: `multipart/form-data` with file
-- **Response**:
+Upload user's profile picture to AWS S3.
+
+**Endpoint:** `PUT /api/users/profile/picture`  
+**Authentication:** Bearer Token
+
+**Request Body:** Multipart form data with file
+
+**Response (200 OK):**
 ```json
 {
-  "url": "https://s3.amazonaws.com/shopsphere-uploads/profiles/user_id.jpg"
+  "profile_picture_url": "https://shopsphere-uploads.s3.amazonaws.com/user_id/avatar.jpg"
 }
-```
-- **Example**:
-```bash
-curl -X PUT http://localhost:5000/api/users/profile/picture \
-  -H "Authorization: Bearer jwt_token" \
-  -F "file=@/path/to/image.jpg"
 ```
 
-### List Addresses
-- **Endpoint**: `GET /api/users/addresses`
-- **Description**: Get user's saved addresses
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**:
-```json
-{
-  "addresses": [
-    {
-      "_id": "address_id",
-      "type": "home",
-      "line1": "123 Main Street",
-      "city": "New York",
-      "state": "NY",
-      "postal_code": "10001",
-      "country": "USA",
-      "is_default": true
-    }
-  ]
-}
-```
-- **Example**:
+**Example cURL:**
 ```bash
-curl -X GET http://localhost:5000/api/users/addresses \
-  -H "Authorization: Bearer jwt_token"
+curl -X PUT https://api.shopsphere.com/api/users/profile/picture \
+  -H "Authorization: Bearer jwt_token_here" \
+  -F "file=@/path/to/avatar.jpg"
 ```
 
-### Add Address
-- **Endpoint**: `POST /api/users/addresses`
-- **Description**: Add new address
-- **Headers**: `Authorization: Bearer <token>`
-- **Request Body**:
+### List User Addresses
+Get all addresses for the current user.
+
+**Endpoint:** `GET /api/users/addresses`  
+**Authentication:** Bearer Token
+
+**Response (200 OK):**
 ```json
-{
-  "type": "home",
-  "line1": "123 Main Street",
-  "city": "New York",
-  "state": "NY",
-  "postal_code": "10001",
-  "country": "USA",
-  "is_default": true
-}
-```
-- **Response**:
-```json
-{
-  "address": {
-    "_id": "address_id",
+[
+  {
+    "id": "address_id_1",
     "type": "home",
-    "line1": "123 Main Street",
+    "line1": "123 Main St",
+    "line2": "Apt 4B",
     "city": "New York",
     "state": "NY",
     "postal_code": "10001",
-    "country": "USA",
-    "is_default": true
+    "country": "US",
+    "is_default": true,
+    "created_at": "2023-01-15T10:30:00Z"
+  },
+  {
+    "id": "address_id_2",
+    "type": "work",
+    "line1": "456 Business Ave",
+    "city": "New York",
+    "state": "NY",
+    "postal_code": "10002",
+    "country": "US",
+    "is_default": false,
+    "created_at": "2023-01-18T09:15:00Z"
   }
-}
-```
-- **Example**:
-```bash
-curl -X POST http://localhost:5000/api/users/addresses \
-  -H "Authorization: Bearer jwt_token" \
-  -H "Content-Type: application/json" \
-  -d '{"type":"home","line1":"123 Main Street","city":"New York","state":"NY","postal_code":"10001","country":"USA","is_default":true}'
+]
 ```
 
-### Update Address
-- **Endpoint**: `PUT /api/users/addresses/:id`
-- **Description**: Update existing address
-- **Headers**: `Authorization: Bearer <token>`
-- **Request Body**:
+**Example cURL:**
+```bash
+curl -X GET https://api.shopsphere.com/api/users/addresses \
+  -H "Authorization: Bearer jwt_token_here"
+```
+
+### Add User Address
+Add a new address for the current user.
+
+**Endpoint:** `POST /api/users/addresses`  
+**Authentication:** Bearer Token
+
+**Request Body:**
 ```json
 {
   "type": "home",
-  "line1": "123 Main Street",
+  "line1": "123 Main St",
+  "line2": "Apt 4B",
   "city": "New York",
   "state": "NY",
   "postal_code": "10001",
-  "country": "USA",
+  "country": "US",
   "is_default": true
 }
 ```
-- **Response**:
+
+**Response (201 Created):**
 ```json
 {
-  "address": {
-    "_id": "address_id",
+  "id": "address_id_3",
+  "type": "home",
+  "line1": "123 Main St",
+  "line2": "Apt 4B",
+  "city": "New York",
+  "state": "NY",
+  "postal_code": "10001",
+  "country": "US",
+  "is_default": true,
+  "created_at": "2023-01-20T14:20:00Z"
+}
+```
+
+**Example cURL:**
+```bash
+curl -X POST https://api.shopsphere.com/api/users/addresses \
+  -H "Authorization: Bearer jwt_token_here" \
+  -H "Content-Type: application/json" \
+  -d '{
     "type": "home",
-    "line1": "123 Main Street",
+    "line1": "123 Main St",
+    "line2": "Apt 4B",
     "city": "New York",
     "state": "NY",
     "postal_code": "10001",
-    "country": "USA",
+    "country": "US",
     "is_default": true
-  }
-}
-```
-- **Example**:
-```bash
-curl -X PUT http://localhost:5000/api/users/addresses/address_id \
-  -H "Authorization: Bearer jwt_token" \
-  -H "Content-Type: application/json" \
-  -d '{"type":"home","line1":"123 Main Street","city":"New York","state":"NY","postal_code":"10001","country":"USA","is_default":true}'
+  }'
 ```
 
-### Delete Address
-- **Endpoint**: `DELETE /api/users/addresses/:id`
-- **Description**: Delete address
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**: `204 No Content`
-- **Example**:
+### Update User Address
+Update an existing address for the current user.
+
+**Endpoint:** `PUT /api/users/addresses/:id`  
+**Authentication:** Bearer Token
+
+**Request Body:**
+```json
+{
+  "type": "home",
+  "line1": "123 Main St",
+  "line2": "Apt 5C",
+  "city": "New York",
+  "state": "NY",
+  "postal_code": "10001",
+  "country": "US",
+  "is_default": true
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": "address_id_1",
+  "type": "home",
+  "line1": "123 Main St",
+  "line2": "Apt 5C",
+  "city": "New York",
+  "state": "NY",
+  "postal_code": "10001",
+  "country": "US",
+  "is_default": true,
+  "created_at": "2023-01-15T10:30:00Z",
+  "updated_at": "2023-01-20T14:20:00Z"
+}
+```
+
+**Example cURL:**
 ```bash
-curl -X DELETE http://localhost:5000/api/users/addresses/address_id \
-  -H "Authorization: Bearer jwt_token"
+curl -X PUT https://api.shopsphere.com/api/users/addresses/address_id_1 \
+  -H "Authorization: Bearer jwt_token_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "home",
+    "line1": "123 Main St",
+    "line2": "Apt 5C",
+    "city": "New York",
+    "state": "NY",
+    "postal_code": "10001",
+    "country": "US",
+    "is_default": true
+  }'
+```
+
+### Delete User Address
+Delete an address for the current user.
+
+**Endpoint:** `DELETE /api/users/addresses/:id`  
+**Authentication:** Bearer Token
+
+**Response (204 No Content):** Empty response
+
+**Example cURL:**
+```bash
+curl -X DELETE https://api.shopsphere.com/api/users/addresses/address_id_1 \
+  -H "Authorization: Bearer jwt_token_here"
 ```
 
 ## Products
 
 ### List Products
-- **Endpoint**: `GET /api/products`
-- **Description**: Get list of products with filters and pagination
-- **Query Parameters**:
-  - `search`: Search term
-  - `category`: Category ID
-  - `brand`: Brand name
-  - `min_price`: Minimum price
-  - `max_price`: Maximum price
-  - `rating`: Minimum rating
-  - `sort`: Sort field (e.g., "price_asc", "price_desc", "created_at_desc")
-  - `page`: Page number
-  - `limit`: Items per page
-- **Response**:
+Get a list of products with filtering, sorting, and pagination.
+
+**Endpoint:** `GET /api/products`  
+**Authentication:** None
+
+**Query Parameters:**
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 20)
+- `category`: Filter by category ID
+- `brand`: Filter by brand
+- `min_price`: Minimum price
+- `max_price`: Maximum price
+- `rating`: Minimum rating (1-5)
+- `sort`: Sort field (price_asc, price_desc, newest, best_seller, rating_desc)
+- `q`: Search query
+
+**Response (200 OK):**
 ```json
 {
   "products": [
     {
-      "_id": "product_id",
-      "title": "Wireless Headphones",
+      "id": "product_id_1",
+      "title": "Premium Wireless Headphones",
+      "slug": "premium-wireless-headphones",
+      "description": "High-quality wireless headphones with noise cancellation.",
+      "category_id": "category_id_1",
+      "brand": "AudioPro",
       "price": 299.99,
       "original_price": 399.99,
       "discount_percent": 25,
-      "brand": "SoundMax",
-      "images": ["https://example.com/image.jpg"],
-      "rating": 4.5,
-      "review_count": 127,
-      "in_stock": true
+      "sku": "AP-WH-001",
+      "stock_quantity": 50,
+      "images": [
+        "https://shopsphere-uploads.s3.amazonaws.com/product_id_1/image1.jpg",
+        "https://shopsphere-uploads.s3.amazonaws.com/product_id_1/image2.jpg"
+      ],
+      "variants": [
+        {
+          "name": "Color",
+          "values": ["Black", "White", "Blue"],
+          "price_modifier": 0
+        }
+      ],
+      "tags": ["audio", "wireless", "headphones"],
+      "is_featured": true,
+      "is_sponsored": false,
+      "status": "active",
+      "views": 1250,
+      "created_at": "2023-01-10T09:00:00Z",
+      "updated_at": "2023-01-15T11:30:00Z"
     }
   ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "total": 100,
-    "totalPages": 10
-  }
+  "total": 150,
+  "page": 1,
+  "pages": 8,
+  "limit": 20
 }
-```
-- **Example**:
-```bash
-curl -X GET "http://localhost:5000/api/products?search=headphones&min_price=100&max_price=500&sort=price_asc&page=1&limit=10"
 ```
 
-### Get Product Detail
-- **Endpoint**: `GET /api/products/:slug`
-- **Description**: Get product details by slug
-- **Response**:
+**Example cURL:**
+```bash
+curl -X GET "https://api.shopsphere.com/api/products?page=1&limit=10&category=category_id_1&min_price=100&max_price=500&sort=price_asc"
+```
+
+### Get Product by Slug
+Get a product by its slug.
+
+**Endpoint:** `GET /api/products/:slug`  
+**Authentication:** None
+
+**Response (200 OK):**
 ```json
 {
-  "product": {
-    "_id": "product_id",
-    "title": "Wireless Headphones",
-    "slug": "wireless-headphones",
-    "description": "Premium wireless headphones with active noise cancellation.",
-    "category_id": "category_id",
-    "brand": "SoundMax",
-    "price": 299.99,
-    "original_price": 399.99,
-    "discount_percent": 25,
-    "sku": "SM-HD-001",
-    "stock_quantity": 50,
-    "images": [
-      "https://example.com/image1.jpg",
-      "https://example.com/image2.jpg"
-    ],
-    "variants": [
-      {
-        "name": "Color",
-        "values": ["Black", "Silver", "Blue"],
-        "price_modifier": 0
-      }
-    ],
-    "tags": ["audio", "wireless"],
-    "is_featured": true,
-    "is_sponsored": true,
-    "status": "active",
-    "rating": 4.5,
-    "review_count": 127,
-    "frequently_bought_together": [
-      {
-        "_id": "product_id",
-        "title": "Audio Cable",
-        "price": 19.99,
-        "image": "https://example.com/image.jpg"
-      }
-    ],
-    "customers_also_viewed": [
-      {
-        "_id": "product_id",
-        "title": "Earbuds",
-        "price": 149.99,
-        "image": "https://example.com/image.jpg"
-      }
-    ]
-  }
+  "id": "product_id_1",
+  "title": "Premium Wireless Headphones",
+  "slug": "premium-wireless-headphones",
+  "description": "High-quality wireless headphones with noise cancellation.",
+  "category_id": "category_id_1",
+  "brand": "AudioPro",
+  "price": 299.99,
+  "original_price": 399.99,
+  "discount_percent": 25,
+  "sku": "AP-WH-001",
+  "stock_quantity": 50,
+  "images": [
+    "https://shopsphere-uploads.s3.amazonaws.com/product_id_1/image1.jpg",
+    "https://shopsphere-uploads.s3.amazonaws.com/product_id_1/image2.jpg"
+  ],
+  "variants": [
+    {
+      "name": "Color",
+      "values": ["Black", "White", "Blue"],
+      "price_modifier": 0
+    }
+  ],
+  "tags": ["audio", "wireless", "headphones"],
+  "is_featured": true,
+  "is_sponsored": false,
+  "status": "active",
+  "views": 1250,
+  "created_at": "2023-01-10T09:00:00Z",
+  "updated_at": "2023-01-15T11:30:00Z",
+  "average_rating": 4.8,
+  "review_count": 127,
+  "frequently_bought_together": [
+    {
+      "id": "product_id_2",
+      "title": "Premium Earphone Case",
+      "price": 29.99,
+      "image": "https://shopsphere-uploads.s3.amazonaws.com/product_id_2/image1.jpg"
+    }
+  ],
+  "customers_also_viewed": [
+    {
+      "id": "product_id_3",
+      "title": "Wireless Charging Pad",
+      "price": 49.99,
+      "image": "https://shopsphere-uploads.s3.amazonaws.com/product_id_3/image1.jpg"
+    }
+  ]
 }
 ```
-- **Example**:
+
+**Example cURL:**
 ```bash
-curl -X GET http://localhost:5000/api/products/wireless-headphones
+curl -X GET https://api.shopsphere.com/api/products/premium-wireless-headphones
 ```
 
 ### Get Product Reviews
-- **Endpoint**: `GET /api/products/:id/reviews`
-- **Description**: Get reviews for a product
-- **Query Parameters**:
-  - `page`: Page number
-  - `limit`: Reviews per page
-  - `rating`: Filter by rating
-- **Response**:
+Get reviews for a product.
+
+**Endpoint:** `GET /api/products/:id/reviews`  
+**Authentication:** None
+
+**Query Parameters:**
+- `page`: Page number (default: 1)
+- `limit`: Reviews per page (default: 10)
+- `sort`: Sort by (helpful, newest, rating_desc, rating_asc)
+
+**Response (200 OK):**
 ```json
 {
   "reviews": [
     {
-      "_id": "review_id",
-      "user_id": "user_id",
+      "id": "review_id_1",
+      "product_id": "product_id_1",
+      "user_id": "user_id_1",
+      "order_id": "order_id_1",
       "rating": 5,
-      "title": "Excellent Sound Quality",
-      "comment": "These headphones are amazing!",
-      "images": ["https://example.com/review_image.jpg"],
-      "helpful_votes": 12,
+      "title": "Excellent sound quality",
+      "comment": "These headphones have amazing sound quality and comfortable fit.",
+      "images": [
+        "https://shopsphere-uploads.s3.amazonaws.com/review_id_1/image1.jpg"
+      ],
+      "helpful_votes": 23,
       "verified_purchase": true,
-      "created_at": "2024-01-15T10:00:00Z",
+      "created_at": "2023-01-12T14:30:00Z",
+      "updated_at": "2023-01-12T14:30:00Z",
       "user": {
-        "name": "John Doe",
-        "profile_picture_url": "https://example.com/avatar.jpg"
+        "name": "Sarah Johnson",
+        "profile_picture_url": "https://example.com/avatar1.jpg"
       }
     }
   ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "total": 127,
-    "totalPages": 13
-  },
-  "stats": {
-    "average_rating": 4.5,
-    "rating_breakdown": {
-      "5": 85,
-      "4": 30,
-      "3": 8,
-      "2": 3,
-      "1": 1
-    },
-    "total_reviews": 127,
-    "verified_reviews": 112
+  "total": 127,
+  "page": 1,
+  "pages": 13,
+  "limit": 10,
+  "average_rating": 4.8,
+  "rating_breakdown": {
+    "5": 89,
+    "4": 25,
+    "3": 8,
+    "2": 3,
+    "1": 2
   }
 }
 ```
-- **Example**:
+
+**Example cURL:**
 ```bash
-curl -X GET "http://localhost:5000/api/products/product_id/reviews?page=1&limit=10"
+curl -X GET "https://api.shopsphere.com/api/products/product_id_1/reviews?page=1&limit=5&sort=helpful"
 ```
 
 ### Get Product Q&A
-- **Endpoint**: `GET /api/products/:id/questions`
-- **Description**: Get questions and answers for a product
-- **Query Parameters**:
-  - `page`: Page number
-  - `limit`: Questions per page
-- **Response**:
+Get questions and answers for a product.
+
+**Endpoint:** `GET /api/products/:id/questions`  
+**Authentication:** None
+
+**Query Parameters:**
+- `page`: Page number (default: 1)
+- `limit`: Questions per page (default: 10)
+- `answered`: Filter by answered status (true, false, all)
+
+**Response (200 OK):**
 ```json
 {
   "questions": [
     {
-      "_id": "question_id",
-      "user_id": "user_id",
-      "question": "Does this work with Android phones?",
-      "answer": "Yes, these headphones are compatible with all Bluetooth-enabled devices.",
-      "answered_by": "seller_id",
-      "created_at": "2024-01-10T09:00:00Z",
-      "answered_at": "2024-01-10T10:00:00Z",
+      "id": "question_id_1",
+      "product_id": "product_id_1",
+      "user_id": "user_id_2",
+      "question": "Do these headphones work with Android phones?",
+      "answer": "Yes, these headphones are compatible with all Bluetooth-enabled devices including Android phones.",
+      "answered_by": "user_id_3",
+      "created_at": "2023-01-11T10:15:00Z",
+      "answered_at": "2023-01-11T11:20:00Z",
       "user": {
-        "name": "Jane Smith"
+        "name": "Mike Wilson",
+        "profile_picture_url": "https://example.com/avatar2.jpg"
       },
       "answered_by_user": {
-        "name": "Seller User"
+        "name": "AudioPro Support",
+        "profile_picture_url": "https://example.com/support.jpg"
       }
     }
   ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "total": 5,
-    "totalPages": 1
-  }
+  "total": 15,
+  "page": 1,
+  "pages": 2,
+  "limit": 10
 }
 ```
-- **Example**:
+
+**Example cURL:**
 ```bash
-curl -X GET "http://localhost:5000/api/products/product_id/questions?page=1&limit=10"
+curl -X GET "https://api.shopsphere.com/api/products/product_id_1/questions?page=1&limit=5&answered=true"
 ```
 
 ### Ask Question
-- **Endpoint**: `POST /api/products/:id/questions`
-- **Description**: Ask a question about a product
-- **Headers**: `Authorization: Bearer <token>`
-- **Request Body**:
+Ask a question about a product.
+
+**Endpoint:** `POST /api/products/:id/questions`  
+**Authentication:** Bearer Token
+
+**Request Body:**
 ```json
 {
-  "question": "Does this work with Android phones?"
+  "question": "Do these headphones have a microphone for calls?"
 }
-```
-- **Response**:
-```json
-{
-  "question": {
-    "_id": "question_id",
-    "user_id": "user_id",
-    "question": "Does this work with Android phones?",
-    "created_at": "2024-01-10T09:00:00Z",
-    "user": {
-      "name": "Jane Smith"
-    }
-  }
-}
-```
-- **Example**:
-```bash
-curl -X POST http://localhost:5000/api/products/product_id/questions \
-  -H "Authorization: Bearer jwt_token" \
-  -H "Content-Type: application/json" \
-  -d '{"question":"Does this work with Android phones?"}'
 ```
 
-### Answer Question
-- **Endpoint**: `PUT /api/products/questions/:id/answer`
-- **Description**: Answer a product question (seller only)
-- **Headers**: `Authorization: Bearer <token>`
-- **Request Body**:
+**Response (201 Created):**
 ```json
 {
-  "answer": "Yes, these headphones are compatible with all Bluetooth-enabled devices."
-}
-```
-- **Response**:
-```json
-{
-  "question": {
-    "_id": "question_id",
-    "user_id": "user_id",
-    "question": "Does this work with Android phones?",
-    "answer": "Yes, these headphones are compatible with all Bluetooth-enabled devices.",
-    "answered_by": "seller_id",
-    "created_at": "2024-01-10T09:00:00Z",
-    "answered_at": "2024-01-10T10:00:00Z",
-    "user": {
-      "name": "Jane Smith"
-    },
-    "answered_by_user": {
-      "name": "Seller User"
-    }
-    }
+  "id": "question_id_2",
+  "product_id": "product_id_1",
+  "user_id": "user_id_1",
+  "question": "Do these headphones have a microphone for calls?",
+  "created_at": "2023-01-20T14:20:00Z",
+  "user": {
+    "name": "John Smith",
+    "profile_picture_url": "https://example.com/avatar.jpg"
   }
 }
 ```
-- **Example**:
+
+**Example cURL:**
 ```bash
-curl -X PUT http://localhost:5000/api/products/questions/question_id/answer \
-  -H "Authorization: Bearer jwt_token" \
+curl -X POST https://api.shopsphere.com/api/products/product_id_1/questions \
+  -H "Authorization: Bearer jwt_token_here" \
   -H "Content-Type: application/json" \
-  -d '{"answer":"Yes, these headphones are compatible with all Bluetooth-enabled devices."}'
+  -d '{
+    "question": "Do these headphones have a microphone for calls?"
+  }'
+```
+
+### Seller Answer Question
+Answer a question about a product (seller only).
+
+**Endpoint:** `PUT /api/products/questions/:id/answer`  
+**Authentication:** Bearer Token (seller role)
+
+**Request Body:**
+```json
+{
+  "answer": "Yes, these headphones have a built-in microphone that provides clear voice quality for phone calls."
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": "question_id_2",
+  "product_id": "product_id_1",
+  "user_id": "user_id_1",
+  "question": "Do these headphones have a microphone for calls?",
+  "answer": "Yes, these headphones have a built-in microphone that provides clear voice quality for phone calls.",
+  "answered_by": "user_id_4",
+  "created_at": "2023-01-20T14:20:00Z",
+  "answered_at": "2023-01-20T14:25:00Z",
+  "user": {
+    "name": "John Smith",
+    "profile_picture_url": "https://example.com/avatar.jpg"
+  },
+  "answered_by_user": {
+    "name": "AudioPro Seller",
+    "profile_picture_url": "https://example.com/seller.jpg"
+  }
+}
+```
+
+**Example cURL:**
+```bash
+curl -X PUT https://api.shopsphere.com/api/products/questions/question_id_2/answer \
+  -H "Authorization: Bearer jwt_token_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "answer": "Yes, these headphones have a built-in microphone that provides clear voice quality for phone calls."
+  }'
 ```
 
 ### Get Recently Viewed Products
-- **Endpoint**: `GET /api/products/recently-viewed`
-- **Description**: Get user's recently viewed products
-- **Headers**: `Authorization: Bearer <token>`
-- **Query Parameters**:
-  - `limit`: Number of products to return (default: 10)
-- **Response**:
-```json
-{
-  "products": [
-    {
-      "_id": "product_id",
-      "title": "Wireless Headphones",
-      "price": 299.99,
-      "image": "https://example.com/image.jpg",
-      "viewed_at": "2024-01-15T10:00:00Z"
-    }
-  ]
-}
-```
-- **Example**:
-```bash
-curl -X GET "http://localhost:5000/api/products/recently-viewed?limit=5" \
-  -H "Authorization: Bearer jwt_token"
-```
+Get recently viewed products for the current user.
 
-### Get Product Recommendations
-- **Endpoint**: `GET /api/products/recommendations`
-- **Description**: Get AI-powered product recommendations
-- **Headers**: `Authorization: Bearer <token>`
-- **Query Parameters**:
-  - `limit`: Number of recommendations (default: 10)
-- **Response**:
-```json
-{
-  "recommendations": [
-    {
-      "_id": "product_id",
-      "title": "Wireless Headphones",
-      "price": 299.99,
-      "image": "https://example.com/image.jpg",
-      "reason": "Based on your purchase history"
-    }
-  ]
-}
-```
-- **Example**:
-```bash
-curl -X GET "http://localhost:5000/api/products/recommendations?limit=5" \
-  -H "Authorization: Bearer jwt_token"
-```
+**Endpoint:** `GET /api/products/recently-viewed`  
+**Authentication:** Bearer Token
 
-### Compare Products
-- **Endpoint**: `POST /api/products/compare`
-- **Description**: Compare multiple products
-- **Headers**: `Authorization: Bearer <token>`
-- **Request Body**:
-```json
-{
-  "product_ids": ["product_id_1", "product_id_2", "product_id_3"]
-}
-```
-- **Response**:
-```json
-{
-  "products": [
-    {
-      "_id": "product_id_1",
-      "title": "Wireless Headphones",
-      "price": 299.99,
-      "brand": "SoundMax",
-      "specs": {
-        "Battery Life": "30 hours",
-        "Noise Cancellation": "Active",
-        "Connectivity": "Bluetooth 5.0"
-      }
-    },
-    {
-      "_id": "product_id_2",
-      "title": "Premium Earbuds",
-      "price": 199.99,
-      "brand": "AudioPro",
-      "specs": {
-        "Battery Life": "20 hours",
-        "Noise Cancellation": "Active",
-        "Connectivity": "Bluetooth 5.2"
-      }
-    }
-  ]
-}
-```
-- **Example**:
-```bash
-curl -X POST http://localhost:5000/api/products/compare \
-  -H "Authorization: Bearer jwt_token" \
-  -H "Content-Type: application/json" \
-  -d '{"product_ids":["product_id_1","product_id_2"]}'
-```
+**Query Parameters:**
+- `limit`: Number of products to return (default: 10)
 
-## Categories
-
-### List Categories
-- **Endpoint**: `GET /api/categories`
-- **Description**: Get list of categories
-- **Response**:
+**Response (200 OK):**
 ```json
-{
-  "categories": [
-    {
-      "_id": "category_id",
-      "name": "Electronics",
-      "slug": "electronics",
-      "image_url": "https://example.com/category_image.jpg",
-      "order": 1,
-      "children": []
-    }
-  ]
-}
-```
-- **Example**:
-```bash
-curl -X GET http://localhost:5000/api/categories
-```
-
-## Cart
-
-### Get Cart
-- **Endpoint**: `GET /api/cart`
-- **Description**: Get user's cart
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**:
-```json
-{
-  "cart": {
-    "_id": "cart_id",
-    "user_id": "user_id",
-    "items": [
-      {
-        "product_id": "product_id",
-        "variant_id": "variant_id",
-        "quantity": 1,
-        "price_snapshot": 299.99,
-        "product": {
-          "title": "Wireless Headphones",
-          "price": 299.99,
-          "image": "https://example.com/image.jpg"
-        }
-      }
-    ],
-    "subtotal": 299.99,
-    "discount": 0,
-    "total": 299.99,
-    "coupon": null
-  }
-}
-```
-- **Example**:
-```bash
-curl -X GET http://localhost:5000/api/cart \
-  -H "Authorization: Bearer jwt_token"
-```
-
-### Add to Cart
-- **Endpoint**: `POST /api/cart/items`
-- **Description**: Add item to cart
-- **Headers**: `Authorization: Bearer <token>`
-- **Request Body**:
-```json
-{
-  "product_id": "product_id",
-  "variant_id": "variant_id",
-  "quantity": 1
-}
-```
-- **Response**:
-```json
-{
-  "cart": {
-    "_id": "cart_id",
-    "user_id": "user_id",
-    "items": [
-      {
-        "product_id": "product_id",
-        "variant_id": "variant_id",
-        "quantity": 1,
-        "price_snapshot": 299.99,
-        "product": {
-          "title": "Wireless Headphones",
-          "price": 299.99,
-          "image": "https://example.com/image.jpg"
-        }
-      }
-    ],
-    "subtotal": 299.99,
-    "discount": 0,
-    "total": 299.99,
-    "coupon": null
-  }
-}
-```
-- **Example**:
-```bash
-curl -X POST http://localhost:5000/api/cart/items \
-  -H "Authorization: Bearer jwt_token" \
-  -H "Content-Type: application/json" \
-  -d '{"product_id":"product_id","variant_id":"variant_id","quantity":1}'
-```
-
-### Update Cart Item
-- **Endpoint**: `PUT /api/cart/items/:id`
-- **Description**: Update cart item quantity
-- **Headers**: `Authorization: Bearer <token>`
-- **Request Body**:
-```json
-{
-  "quantity": 2
-}
-```
-- **Response**:
-```json
-{
-  "cart": {
-    "_id": "cart_id",
-    "user_id": "user_id",
-    "items": [
-      {
-        "product_id": "product_id",
-        "variant_id": "variant_id",
-        "quantity": 2,
-        "price_snapshot": 299.99,
-        "product": {
-          "title": "Wireless Headphones",
-          "price": 299.99,
-          "image": "https://example.com/image.jpg"
-        }
-      }
-    ],
-    "subtotal": 599.98,
-    "discount": 0,
-    "total": 599.98,
-    "coupon": null
-  }
-}
-```
-- **Example**:
-```bash
-curl -X PUT http://localhost:5000/api/cart/items/item_id \
-  -H "Authorization: Bearer jwt_token" \
-  -H "Content-Type: application/json" \
-  -d '{"quantity":2}'
-```
-
-### Remove from Cart
-- **Endpoint**: `DELETE /api/cart/items/:id`
-- **Description**: Remove item from cart
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**:
-```json
-{
-  "cart": {
-    "_id": "cart_id",
-    "user_id": "user_id",
-    "items": [],
-    "subtotal": 0,
-    "discount": 0,
-    "total": 0,
-    "coupon": null
-  }
-}
-```
-- **Example**:
-```bash
-curl -X DELETE http://localhost:5000/api/cart/items/item_id \
-  -H "Authorization: Bearer jwt_token"
-```
-
-### Apply Coupon
-- **Endpoint**: `POST /api/cart/apply-coupon`
-- **Description**: Apply coupon to cart
-- **Headers**: `Authorization: Bearer <token>`
-- **Request Body**:
-```json
-{
-  "code": "WELCOME10"
-}
-```
-- **Response**:
-```json
-{
-  "cart": {
-    "_id": "cart_id",
-    "user_id": "user_id",
-    "items": [
-      {
-        "product_id": "product_id",
-        "variant_id": "variant_id",
-        "quantity": 1,
-        "price_snapshot": 299.99,
-        "product": {
-          "title": "Wireless Headphones",
-          "price": 299.99,
-          "image": "https://example.com/image.jpg"
-        }
-      }
-    ],
-    "subtotal": 299.99,
-    "discount": 29.99,
-    "total": 269.99,
-    "coupon": {
-      "code": "WELCOME10",
-      "type": "percentage",
-      "value": 10,
-      "discount": 29.99
-    }
-  }
-}
-```
-- **Example**:
-```bash
-curl -X POST http://localhost:5000/api/cart/apply-coupon \
-  -H "Authorization: Bearer jwt_token" \
-  -H "Content-Type: application/json" \
-  -d '{"code":"WELCOME10"}'
-```
-
-## Wishlist
-
-### Get Wishlist
-- **Endpoint**: `GET /api/wishlist`
-- **Description**: Get user's wishlist
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**:
-```json
-{
-  "wishlist": [
-    {
-      "_id": "wishlist_id",
-      "product_id": "product_id",
-      "added_at": "2024-01-10T09:00:00Z",
-      "product": {
-        "title": "Organic Cotton T-Shirt",
-        "price": 29.99,
-        "image": "https://example.com/image.jpg",
-        "rating": 4.2
-      }
-    }
-  ]
-}
-```
-- **Example**:
-```bash
-curl -X GET http://localhost:5000/api/wishlist \
-  -H "Authorization: Bearer jwt_token"
-```
-
-### Add to Wishlist
-- **Endpoint**: `POST /api/wishlist/:product_id`
-- **Description**: Add product to wishlist
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**:
-```json
-{
-  "wishlist": [
-    {
-      "_id": "wishlist_id",
-      "product_id": "product_id",
-      "added_at": "2024-01-10T09:00:00Z",
-      "product": {
-        "title": "Organic Cotton T-Shirt",
-        "price": 29.99,
-        "image": "https://example.com/image.jpg",
-        "rating": 4.2
-      }
-    }
-  ]
-}
-```
-- **Example**:
-```bash
-curl -X POST http://localhost:5000/api/wishlist/product_id \
-  -H "Authorization: Bearer jwt_token"
-```
-
-### Remove from Wishlist
-- **Endpoint**: `DELETE /api/wishlist/:product_id`
-- **Description**: Remove product from wishlist
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**: `204 No Content`
-- **Example**:
-```bash
-curl -X DELETE http://localhost:5000/api/wishlist/product_id \
-  -H "Authorization: Bearer jwt_token"
-```
-
-## Orders
-
-### Create Order
-- **Endpoint**: `POST /api/orders`
-- **Description**: Create order (pre-Stripe checkout)
-- **Headers**: `Authorization: Bearer <token>`
-- **Request Body**:
-```json
-{
-  "address": {
-    "line1": "123 Main Street",
-    "city": "New York",
-    "state": "NY",
-    "postal_code": "10001",
-    "country": "USA"
-  },
-  "delivery_speed": "standard",
-  "payment_method": "stripe"
-}
-```
-- **Response**:
-```json
-{
-  "order": {
-    "_id": "order_id",
-    "order_number": "ORD-12345",
-    "items": [
-      {
-        "product_id": "product_id",
-        "seller_id": "seller_id",
-        "variant": "Black",
-        "quantity": 1,
-        "price": 299.99,
-        "status": "placed"
-      }
-    ],
-    "address": {
-      "line1": "123 Main Street",
-      "city": "New York",
-      "state": "NY",
-      "postal_code": "10001",
-      "country": "USA"
-    },
-    "delivery_speed": "standard",
-    "payment_method": "stripe",
-    "payment_status": "pending",
-    "subtotal": 299.99,
-    "discount": 0,
-    "delivery_charge": 0,
-    "total": 299.99,
-    "status": "placed",
-    "estimated_delivery": "2024-01-20T00:00:00Z",
-    "created_at": "2024-01-15T10:00:00Z"
-  }
-}
-```
-- **Example**:
-```bash
-curl -X POST http://localhost:5000/api/orders \
-  -H "Authorization: Bearer jwt_token" \
-  -H "Content-Type: application/json" \
-  -d '{"address":{"line1":"123 Main Street","city":"New York","state":"NY","postal_code":"10001","country":"USA"},"delivery_speed":"standard","payment_method":"stripe"}'
-```
-
-### List Orders
-- **Endpoint**: `GET /api/orders`
-- **Description**: Get user's order history
-- **Headers**: `Authorization: Bearer <token>`
-- **Query Parameters**:
-  - `page`: Page number
-  - `limit`: Orders per page
-  - `status`: Filter by status (e.g., "delivered", "shipped")
-- **Response**:
-```json
-{
-  "orders": [
-    {
-      "_id": "order_id",
-      "order_number": "ORD-12345",
-      "items": [
-        {
-          "product_id": "product_id",
-          "seller_id": "seller_id",
-          "variant": "Black",
-          "quantity": 1,
-          "price": 299.99,
-          "status": "delivered"
-        }
-      ],
-      "address": {
-        "line1": "123 Main Street",
-        "city": "New York",
-        "state": "NY",
-        "postal_code": "10001",
-        "country": "USA"
-      },
-      "delivery_speed": "standard",
-      "payment
+[

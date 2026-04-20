@@ -1,9 +1,8 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 interface CartItem {
   id: string;
-  productId: string;
+  product_id: string;
   name: string;
   price: number;
   quantity: number;
@@ -13,50 +12,48 @@ interface CartItem {
 
 interface CartState {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, 'id'>) => void;
-  updateQuantity: (id: string, quantity: number) => void;
-  removeItem: (id: string) => void;
-  clearCart: () => void;
-  getTotalItems: () => number;
-  getSubtotal: () => number;
-  coupon: { code: string; discount: number } | null;
+  coupon: string | null;
+  discount: number;
+  add: (item: Omit<CartItem, 'id'>) => void;
+  update: (id: string, quantity: number) => void;
+  remove: (id: string) => void;
+  clear: () => void;
   applyCoupon: (code: string, discount: number) => void;
-  removeCoupon: () => void;
+  total: () => number;
 }
 
-export const useCartStore = create<CartState>()(
-  persist(
-    (set, get) => ({
-      items: [],
-      coupon: null,
-      addItem: (item) =>
-        set((state) => {
-          const existing = state.items.find((i) => i.productId === item.productId && i.variant === item.variant);
-          if (existing) {
-            return {
-              items: state.items.map((i) =>
-                i.id === existing.id ? { ...i, quantity: i.quantity + item.quantity } : i
-              ),
-            };
-          }
-          const id = `${item.productId}-${item.variant || 'default'}`;
-          return { items: [...state.items, { ...item, id }] };
-        }),
-      updateQuantity: (id, quantity) =>
-        set((state) => ({
-          items: state.items.map((item) => (item.id === id ? { ...item, quantity } : item)),
-        })),
-      removeItem: (id) =>
-        set((state) => ({ items: state.items.filter((item) => item.id !== id) })),
-      clearCart: () => set({ items: [], coupon: null }),
-      getTotalItems: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
-      getSubtotal: () =>
-        get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
-      applyCoupon: (code, discount) => set({ coupon: { code, discount } }),
-      removeCoupon: () => set({ coupon: null }),
-    }),
-    {
-      name: 'cart-storage',
+export const useCartStore = create<CartState>((set, get) => ({
+  items: [],
+  coupon: null,
+  discount: 0,
+  add: (item) => {
+    const current = get().items.find((i) => i.product_id === item.product_id && i.variant === item.variant);
+    if (current) {
+      set({
+        items: get().items.map((i) =>
+          i.product_id === item.product_id && i.variant === item.variant
+            ? { ...i, quantity: i.quantity + item.quantity }
+            : i
+        ),
+      });
+    } else {
+      set({ items: [...get().items, { ...item, id: crypto.randomUUID() }] });
     }
-  )
-);
+  },
+  update: (id, quantity) => {
+    if (quantity <= 0) {
+      get().remove(id);
+      return;
+    }
+    set({
+      items: get().items.map((i) => (i.id === id ? { ...i, quantity } : i)),
+    });
+  },
+  remove: (id) => set({ items: get().items.filter((i) => i.id !== id) }),
+  clear: () => set({ items: [], coupon: null, discount: 0 }),
+  applyCoupon: (code, discount) => set({ coupon: code, discount }),
+  total: () => {
+    const { items, discount } = get();
+    return items.reduce((sum, item) => sum + item.price * item.quantity, 0) - discount;
+  },
+}));
