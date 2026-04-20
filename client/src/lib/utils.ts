@@ -5,15 +5,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Format currency
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-IN', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 2,
-  }).format(amount);
+    currency: 'USD',
+  }).format(amount)
 }
 
-// Generate a unique ID
 export function generateId(): string {
-  return Math.random().toString(36).substring(
+  return Math.random().toString(36).substring(2, 15)
+}
+```
+
+```typescript

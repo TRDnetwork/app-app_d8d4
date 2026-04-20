@@ -1,20 +1,25 @@
 import React from 'react';
+import { useParams } from 'react-router-dom';
+import { OrderTimeline } from '../components/order/OrderTimeline';
 import { Button } from '../components/ui/button';
+import { Link } from 'react-router-dom';
 
-const OrderConfirmation = () => {
+export default function OrderConfirmation() {
+  const { id } = useParams<{ id: string }>();
+
   return (
     <div className="container mx-auto px-4 py-8 text-center">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-success text-6xl mb-4">✓</div>
-        <h1 className="text-display text-4xl font-bold mb-4">Thank You for Your Order!</h1>
-        <p className="text-text-dim mb-6">Your order has been confirmed and will be processed shortly.</p>
-        <p className="mb-8">
-          <span className="font-bold">Order ID:</span> ORD-7X8K2M9N
-        </p>
-        <Button className="btn-primary">Continue Shopping</Button>
+      <h1 className="text-3xl font-bold mb-4">Thank you for your order!</h1>
+      <p className="text-xl mb-6">Order #{id}</p>
+      <OrderTimeline status="placed" />
+      <div className="mt-8 space-x-4">
+        <Button asChild>
+          <Link to="/orders">View Order History</Link>
+        </Button>
+        <Button variant="secondary" asChild>
+          <Link to="/">Continue Shopping</Link>
+        </Button>
       </div>
     </div>
   );
-};
-
-export default OrderConfirmation;
+}

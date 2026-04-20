@@ -1,84 +1,53 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '../ui/button';
-import { Heart } from 'lucide-react';
-import { useWishlistStore } from '../../stores/wishlistStore';
+import { Link } from 'react-router-dom';
 
 interface ProductCardProps {
-  id: string;
-  title: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  rating?: number;
-  reviewCount?: number;
+  product: {
+    id: string;
+    title: string;
+    price: number;
+    original_price?: number;
+    image: string;
+    rating?: number;
+  };
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({
-  id,
-  title,
-  price,
-  originalPrice,
-  image,
-  rating = 0,
-  reviewCount = 0,
-}) => {
-  const { has, toggle } = useWishlistStore();
-
-  const discountPercent = originalPrice ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
-
+export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
-    <div className="card group overflow-hidden transition-all hover:shadow-lg">
-      <div className="relative">
+    <div className="card group hover:shadow-lg transition-shadow">
+      <div className="relative overflow-hidden rounded-t-lg">
         <img
-          src={image}
-          alt={title}
-          className="w-full h-64 object-cover transition-transform group-hover:scale-105"
+          src={product.image}
+          alt={product.title}
+          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
         />
-        {discountPercent > 0 && (
-          <span className="absolute top-2 left-2 bg-accent text-primary-foreground text-xs px-2 py-1 rounded">
-            -{discountPercent}%
-          </span>
-        )}
         <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-          onClick={(e) => {
-            e.preventDefault();
-            toggle(id);
-          }}
+          variant="secondary"
+          size="sm"
+          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
         >
-          <Heart className={`h-5 w-5 ${has(id) ? 'fill-current text-accent' : 'text-text'}`} />
+          ♥
         </Button>
       </div>
       <div className="card-content">
-        <Link to={`/product/${id}`} className="block">
-          <h3 className="font-semibold text-text line-clamp-2 mb-2">{title}</h3>
-          <div className="flex items-center mb-1">
-            <span className="text-primary font-bold text-lg">{formatCurrency(price)}</span>
-            {originalPrice && (
-              <span className="text-text_dim line-through ml-2 text-sm">
-                {formatCurrency(originalPrice)}
-              </span>
-            )}
+        <h3 className="font-semibold line-clamp-2 mb-2">{product.title}</h3>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-primary font-bold">${product.price}</span>
+          {product.original_price && product.original_price > product.price && (
+            <span className="text-text-dim line-through text-sm">${product.original_price}</span>
+          )}
+        </div>
+        {product.rating && (
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-yellow-400">★</span>
+            <span className="text-sm text-text-dim">{product.rating}</span>
           </div>
-          <div className="flex items-center text-sm text-text_dim">
-            <span>{rating.toFixed(1)}</span>
-            <div className="flex ml-1">
-              {[...Array(5)].map((_, i) => (
-                <span key={i} className={i < Math.round(rating) ? 'text-warning' : 'text-text_dim'}>
-                  ★
-                </span>
-              ))}
-            </div>
-            <span className="ml-1">({reviewCount})</span>
-          </div>
-        </Link>
-        <Button className="w-full mt-4">Add to Cart</Button>
+        )}
+        <Button asChild className="w-full">
+          <Link to={`/product/${product.id}`}>View Details</Link>
+        </Button>
       </div>
     </div>
   );
 };
-
-export default ProductCard;
