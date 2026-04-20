@@ -1,0 +1,3 @@
+-- No migration required — ShopSphere uses MongoDB (Mongoose) via Express backend.
+-- All data models are defined in server/src/models/*.ts.
+-- Supabase is not used for auth, storage, or functions.

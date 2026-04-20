@@ -1,26 +1,22 @@
-import { Schema, model, models } from 'mongoose';
+// This file is generated as part of the backend implementation
+// It defines the Mongoose schema for app_d8d4_carts collection
 
-const cartItemSchema = new Schema({
-  product_id: {
-    type: Schema.Types.ObjectId,
-    ref: 'Product',
-    required: true,
-  },
-  variant_id: {
-    type: String,
-  },
-  quantity: {
-    type: Number,
-    required: true,
-    min: 1,
-  },
-  price_snapshot: {
-    type: Number,
-    required: true,
-  },
-});
+import mongoose, { Document, Schema } from 'mongoose';
 
-const cartSchema = new Schema(
+export interface ICartItem {
+  product_id: mongoose.Types.ObjectId;
+  variant_id?: string;
+  quantity: number;
+  price_snapshot: number;
+}
+
+export interface ICart extends Document {
+  user_id: mongoose.Types.ObjectId;
+  items: ICartItem[];
+  updated_at: Date;
+}
+
+const CartSchema: Schema = new Schema(
   {
     user_id: {
       type: Schema.Types.ObjectId,
@@ -28,14 +24,35 @@ const cartSchema = new Schema(
       required: true,
       unique: true,
     },
-    items: [cartItemSchema],
+    items: [
+      {
+        product_id: {
+          type: Schema.Types.ObjectId,
+          ref: 'Product',
+          required: true,
+        },
+        variant_id: {
+          type: String,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          min: 1,
+        },
+        price_snapshot: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+      },
+    ],
   },
   {
-    timestamps: true,
-    collection: 'app_d8d4_cart',
+    timestamps: { updatedAt: 'updated_at' },
   }
 );
 
-cartSchema.index({ user_id: 1 }, { unique: true });
+// Indexes
+CartSchema.index({ user_id: 1 }, { unique: true });
 
-export default models.Cart || model('Cart', cartSchema);
+export default mongoose.model<ICart>('Cart', CartSchema, 'app_d8d4_carts');

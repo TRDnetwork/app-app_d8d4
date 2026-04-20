@@ -1,116 +1,104 @@
 import express from 'express';
 import Stripe from 'stripe';
-import { config } from '../../server/src/config/env';
-import { Order } from '../../server/src/models/Order.js';
-import { Product } from '../../server/src/models/Product.js';
-import { sendOrderConfirmationEmail } from '../../server/src/services/emailService.js';
+import { Order } from '../../server/src/models/Order';
+import { sendOrderConfirmationEmail } from '../../server/src/services/emailService';
 
 const router = express.Router();
-const stripe = new Stripe(config.STRIPE_SECRET_KEY);
 
 // Stripe requires raw body for webhook signature verification
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
   let event;
 
+  // Verify webhook signature
   try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      config.STRIPE_WEBHOOK_SECRET
-    );
+    event = Stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error(`Webhook signature verification failed: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
+  // Handle the event
   try {
     switch (event.type) {
       case 'checkout.session.completed':
         const session = event.data.object;
-        
-        // Prevent duplicate processing
-        const existingOrder = await Order.findOne({ 
-          stripe_session_id: session.id 
-        });
-        
-        if (existingOrder) {
-          console.log('Duplicate webhook received for session:', session.id);
-          return res.status(200).send('Webhook received');
-        }
+        await handleCheckoutSessionCompleted(session);
+        break;
 
-        // Update order with payment success
-        const order = await Order.findOneAndUpdate(
-          { _id: session.metadata.order_id },
-          {
-            stripe_session_id: session.id,
-            stripe_payment_intent_id: session.payment_intent,
-            payment_status: 'completed',
-            status: 'confirmed',
-            updated_at: new Date()
-          },
-          { new: true }
-        );
-
-        if (order) {
-          // Update inventory
-          for (const item of order.items) {
-            await Product.findByIdAndUpdate(
-              item.product_id,
-              { $inc: { stock_quantity: -item.quantity } },
-              { new: true }
-            );
-          }
-
-          // Send confirmation email
-          await sendOrderConfirmationEmail(
-            order.user_id,
-            order._id,
-            order.total
-          );
-        }
+      case 'payment_intent.succeeded':
+        const paymentIntent = event.data.object;
+        await handlePaymentIntentSucceeded(paymentIntent);
         break;
 
       case 'payment_intent.payment_failed':
         const failedIntent = event.data.object;
-        
-        await Order.findOneAndUpdate(
-          { 'metadata.payment_intent': failedIntent.id },
-          {
-            payment_status: 'failed',
-            status: 'cancelled',
-            updated_at: new Date()
-          }
-        );
-        break;
-
-      case 'payment_intent.succeeded':
-        const succeededIntent = event.data.object;
-        
-        await Order.findOneAndUpdate(
-          { stripe_payment_intent_id: succeededIntent.id },
-          {
-            payment_status: 'completed',
-            status: 'confirmed',
-            updated_at: new Date()
-          }
-        );
+        await handlePaymentFailed(failedIntent);
         break;
 
       default:
         console.log(`Unhandled event type ${event.type}`);
     }
 
-    // Always return 200 to acknowledge receipt
-    res.status(200).send('Webhook received');
+    // Return 200 to acknowledge receipt
+    res.json({ received: true });
   } catch (error) {
-    console.error('Webhook processing error:', error);
-    res.status(500).send('Webhook processing failed');
+    console.error('Error processing webhook:', error);
+    // Return 500 to trigger retry
+    res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
 
-export default router;
-// SECURITY FIX: Used config object to access Stripe webhook secret instead of direct environment access
-```
+/**
+ * Handle successful checkout session
+ */
+async function handleCheckoutSessionCompleted(session) {
+  const { orderId, userId } = session.metadata;
 
-```typescript
+  // Find order
+  const order = await Order.findById(orderId);
+  if (!order) {
+    throw new Error(`Order ${orderId} not found`);
+  }
+
+  // Update order status
+  order.payment_status = 'completed';
+  order.stripe_payment_intent_id = session.payment_intent;
+  order.status = 'confirmed'; // Move to confirmed after payment
+  order.paid_at = new Date();
+
+  await order.save();
+
+  // Send order confirmation email
+  await sendOrderConfirmationEmail(order, userId);
+}
+
+/**
+ * Handle successful payment intent
+ */
+async function handlePaymentIntentSucceeded(paymentIntent) {
+  // Update order if needed
+  const order = await Order.findOne({ stripe_payment_intent_id: paymentIntent.id });
+  if (order && order.payment_status !== 'completed') {
+    order.payment_status = 'completed';
+    order.status = 'confirmed';
+    order.paid_at = new Date();
+    await order.save();
+  }
+}
+
+/**
+ * Handle failed payment
+ */
+async function handlePaymentFailed(paymentIntent) {
+  const order = await Order.findOne({ stripe_payment_intent_id: paymentIntent.id });
+  if (order) {
+    order.payment_status = 'failed';
+    order.status = 'cancelled';
+    await order.save();
+  }
+}
+
+export default router;

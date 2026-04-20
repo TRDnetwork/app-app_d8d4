@@ -1,0 +1,3 @@
+-- No migration required — ShopSphere uses MongoDB (Mongoose) via Express backend.
+-- Indexes are defined in Mongoose schemas using schema.index() or ensureIndex calls.
+-- Example: Product views index on { product_id: 1, created_at: -1 }

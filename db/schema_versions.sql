@@ -1,16 +1,2 @@
--- UP
--- Tracking schema version for migration system (placeholder)
-
-CREATE TABLE IF NOT EXISTS schema_versions (
-  version INTEGER PRIMARY KEY,
-  applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  description TEXT
-);
-
--- Insert initial version
-INSERT INTO schema_versions (version, description) VALUES
-(1, 'Initial schema')
-ON CONFLICT (version) DO NOTHING;
-
--- DOWN
-DROP TABLE IF EXISTS schema_versions;
+-- No schema versioning required — ShopSphere uses MongoDB (Mongoose) via Express backend.
+-- Database schema changes are managed via Mongoose migrations or manual scripts in db/migrations/

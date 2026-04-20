@@ -1,153 +1,89 @@
+// This file is generated as part of the backend implementation
+// It defines the Mongoose schema for app_d8d4_users collection
+
 import mongoose, { Document, Schema } from 'mongoose';
-import bcrypt from 'bcryptjs';
 
-// Define user roles enum
-export type UserRole = 'customer' | 'seller' | 'admin';
-
-// Define user document interface
 export interface IUser extends Document {
   email: string;
-  password: string;
+  password_hash: string;
   name: string;
   phone?: string;
-  profilePictureUrl?: string;
-  emailVerified: boolean;
-  emailVerificationToken?: string;
-  passwordResetToken?: string;
-  passwordResetExpires?: Date;
-  role: UserRole;
-  oauthProvider?: 'google' | 'facebook';
-  oauthId?: string;
-  loyaltyPoints: number;
-  createdAt: Date;
-  updatedAt: Date;
-  comparePassword(candidatePassword: string): Promise<boolean>;
+  profile_picture_url?: string;
+  email_verified: boolean;
+  email_verification_token?: string;
+  password_reset_token?: string;
+  password_reset_expires?: Date;
+  role: 'customer' | 'seller' | 'admin';
+  oauth_provider?: 'google' | 'facebook';
+  oauth_id?: string;
+  loyalty_points: number;
+  created_at: Date;
+  updated_at: Date;
 }
 
-// User schema
-const userSchema = new Schema<IUser>(
+const UserSchema: Schema = new Schema(
   {
     email: {
       type: String,
-      required: [true, 'Email is required'],
+      required: true,
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email'],
     },
-    password: {
+    password_hash: {
       type: String,
-      required: [true, 'Password is required'],
-      minlength: [8, 'Password must be at least 8 characters'],
-      select: false, // Don't return password by default
+      required: true,
     },
     name: {
       type: String,
-      required: [true, 'Name is required'],
+      required: true,
       trim: true,
     },
     phone: {
       type: String,
       trim: true,
     },
-    profilePictureUrl: {
+    profile_picture_url: {
       type: String,
-      default: '',
     },
-    emailVerified: {
+    email_verified: {
       type: Boolean,
       default: false,
     },
-    emailVerificationToken: {
+    email_verification_token: {
       type: String,
-      select: false,
     },
-    passwordResetToken: {
+    password_reset_token: {
       type: String,
-      select: false,
     },
-    passwordResetExpires: {
+    password_reset_expires: {
       type: Date,
-      select: false,
     },
     role: {
       type: String,
       enum: ['customer', 'seller', 'admin'],
       default: 'customer',
     },
-    oauthProvider: {
+    oauth_provider: {
       type: String,
       enum: ['google', 'facebook'],
-      select: false,
     },
-    oauthId: {
+    oauth_id: {
       type: String,
-      select: false,
     },
-    loyaltyPoints: {
+    loyalty_points: {
       type: Number,
       default: 0,
     },
   },
   {
-    timestamps: true,
-    toJSON: {
-      transform: function(doc, ret) {
-        // Remove sensitive fields when converting to JSON
-        delete ret.password;
-        delete ret.emailVerificationToken;
-        delete ret.passwordResetToken;
-        delete ret.passwordResetExpires;
-        delete ret.oauthProvider;
-        delete ret.oauthId;
-        return ret;
-      }
-    }
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   }
 );
 
-// Hash password before saving
-userSchema.pre('save', async function(next) {
-  // Only hash password if it's modified
-  if (!this.isModified('password')) return next();
+// Indexes
+UserSchema.index({ email: 1 });
+UserSchema.index({ role: 1 });
+UserSchema.index({ oauth_provider: 1, oauth_id: 1 }, { unique: true });
 
-  try {
-    // Generate salt
-    const salt = await bcrypt.genSalt(12);
-    // Hash password
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error as Error);
-  }
-});
-
-// Compare password method
-userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
-  return await bcrypt.compare(candidatePassword, this.password);
-};
-
-// Generate email verification token
-userSchema.methods.generateEmailVerificationToken = function(): string {
-  // Generate 6-digit verification code
-  const token = Math.floor(100000 + Math.random() * 900000).toString();
-  this.emailVerificationToken = token;
-  this.emailVerified = false;
-  return token;
-};
-
-// Generate password reset token
-userSchema.methods.generatePasswordResetToken = function(): string {
-  // Generate 6-digit reset code
-  const token = Math.floor(100000 + Math.random() * 900000).toString();
-  this.passwordResetToken = token;
-  this.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-  return token;
-};
-
-// Create and export User model
-const User = mongoose.model<IUser>('User', userSchema);
-export default User;
-```
-
-```typescript
+export default mongoose.model<IUser>('User', UserSchema, 'app_d8d4_users');

@@ -1,6 +1,23 @@
-import { Schema, model, models } from 'mongoose';
+// This file is generated as part of the backend implementation
+// It defines the Mongoose schema for app_d8d4_reviews collection
 
-const reviewSchema = new Schema(
+import mongoose, { Document, Schema } from 'mongoose';
+
+export interface IReview extends Document {
+  product_id: mongoose.Types.ObjectId;
+  user_id: mongoose.Types.ObjectId;
+  order_id: mongoose.Types.ObjectId;
+  rating: number;
+  title?: string;
+  comment: string;
+  images: string[];
+  helpful_votes: number;
+  verified_purchase: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+const ReviewSchema: Schema = new Schema(
   {
     product_id: {
       type: Schema.Types.ObjectId,
@@ -29,6 +46,7 @@ const reviewSchema = new Schema(
     },
     comment: {
       type: String,
+      required: true,
     },
     images: [
       {
@@ -45,12 +63,14 @@ const reviewSchema = new Schema(
     },
   },
   {
-    timestamps: true,
-    collection: 'app_d8d4_reviews',
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   }
 );
 
-reviewSchema.index({ product_id: 1, created_at: -1 });
-reviewSchema.index({ user_id: 1 });
+// Indexes
+ReviewSchema.index({ product_id: 1, created_at: -1 });
+ReviewSchema.index({ user_id: 1 });
+ReviewSchema.index({ rating: 1 });
+ReviewSchema.index({ verified_purchase: 1 });
 
-export default models.Review || model('Review', reviewSchema);
+export default mongoose.model<IReview>('Review', ReviewSchema, 'app_d8d4_reviews');

@@ -1,34 +1,58 @@
-import { Schema, model, models } from 'mongoose';
+// This file is generated as part of the backend implementation
+// It defines the Mongoose schema for app_d8d4_coupons collection
 
-const couponSchema = new Schema(
+import mongoose, { Document, Schema } from 'mongoose';
+
+export interface ICoupon extends Document {
+  code: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  min_order_value: number;
+  max_discount?: number;
+  usage_limit?: number;
+  used_count: number;
+  valid_from: Date;
+  valid_until: Date;
+  is_active: boolean;
+  created_at: Date;
+}
+
+const CouponSchema: Schema = new Schema(
   {
     code: {
       type: String,
       required: true,
       unique: true,
       uppercase: true,
+      trim: true,
     },
-    discount_type: {
+    type: {
       type: String,
-      enum: ['percent', 'fixed'],
+      enum: ['percentage', 'fixed'],
       required: true,
     },
-    discount_value: {
+    value: {
       type: Number,
       required: true,
       min: 0,
     },
     min_order_value: {
       type: Number,
-      default: 0,
+      required: true,
+      min: 0,
     },
-    max_uses: {
+    max_discount: {
       type: Number,
-      default: Infinity,
+      min: 0,
+    },
+    usage_limit: {
+      type: Number,
+      min: 1,
     },
     used_count: {
       type: Number,
       default: 0,
+      min: 0,
     },
     valid_from: {
       type: Date,
@@ -38,18 +62,19 @@ const couponSchema = new Schema(
       type: Date,
       required: true,
     },
-    active: {
+    is_active: {
       type: Boolean,
       default: true,
     },
   },
   {
-    timestamps: true,
-    collection: 'app_d8d4_coupons',
+    timestamps: { createdAt: 'created_at' },
   }
 );
 
-couponSchema.index({ code: 1 }, { unique: true });
-couponSchema.index({ active: 1, valid_from: 1, valid_until: 1 });
+// Indexes
+CouponSchema.index({ code: 1 }, { unique: true });
+CouponSchema.index({ is_active: 1, valid_from: 1, valid_until: 1 });
+CouponSchema.index({ used_count: 1 });
 
-export default models.Coupon || model('Coupon', couponSchema);
+export default mongoose.model<ICoupon>('Coupon', CouponSchema, 'app_d8d4_coupons');

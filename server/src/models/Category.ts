@@ -1,15 +1,30 @@
-import { Schema, model, models } from 'mongoose';
+// This file is generated as part of the backend implementation
+// It defines the Mongoose schema for app_d8d4_categories collection
 
-const categorySchema = new Schema(
+import mongoose, { Document, Schema } from 'mongoose';
+
+export interface ICategory extends Document {
+  name: string;
+  slug: string;
+  parent_id?: mongoose.Types.ObjectId;
+  image_url?: string;
+  order: number;
+  created_at: Date;
+}
+
+const CategorySchema: Schema = new Schema(
   {
     name: {
       type: String,
       required: true,
+      trim: true,
     },
     slug: {
       type: String,
       required: true,
       unique: true,
+      lowercase: true,
+      trim: true,
     },
     parent_id: {
       type: Schema.Types.ObjectId,
@@ -24,12 +39,12 @@ const categorySchema = new Schema(
     },
   },
   {
-    timestamps: true,
-    collection: 'app_d8d4_categories',
+    timestamps: { createdAt: 'created_at' },
   }
 );
 
-categorySchema.index({ slug: 1 }, { unique: true });
-categorySchema.index({ parent_id: 1 });
+// Indexes
+CategorySchema.index({ slug: 1 }, { unique: true });
+CategorySchema.index({ parent_id: 1 });
 
-export default models.Category || model('Category', categorySchema);
+export default mongoose.model<ICategory>('Category', CategorySchema, 'app_d8d4_categories');

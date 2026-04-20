@@ -1,19 +1,38 @@
-import { Schema, model, models } from 'mongoose';
+// This file is generated as part of the backend implementation
+// It defines the Mongoose schema for app_d8d4_products collection
 
-const variantSchema = new Schema({
-  size: String,
-  color: String,
-  sku: {
-    type: String,
-    required: true,
-  },
-  stock: {
-    type: Number,
-    default: 0,
-  },
-});
+import mongoose, { Document, Schema } from 'mongoose';
 
-const productSchema = new Schema(
+export interface IProductVariant {
+  name: string;
+  values: string[];
+  price_modifier?: number;
+}
+
+export interface IProduct extends Document {
+  seller_id: mongoose.Types.ObjectId;
+  title: string;
+  slug: string;
+  description: string;
+  category_id: mongoose.Types.ObjectId;
+  brand?: string;
+  price: number;
+  original_price: number;
+  discount_percent: number;
+  sku: string;
+  stock_quantity: number;
+  images: string[];
+  variants?: IProductVariant[];
+  tags: string[];
+  is_featured: boolean;
+  is_sponsored: boolean;
+  status: 'active' | 'inactive' | 'out_of_stock';
+  views: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+const ProductSchema: Schema = new Schema(
   {
     seller_id: {
       type: Schema.Types.ObjectId,
@@ -25,19 +44,25 @@ const productSchema = new Schema(
       required: true,
       trim: true,
     },
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
     description: {
       type: String,
       required: true,
     },
-    category: {
-      type: String,
+    category_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'Category',
       required: true,
-    },
-    subcategory: {
-      type: String,
     },
     brand: {
       type: String,
+      trim: true,
     },
     price: {
       type: Number,
@@ -46,59 +71,79 @@ const productSchema = new Schema(
     },
     original_price: {
       type: Number,
+      required: true,
       min: 0,
     },
     discount_percent: {
       type: Number,
+      default: 0,
       min: 0,
       max: 100,
+    },
+    sku: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    stock_quantity: {
+      type: Number,
+      required: true,
+      min: 0,
     },
     images: [
       {
         type: String,
       },
     ],
-    variants: [variantSchema],
-    stock_total: {
-      type: Number,
-      default: 0,
-    },
-    status: {
-      type: String,
-      enum: ['active', 'draft', 'archived'],
-      default: 'draft',
-    },
-    avg_rating: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 5,
-    },
-    review_count: {
-      type: Number,
-      default: 0,
-    },
-    view_count: {
-      type: Number,
-      default: 0,
-    },
+    variants: [
+      {
+        name: { type: String },
+        values: [{ type: String }],
+        price_modifier: { type: Number, default: 0 },
+      },
+    ],
     tags: [
       {
         type: String,
+        trim: true,
       },
     ],
+    is_featured: {
+      type: Boolean,
+      default: false,
+    },
+    is_sponsored: {
+      type: Boolean,
+      default: false,
+    },
+    status: {
+      type: String,
+      enum: ['active', 'inactive', 'out_of_stock'],
+      default: 'active',
+    },
+    views: {
+      type: Number,
+      default: 0,
+    },
   },
   {
-    timestamps: true,
-    collection: 'app_d8d4_products',
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   }
 );
 
-productSchema.index({ seller_id: 1 });
-productSchema.index({ category: 1 });
-productSchema.index({ status: 1 });
-productSchema.index({ avg_rating: -1 });
-productSchema.index({ created_at: -1 });
-productSchema.index({ title: 'text', description: 'text', brand: 'text', category: 'text' });
+// Indexes
+ProductSchema.index({ slug: 1 }, { unique: true });
+ProductSchema.index({ seller_id: 1 });
+ProductSchema.index({ category_id: 1 });
+ProductSchema.index({ brand: 1 });
+ProductSchema.index({ price: 1 });
+ProductSchema.index({ discount_percent: 1 });
+ProductSchema.index({ is_featured: 1 });
+ProductSchema.index({ is_sponsored: 1 });
+ProductSchema.index({ status: 1 });
+ProductSchema.index({ tags: 1 });
+ProductSchema.index({ views: -1 });
+ProductSchema.index({ created_at: -1 });
 
-export default models.Product || model('Product', productSchema);
+export default mongoose.model<IProduct>('Product', ProductSchema, 'app_d8d4_products');
