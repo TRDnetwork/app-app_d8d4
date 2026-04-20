@@ -1,256 +1,340 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { User } from '../models/User';
-import { sendEmail } from '../utils/sendEmail';
+import User, { IUser, UserRole } from '../models/User';
 import { generateToken, generateRefreshToken, verifyToken } from '../utils/generateToken';
-import { config } from '../config/env';
-import { logger } from '../utils/logger';
-import { apiResponse } from '../utils/apiResponse';
-
-// Rate limiting for auth endpoints
-const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
-
-// Helper function to check rate limiting
-const isRateLimited = (ip: string): boolean => {
-  const windowMs = 15 * 60 * 1000; // 15 minutes
-  const maxAttempts = 5;
-  
-  const record = loginAttempts.get(ip);
-  const now = Date.now();
-  
-  if (!record) {
-    loginAttempts.set(ip, { count: 1, lastAttempt: now });
-    return false;
-  }
-  
-  const { count, lastAttempt } = record;
-  
-  if (now - lastAttempt > windowMs) {
-    // Reset counter if window has passed
-    loginAttempts.set(ip, { count: 1, lastAttempt: now });
-    return false;
-  }
-  
-  if (count >= maxAttempts) {
-    return true; // Rate limited
-  }
-  
-  // Increment counter
-  loginAttempts.set(ip, { count: count + 1, lastAttempt: now });
-  return false;
-};
-
-// Helper function to clear expired rate limit records
-const clearExpiredRecords = () => {
-  const windowMs = 15 * 60 * 1000; // 15 minutes
-  const now = Date.now();
-  
-  for (const [ip, record] of loginAttempts.entries()) {
-    if (now - record.lastAttempt > windowMs) {
-      loginAttempts.delete(ip);
-    }
-  }
-};
-
-// Clear expired records every 5 minutes
-setInterval(clearExpiredRecords, 5 * 60 * 1000);
+import { sendEmail } from '../utils/sendEmail';
+import { StatusCodes } from 'http-status-codes';
+import crypto from 'crypto';
 
 // Register user
 export const register = async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
-    
-    // Input validation
+
+    // Validate input
     if (!name || !email || !password) {
-      return res.status(400).json(apiResponse(400, 'Name, email, and password are required'));
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Name, email, and password are required'
+      });
     }
-    
-    if (name.length < 2) {
-      return res.status(400).json(apiResponse(400, 'Name must be at least 2 characters'));
-    }
-    
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json(apiResponse(400, 'Invalid email format'));
-    }
-    
-    if (password.length < 8) {
-      return res.status(400).json(apiResponse(400, 'Password must be at least 8 characters'));
-    }
-    
+
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(409).json(apiResponse(409, 'User with this email already exists'));
+      return res.status(StatusCodes.CONFLICT).json({
+        success: false,
+        message: 'User with this email already exists'
+      });
     }
-    
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
-    
+
     // Create user
     const user = new User({
       name,
       email,
-      password_hash: passwordHash,
-      role: 'customer',
-      email_verified: false,
-      email_verification_token: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
-      created_at: new Date(),
-      updated_at: new Date()
+      password,
+      role: 'customer' // Default role
     });
-    
+
+    // Save user
     await user.save();
-    
+
+    // Generate email verification token
+    const verificationToken = user.generateEmailVerificationToken();
+    await user.save();
+
     // Send verification email
-    try {
-      await sendEmail({
-        email: user.email,
-        subject: 'Verify your email address',
-        message: `Click the link to verify your email: ${config.CLIENT_URL}/verify-email?token=${user.email_verification_token}`
-      });
-    } catch (error) {
-      logger.error('Failed to send verification email:', error);
-      // Don't fail registration if email fails
-    }
-    
+    await sendEmail({
+      email: user.email,
+      subject: 'Verify your email address',
+      message: `Your verification code is: ${verificationToken}`
+    });
+
     // Generate tokens
     const payload = { id: user._id, role: user.role };
     const accessToken = generateToken(payload);
     const refreshToken = generateRefreshToken(payload);
-    
-    // Remove password hash from response
-    const userResponse = user.toObject();
-    delete userResponse.password_hash;
-    
-    res.status(201).json(apiResponse(201, 'User registered successfully. Please check your email to verify your account.', {
-      user: userResponse,
-      tokens: { accessToken, refreshToken }
-    }));
+
+    // Set refresh token in HTTP-only cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.status(StatusCodes.CREATED).json({
+      success: true,
+      message: 'User registered successfully. Please verify your email.',
+      data: {
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          emailVerified: user.emailVerified
+        },
+        accessToken
+      }
+    });
   } catch (error: any) {
-    logger.error('Registration error:', error);
-    res.status(500).json(apiResponse(500, 'Failed to register user'));
+    console.error('Registration error:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Registration failed'
+    });
   }
 };
 
 // Login user
 export const login = async (req: Request, res: Response) => {
-  const ip = req.ip || req.socket.remoteAddress || '';
-  
   try {
     const { email, password } = req.body;
-    
-    // Input validation
+
+    // Validate input
     if (!email || !password) {
-      return res.status(400).json(apiResponse(400, 'Email and password are required'));
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Email and password are required'
+      });
     }
-    
-    // Check rate limiting
-    if (isRateLimited(ip)) {
-      return res.status(429).json(apiResponse(429, 'Too many login attempts. Please try again later.'));
-    }
-    
+
     // Find user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password');
     if (!user) {
-      return res.status(401).json(apiResponse(401, 'Invalid credentials'));
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
     }
-    
+
+    // Check if password is correct
+    const isPasswordCorrect = await user.comparePassword(password);
+    if (!isPasswordCorrect) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
     // Check if email is verified
-    if (!user.email_verified) {
-      return res.status(401).json(apiResponse(401, 'Please verify your email address'));
+    if (!user.emailVerified) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'Please verify your email address'
+      });
     }
-    
-    // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-    if (!isPasswordValid) {
-      return res.status(401).json(apiResponse(401, 'Invalid credentials'));
-    }
-    
+
     // Generate tokens
     const payload = { id: user._id, role: user.role };
     const accessToken = generateToken(payload);
     const refreshToken = generateRefreshToken(payload);
-    
-    // Remove password hash from response
-    const userResponse = user.toObject();
-    delete userResponse.password_hash;
-    
-    res.json(apiResponse(200, 'Login successful', {
-      user: userResponse,
-      tokens: { accessToken, refreshToken }
-    }));
+
+    // Set refresh token in HTTP-only cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          emailVerified: user.emailVerified,
+          profilePictureUrl: user.profilePictureUrl,
+          phone: user.phone,
+          loyaltyPoints: user.loyaltyPoints
+        },
+        accessToken
+      }
+    });
   } catch (error: any) {
-    logger.error('Login error:', error);
-    res.status(500).json(apiResponse(500, 'Failed to login'));
+    console.error('Login error:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Login failed'
+    });
+  }
+};
+
+// Logout user
+export const logout = async (req: Request, res: Response) => {
+  try {
+    // Clear refresh token cookie
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Logout successful'
+    });
+  } catch (error: any) {
+    console.error('Logout error:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Logout failed'
+    });
   }
 };
 
 // Refresh access token
 export const refresh = async (req: Request, res: Response) => {
   try {
-    const { refreshToken } = req.body;
+    // Get refresh token from cookie
+    const refreshToken = req.cookies.refreshToken;
     
     if (!refreshToken) {
-      return res.status(401).json(apiResponse(401, 'Refresh token required'));
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'Refresh token is required'
+      });
     }
-    
+
     // Verify refresh token
-    const decoded = verifyToken(refreshToken, config.JWT_REFRESH_SECRET);
+    const decoded = verifyToken(refreshToken, process.env.JWT_REFRESH_SECRET!);
+    
     if (!decoded) {
-      return res.status(403).json(apiResponse(403, 'Invalid or expired refresh token'));
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'Invalid or expired refresh token'
+      });
     }
-    
+
     // Find user
-    const user = await User.findById(decoded.id).select('-password_hash');
-    if (!user) {
-      return res.status(404).json(apiResponse(404, 'User not found'));
-    }
+    const user = await User.findById(decoded.id).select('-password -emailVerificationToken -passwordResetToken -passwordResetExpires -oauthProvider -oauthId');
     
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
     // Generate new access token
     const payload = { id: user._id, role: user.role };
     const accessToken = generateToken(payload);
-    
-    res.json(apiResponse(200, 'Token refreshed', { accessToken }));
-  } catch (error: any) {
-    logger.error('Refresh token error:', error);
-    res.status(500).json(apiResponse(500, 'Failed to refresh token'));
-  }
-};
 
-// Logout user
-export const logout = async (req: Request, res: Response) => {
-  // In JWT-based auth, we can't invalidate the token on the server
-  // The client should remove the token from storage
-  res.json(apiResponse(200, 'Logged out successfully'));
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Token refreshed successfully',
+      data: {
+        accessToken
+      }
+    });
+  } catch (error: any) {
+    console.error('Refresh token error:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Token refresh failed'
+    });
+  }
 };
 
 // Verify email
 export const verifyEmail = async (req: Request, res: Response) => {
   try {
     const { token } = req.body;
-    
+
+    // Validate input
     if (!token) {
-      return res.status(400).json(apiResponse(400, 'Verification token required'));
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Verification token is required'
+      });
     }
-    
-    // Find user with verification token
-    const user = await User.findOne({ email_verification_token: token });
+
+    // Find user with matching verification token
+    const user = await User.findOne({ 
+      emailVerificationToken: token,
+      emailVerified: false 
+    });
+
     if (!user) {
-      return res.status(400).json(apiResponse(400, 'Invalid or expired verification token'));
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Invalid or expired verification token'
+      });
     }
-    
-    // Update user
-    user.email_verified = true;
-    user.email_verification_token = undefined;
-    user.updated_at = new Date();
-    
+
+    // Verify email
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
     await user.save();
-    
-    res.json(apiResponse(200, 'Email verified successfully'));
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Email verified successfully'
+    });
   } catch (error: any) {
-    logger.error('Email verification error:', error);
-    res.status(500).json(apiResponse(500, 'Failed to verify email'));
+    console.error('Email verification error:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Email verification failed'
+    });
+  }
+};
+
+// Resend verification email
+export const resendVerificationEmail = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    // Validate input
+    if (!email) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    // Find user
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if email is already verified
+    if (user.emailVerified) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Email is already verified'
+      });
+    }
+
+    // Generate new verification token
+    const verificationToken = user.generateEmailVerificationToken();
+    await user.save();
+
+    // Send verification email
+    await sendEmail({
+      email: user.email,
+      subject: 'Verify your email address',
+      message: `Your verification code is: ${verificationToken}`
+    });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Verification email sent successfully'
+    });
+  } catch (error: any) {
+    console.error('Resend verification email error:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Failed to send verification email'
+    });
   }
 };
 
@@ -258,45 +342,47 @@ export const verifyEmail = async (req: Request, res: Response) => {
 export const forgotPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
-    
+
+    // Validate input
     if (!email) {
-      return res.status(400).json(apiResponse(400, 'Email required'));
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Email is required'
+      });
     }
-    
+
     // Find user
     const user = await User.findOne({ email });
+    
     if (!user) {
-      // Don't reveal if email exists
-      return res.json(apiResponse(200, 'If an account with this email exists, a password reset link has been sent'));
-    }
-    
-    // Generate reset token
-    const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    const resetExpires = new Date(Date.now() + 3600000); // 1 hour
-    
-    // Update user
-    user.password_reset_token = resetToken;
-    user.password_reset_expires = resetExpires;
-    user.updated_at = new Date();
-    
-    await user.save();
-    
-    // Send reset email
-    try {
-      await sendEmail({
-        email: user.email,
-        subject: 'Password Reset Request',
-        message: `Click the link to reset your password: ${config.CLIENT_URL}/reset-password?token=${resetToken}`
+      // Don't reveal if user exists for security
+      return res.status(StatusCodes.OK).json({
+        success: true,
+        message: 'If an account with this email exists, a password reset link has been sent'
       });
-    } catch (error) {
-      logger.error('Failed to send password reset email:', error);
-      // Don't fail the request if email fails
     }
-    
-    res.json(apiResponse(200, 'If an account with this email exists, a password reset link has been sent'));
+
+    // Generate password reset token
+    const resetToken = user.generatePasswordResetToken();
+    await user.save();
+
+    // Send password reset email
+    await sendEmail({
+      email: user.email,
+      subject: 'Password Reset Request',
+      message: `Your password reset code is: ${resetToken}`
+    });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'If an account with this email exists, a password reset link has been sent'
+    });
   } catch (error: any) {
-    logger.error('Forgot password error:', error);
-    res.status(500).json(apiResponse(500, 'Failed to process password reset request'));
+    console.error('Forgot password error:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Password reset request failed'
+    });
   }
 };
 
@@ -304,41 +390,111 @@ export const forgotPassword = async (req: Request, res: Response) => {
 export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { token, newPassword } = req.body;
-    
+
+    // Validate input
     if (!token || !newPassword) {
-      return res.status(400).json(apiResponse(400, 'Token and new password required'));
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Token and new password are required'
+      });
     }
-    
-    if (newPassword.length < 8) {
-      return res.status(400).json(apiResponse(400, 'Password must be at least 8 characters'));
-    }
-    
-    // Find user with reset token
+
+    // Find user with matching reset token
     const user = await User.findOne({ 
-      password_reset_token: token,
-      password_reset_expires: { $gt: new Date() }
+      passwordResetToken: token,
+      passwordResetExpires: { $gt: Date.now() }
     });
-    
+
     if (!user) {
-      return res.status(400).json(apiResponse(400, 'Invalid or expired reset token'));
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
     }
-    
-    // Hash new password
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(newPassword, salt);
-    
-    // Update user
-    user.password_hash = passwordHash;
-    user.password_reset_token = undefined;
-    user.password_reset_expires = undefined;
-    user.updated_at = new Date();
-    
+
+    // Update password
+    user.password = newPassword;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
     await user.save();
-    
-    res.json(apiResponse(200, 'Password reset successfully'));
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Password reset successfully'
+    });
   } catch (error: any) {
-    logger.error('Reset password error:', error);
-    res.status(500).json(apiResponse(500, 'Failed to reset password'));
+    console.error('Reset password error:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Password reset failed'
+    });
+  }
+};
+
+// Get current user
+export const getCurrentUser = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data: {
+        user: req.user
+      }
+    });
+  } catch (error: any) {
+    console.error('Get current user error:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Failed to get user information'
+    });
+  }
+};
+
+// Update user profile
+export const updateProfile = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const { name, phone, profilePictureUrl } = req.body;
+
+    // Update user
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { name, phone, profilePictureUrl },
+      { new: true, runValidators: true }
+    ).select('-password -emailVerificationToken -passwordResetToken -passwordResetExpires -oauthProvider -oauthId');
+
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        user
+      }
+    });
+  } catch (error: any) {
+    console.error('Update profile error:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Profile update failed'
+    });
   }
 };
 ```

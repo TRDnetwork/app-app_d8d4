@@ -1,49 +1,95 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/user';
+import User, { IUser } from '../models/User';
+import { verifyToken } from '../utils/generateToken';
 
-// JWT verification middleware
-export const authenticate = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  
-  if (!token) {
-    return res.status(401).json({ error: 'Access token is required' });
+// Extend Express Request interface to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: IUser;
+    }
   }
-  
+}
+
+// Authentication middleware
+export const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Verify token with secret from environment
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
-    req.user = decoded;
+    // Get token from header
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access token is required'
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    // Verify token
+    const decoded = verifyToken(token, process.env.JWT_SECRET!);
+    
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired token'
+      });
+    }
+
+    // Find user
+    const user = await User.findById(decoded.id).select('-password -emailVerificationToken -passwordResetToken -passwordResetExpires -oauthProvider -oauthId');
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Attach user to request
+    req.user = user;
     next();
   } catch (error) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    console.error('Authentication error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
   }
 };
 
-// Role-based access control middleware
-export const authorize = (roles: string[]) => {
+// Authorization middleware for specific roles
+export const authorizeRole = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
     }
-    
-    // Check if user role is in allowed roles
+
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+      return res.status(403).json({
+        success: false,
+        message: 'Insufficient permissions'
+      });
     }
-    
+
     next();
   };
 };
 
-// Admin authorization middleware
-export const adminOnly = authorize(['admin']);
-
-// Seller authorization middleware
-export const sellerOnly = authorize(['seller', 'admin']);
-
-// Customer authorization middleware
-export const customerOnly = authorize(['customer', 'seller', 'admin']);
+// Check if user is authenticated
+export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required'
+    });
+  }
+  next();
+};
 ```
 
 ```typescript
