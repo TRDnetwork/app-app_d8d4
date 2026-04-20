@@ -1,84 +1,38 @@
 import { Client } from 'pg';
-import * as fs from 'fs';
-import * as path from 'path';
 
-const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
-const DATABASE_URL = process.env.DATABASE_URL;
+// This script is a placeholder for Supabase migration runner.
+// Actual data layer uses MongoDB with Mongoose.
 
-if (!DATABASE_URL) {
-  console.error('DATABASE_URL is required');
-  process.exit(1);
-}
+export async function applyMigrations() {
+  const client = new Client({
+    connectionString: process.env.SUPABASE_CONNECTION_STRING,
+  });
 
-async function runMigration(client: Client, migrationFile: string) {
-  const migrationPath = path.join(MIGRATIONS_DIR, migrationFile);
-  const content = fs.readFileSync(migrationPath, 'utf8');
-  
-  // Extract UP section
-  const upMatch = content.match(/-- UP\s+([\s\S]*?)-- DOWN/);
-  if (!upMatch) {
-    throw new Error(`Invalid migration format: ${migrationFile}`);
-  }
-
-  const upSQL = upMatch[1].trim();
-  const version = migrationFile.replace('.sql', '');
-
-  // Check if already applied
-  const { rows } = await client.query(
-    'SELECT 1 FROM schema_versions WHERE version = $1',
-    [version]
-  );
-
-  if (rows.length > 0) {
-    console.log(`Migration ${version} already applied, skipping`);
+  if (!process.env.SUPABASE_CONNECTION_STRING) {
+    console.log('Supabase connection string not found. Skipping migrations (MongoDB backend in use).');
     return;
   }
 
-  console.log(`Applying migration: ${version}`);
-  await client.query(upSQL);
-  await client.query(
-    'INSERT INTO schema_versions (version) VALUES ($1)',
-    [version]
-  );
-}
-
-async function main() {
-  const client = new Client({
-    connectionString: DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-  });
-
   try {
     await client.connect();
-    
-    // Ensure schema_versions table exists
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS schema_versions (
-        version VARCHAR(255) PRIMARY KEY,
-        applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      )
-    `);
+    const res = await client.query('SELECT version FROM schema_versions ORDER BY version DESC LIMIT 1');
+    const currentVersion = res.rows[0]?.version || 0;
 
-    const migrationFiles = fs
-      .readdirSync(MIGRATIONS_DIR)
-      .filter(f => f.endsWith('.sql'))
-      .sort(); // Ensure ordered execution
+    console.log(`Current schema version: ${currentVersion}`);
 
-    for (const file of migrationFiles) {
-      await runMigration(client, file);
-    }
+    // In a real Supabase project, we'd apply numbered SQL files here.
+    // For this project, we skip — MongoDB handles schema via code.
 
-    console.log('All migrations applied successfully');
-  } catch (error) {
-    console.error('Migration failed:', error);
-    process.exit(1);
+    console.log('No migrations applied — using MongoDB backend.');
+  } catch (err) {
+    console.error('Migration failed:', err);
+    throw err;
   } finally {
     await client.end();
   }
 }
 
+// If running directly
 if (require.main === module) {
-  main();
+  applyMigrations().catch(console.error);
 }
-
-export default main;

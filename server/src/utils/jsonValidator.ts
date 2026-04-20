@@ -1,65 +1,37 @@
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats';
-import * as fs from 'fs';
-import * as path from 'path';
+import fs from 'fs';
+import path from 'path';
 
-/**
- * JSON Validator utility for validating JSON data against schemas
- * Uses Ajv for JSON Schema validation with additional formats
- */
-export class JSONValidator {
-  private static ajv = new Ajv({ allErrors: true });
-  static formatter = addFormats(JSONValidator.ajv);
-
-  /**
-   * Validate data against schema
-   * @param data - Data to validate
-   * @param schema - JSON Schema
-   * @returns { valid: boolean, errors: string[] }
-   */
-  static validate(data: any, schema: any): { valid: boolean; errors?: string[] } {
-    const valid = JSONValidator.ajv.validate(schema, data);
-    return {
-      valid: !!valid,
-      errors: JSONValidator.ajv.errors?.map((e) => e.message || 'Validation error') || [],
-    };
+// Validate JSON file with input validation
+export const validateJSON = async (filePath: string, schema: any): Promise<any> => {
+  // Validate file path to prevent path traversal
+  const normalizedPath = path.normalize(filePath);
+  if (!normalizedPath.startsWith(path.join(__dirname, '../../uploads'))) {
+    throw new Error('Invalid file path');
   }
-
-  /**
-   * Validate JSON file
-   * @param filePath - Path to the JSON file
-   * @returns Promise<any> - Parsed and validated JSON data
-   */
-  static async validateFile(filePath: string): Promise<any> {
-    // SECURITY FIX: Use path.resolve and ensure the normalized path starts with the allowed directory
-    const allowedDir = path.resolve(process.env.UPLOAD_DIR || '/tmp/shopsphere-imports');
-    const normalizedPath = path.resolve(filePath);
-
-    // Ensure the normalized path starts with the allowed directory and doesn't contain any traversal
-    if (!normalizedPath.startsWith(allowedDir) || normalizedPath.includes('..')) {
-      throw new Error('Invalid file path');
-    }
-
-    // SECURITY FIX: Validate file exists and is a file (not directory)
-    if (!fs.existsSync(normalizedPath)) {
-      throw new Error('File not found');
-    }
-
-    if (fs.statSync(normalizedPath).isDirectory()) {
-      throw new Error('Path is a directory, not a file');
-    }
-
-    // Read file
-    const content = fs.readFileSync(normalizedPath, 'utf8');
-
-    // Validate and parse
-    return this.validateAndParse(content);
+  
+  // Check if file exists and is a regular file
+  const stats = await fs.promises.stat(normalizedPath);
+  if (!stats.isFile()) {
+    throw new Error('Path is not a file');
   }
-
-  /**
-   * Validate and parse JSON string
-   * @param content - JSON string
-   * @returns any - Parsed JSON
-   */
-  static validateAndParse(content: string): any {
-    let data
+  
+  // Check file size (max 10MB)
+  if (stats.size > 10 * 1024 * 1024) {
+    throw new Error('File size exceeds limit');
+  }
+  
+  // Check file extension
+  const ext = path.extname(normalizedPath).toLowerCase();
+  if (ext !== '.json') {
+    throw new Error('Invalid file type');
+  }
+  
+  // Read and parse JSON file
+  const content = await fs.promises.readFile(normalizedPath, 'utf-8');
+  
+  // Parse JSON
+  let data;
+  try {
+    data = JSON.parse(content);
+  } catch (error) {
+    throw new Error('Invalid JSON format');

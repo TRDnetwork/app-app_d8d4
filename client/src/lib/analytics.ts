@@ -1,63 +1,109 @@
-import { useAuthStore } from '../stores/authStore';
+/**
+ * Analytics service for ShopSphere e-commerce application
+ * Uses PostHog for event tracking with privacy considerations
+ */
 
-// Track events with PostHog
-export const trackEvent = (event: string, properties: Record<string, any> = {}) => {
-  // Only track if PostHog is available and user hasn't opted out
-  if (typeof window !== 'undefined' && window.ph && !navigator.doNotTrack) {
-    const user = useAuthStore.getState().user;
-    
-    // Add user ID if available
-    if (user?.id) {
-      properties.userId = user.id;
-    }
-    
-    // Send event to PostHog
-    window.ph('capture', event, properties);
+interface EventProperties {
+  [key: string]: any;
+}
+
+export class AnalyticsService {
+  private static instance: AnalyticsService;
+  private isInitialized = false;
+
+  private constructor() {
+    // Private constructor for singleton pattern
   }
-};
 
-// Track page views
-export const trackPageView = (pageName: string, properties: Record<string, any> = {}) => {
-  trackEvent('$pageview', {
-    $current_url: window.location.href,
-    page_name: pageName,
-    ...properties
-  });
-};
+  public static getInstance(): AnalyticsService {
+    if (!AnalyticsService.instance) {
+      AnalyticsService.instance = new AnalyticsService();
+    }
+    return AnalyticsService.instance;
+  }
 
-// Track form submissions
-export const trackFormSubmission = (formName: string, success: boolean = true) => {
-  trackEvent('form_submitted', {
-    form_name: formName,
-    success,
-    page: window.location.pathname
-  });
-};
+  /**
+   * Initialize the analytics service
+   * Should be called once when the app starts
+   */
+  public init(): void {
+    // Check for Do Not Track
+    if (this.isDoNotTrackEnabled()) {
+      console.log('Analytics disabled due to Do Not Track setting');
+      return;
+    }
 
-// Track CTA clicks
-export const trackCTAClick = (ctaName: string, location: string = 'unknown') => {
-  trackEvent('cta_clicked', {
-    cta_name: ctaName,
-    location,
-    page: window.location.pathname
-  });
-};
+    this.isInitialized = true;
+  }
 
-// Track authentication events
-export const trackAuthEvent = (eventType: string, method: string = 'email') => {
-  trackEvent('auth_event', {
-    event_type: eventType,
-    method,
-    page: window.location.pathname
-  });
-};
+  /**
+   * Check if Do Not Track is enabled
+   */
+  private isDoNotTrackEnabled(): boolean {
+    return (
+      navigator.doNotTrack === '1' ||
+      window.doNotTrack === '1' ||
+      navigator.doNotTrack === 'yes'
+    );
+  }
 
-// Track purchase
-export const trackPurchase = (orderId: string, revenue: number, items: Array<{id: string, name: string, price: number, quantity: number}>) => {
-  trackEvent('purchase_completed', {
-    order_id: orderId,
-    revenue,
-    currency: 'USD',
-    items
-  });
-};
+  /**
+   * Track a custom event
+   */
+  public track(event: string, properties?: EventProperties): void {
+    if (!this.isInitialized || this.isDoNotTrackEnabled()) {
+      return;
+    }
+
+    try {
+      if (window.posthog) {
+        window.posthog.push(['capture', event, properties]);
+      }
+    } catch (error) {
+      console.error('Analytics tracking error:', error);
+    }
+  }
+
+  /**
+   * Identify a user for analytics
+   */
+  public identify(userId: string, properties?: EventProperties): void {
+    if (!this.isInitialized || this.isDoNotTrackEnabled()) {
+      return;
+    }
+
+    try {
+      if (window.posthog) {
+        window.posthog.push(['identify', userId]);
+        if (properties) {
+          window.posthog.push(['set', properties]);
+        }
+      }
+    } catch (error) {
+      console.error('Analytics identify error:', error);
+    }
+  }
+
+  /**
+   * Reset user identification
+   */
+  public reset(): void {
+    if (!this.isInitialized || this.isDoNotTrackEnabled()) {
+      return;
+    }
+
+    try {
+      if (window.posthog) {
+        window.posthog.push(['reset']);
+      }
+    } catch (error) {
+      console.error('Analytics reset error:', error);
+    }
+  }
+}
+
+// Initialize the analytics service
+const analytics = AnalyticsService.getInstance();
+analytics.init();
+
+export default analytics;

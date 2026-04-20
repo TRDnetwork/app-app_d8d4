@@ -1,44 +1,29 @@
-import * as path from 'path';
+import path from 'path';
 
-/**
- * Sanitizes filenames to prevent path traversal attacks
- * Removes or replaces dangerous characters and ensures safe filenames
- */
-export function sanitizeFilename(filename: string): string {
-  // SECURITY FIX: Use path.normalize to handle encoded traversal sequences
-  const normalized = path.normalize(filename);
-  const basename = path.basename(normalized);
-
-  // Replace dangerous characters with underscores
-  let sanitized = basename.replace(/[<>:"|?*\x00-\x1F]/g, '_');
-
-  // Replace forward and backward slashes separately to prevent bypass
-  sanitized = sanitized.replace(/\//g, '_');
-  sanitized = sanitized.replace(/\\/g, '_');
-
-  // Remove multiple consecutive dots and underscores
-  sanitized = sanitized.replace(/\.+/g, '.');
-  sanitized = sanitized.replace(/_+/g, '_');
-
-  // Remove leading/trailing dots and underscores
-  sanitized = sanitized.replace(/^[_\.]+/, '');
-  sanitized = sanitized.replace(/[_\.]+$/, '');
-
-  // Ensure filename has an extension
-  if (!sanitized.includes('.')) {
-    sanitized += '.txt';
-  }
-
-  // Limit filename length
+// Sanitize filename to prevent path traversal attacks
+export const sanitizeFilename = (filename: string): string => {
+  // Remove any directory traversal sequences
+  const sanitized = filename
+    .replace(/(\.\.\/|\/\.\.)/g, '') // Remove ../ and /..
+    .replace(/(\\|\/)/g, '') // Remove path separators
+    .replace(/[^a-zA-Z0-9._-]/g, '') // Remove special characters except . _ -
+    .substring(0, 255); // Limit length to 255 characters
+  
+  // Ensure the filename has a valid extension
   const ext = path.extname(sanitized);
-  const name = path.basename(sanitized, ext);
-  const truncatedName = name.substring(0, 100);
+  if (!ext) {
+    return sanitized + '.jpg'; // Default to .jpg if no extension
+  }
+  
+  // Allow only specific file extensions
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+  if (!allowedExtensions.includes(ext.toLowerCase())) {
+    return sanitized.substring(0, sanitized.length - ext.length) + '.jpg';
+  }
+  
+  return sanitized;
+};
+// PERF: Enhanced filename sanitization to prevent path traversal
+```
 
-  return `${truncatedName}${ext}`;
-}
-
-// SECURITY FIX: Add validation for file extensions
-export function validateFileExtension(filename: string, allowedExtensions: string[]): boolean {
-  const ext = path.extname(filename).toLowerCase();
-  return allowedExtensions.includes(ext);
-}
+```typescript

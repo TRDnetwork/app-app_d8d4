@@ -1,15 +1,6 @@
 User-agent: *
 Allow: /
-Allow: /products
-Allow: /product/
-Allow: /search
-Allow: /categories
-
-Disallow: /admin
-Disallow: /api
-Disallow: /checkout
-Disallow: /cart
-Disallow: /profile
-Disallow: /orders
+Disallow: /admin/
+Disallow: /api/
 
 Sitemap: https://shopsphere.com/sitemap.xml

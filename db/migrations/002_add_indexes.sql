@@ -1,62 +1,17 @@
 -- UP
--- Add indexes for foreign keys and frequently queried fields
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_addresses_user_id ON app_d8d4_addresses(user_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_categories_parent_id ON app_d8d4_categories(parent_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_products_seller_id ON app_d8d4_products(seller_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_products_category_id ON app_d8d4_products(category_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_products_slug ON app_d8d4_products(slug);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_products_status ON app_d8d4_products(status);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_products_views ON app_d8d4_products(views);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_reviews_product_id ON app_d8d4_reviews(product_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_reviews_user_id ON app_d8d4_reviews(user_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_questions_product_id ON app_d8d4_questions(product_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_questions_user_id ON app_d8d4_questions(user_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_carts_user_id ON app_d8d4_carts(user_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_wishlists_user_id ON app_d8d4_wishlists(user_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_wishlists_product_id ON app_d8d4_wishlists(product_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_orders_user_id ON app_d8d4_orders(user_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_orders_order_number ON app_d8d4_orders(order_number);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_orders_status ON app_d8d4_orders(status);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_orders_stripe_session_id ON app_d8d4_orders(stripe_session_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_orders_stripe_payment_intent_id ON app_d8d4_orders(stripe_payment_intent_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_coupons_code ON app_d8d4_coupons(code);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_coupons_is_active ON app_d8d4_coupons(is_active);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_banners_is_active ON app_d8d4_banners(is_active);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_seller_applications_user_id ON app_d8d4_seller_applications(user_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_seller_applications_status ON app_d8d4_seller_applications(status);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_notifications_user_id ON app_d8d4_notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_notifications_is_read ON app_d8d4_notifications(is_read);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_product_views_user_id ON app_d8d4_product_views(user_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_product_views_product_id ON app_d8d4_product_views(product_id);
-CREATE INDEX IF NOT EXISTS idx_app_d8d4_product_views_viewed_at ON app_d8d4_product_views(viewed_at DESC);
+-- Placeholder for index definitions.
+-- MongoDB indexes are defined in Mongoose schemas (server/models/).
+
+-- Example of how index would be declared if using PostgreSQL:
+-- CREATE INDEX IF NOT EXISTS idx_products_category ON app_d8d4_products(category_id);
+-- CREATE INDEX IF NOT EXISTS idx_products_seller ON app_d8d4_products(seller_id);
+-- CREATE INDEX IF NOT EXISTS idx_orders_user ON app_d8d4_orders(user_id);
+-- CREATE INDEX IF NOT EXISTS idx_reviews_product ON app_d8d4_reviews(product_id);
+-- CREATE INDEX IF NOT EXISTS idx_cart_user ON app_d8d4_carts(user_id);
 
 -- DOWN
-DROP INDEX IF EXISTS idx_app_d8d4_product_views_viewed_at;
-DROP INDEX IF EXISTS idx_app_d8d4_product_views_product_id;
-DROP INDEX IF EXISTS idx_app_d8d4_product_views_user_id;
-DROP INDEX IF EXISTS idx_app_d8d4_notifications_is_read;
-DROP INDEX IF EXISTS idx_app_d8d4_notifications_user_id;
-DROP INDEX IF EXISTS idx_app_d8d4_seller_applications_status;
-DROP INDEX IF EXISTS idx_app_d8d4_seller_applications_user_id;
-DROP INDEX IF EXISTS idx_app_d8d4_banners_is_active;
-DROP INDEX IF EXISTS idx_app_d8d4_coupons_is_active;
-DROP INDEX IF EXISTS idx_app_d8d4_coupons_code;
-DROP INDEX IF EXISTS idx_app_d8d4_orders_stripe_payment_intent_id;
-DROP INDEX IF EXISTS idx_app_d8d4_orders_stripe_session_id;
-DROP INDEX IF EXISTS idx_app_d8d4_orders_status;
-DROP INDEX IF EXISTS idx_app_d8d4_orders_order_number;
-DROP INDEX IF EXISTS idx_app_d8d4_orders_user_id;
-DROP INDEX IF EXISTS idx_app_d8d4_wishlists_product_id;
-DROP INDEX IF EXISTS idx_app_d8d4_wishlists_user_id;
-DROP INDEX IF EXISTS idx_app_d8d4_carts_user_id;
-DROP INDEX IF EXISTS idx_app_d8d4_questions_user_id;
-DROP INDEX IF EXISTS idx_app_d8d4_questions_product_id;
-DROP INDEX IF EXISTS idx_app_d8d4_reviews_user_id;
-DROP INDEX IF EXISTS idx_app_d8d4_reviews_product_id;
-DROP INDEX IF NOT EXISTS idx_app_d8d4_products_views;
-DROP INDEX IF EXISTS idx_app_d8d4_products_status;
-DROP INDEX IF EXISTS idx_app_d8d4_products_slug;
-DROP INDEX IF EXISTS idx_app_d8d4_products_category_id;
-DROP INDEX IF EXISTS idx_app_d8d4_products_seller_id;
-DROP INDEX IF EXISTS idx_app_d8d4_categories_parent_id;
-DROP INDEX IF EXISTS idx_app_d8d4_addresses_user_id;
+-- DROP INDEX IF EXISTS idx_products_category;
+-- DROP INDEX IF EXISTS idx_products_seller;
+-- DROP INDEX IF EXISTS idx_orders_user;
+-- DROP INDEX IF EXISTS idx_reviews_product;
+-- DROP INDEX IF EXISTS idx_cart_user;

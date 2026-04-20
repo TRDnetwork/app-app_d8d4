@@ -1,26 +1,24 @@
-import { buffer } from 'micro';
-import { stripe } from '../../server/src/services/stripe';
-import { db } from '../../server/src/services/database';
+import express from 'express';
+import Stripe from 'stripe';
+import { config } from '../../server/src/config/env';
+import { Order } from '../../server/src/models/Order.js';
+import { Product } from '../../server/src/models/Product.js';
+import { sendOrderConfirmationEmail } from '../../server/src/services/emailService.js';
 
-// Disable body parsing for raw buffer
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+const router = express.Router();
+const stripe = new Stripe(config.STRIPE_SECRET_KEY);
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const buf = await buffer(req);
+// Stripe requires raw body for webhook signature verification
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
-
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(buf.toString(), sig, process.env.STRIPE_WEBHOOK_SECRET);
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      config.STRIPE_WEBHOOK_SECRET
+    );
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -30,100 +28,89 @@ export default async function handler(req, res) {
     switch (event.type) {
       case 'checkout.session.completed':
         const session = event.data.object;
-
-        // Prevent replay attacks by checking if session was already processed
-        const existingOrder = await db.collection('app_d8d4_orders').findOne({
-          stripe_session_id: session.id,
+        
+        // Prevent duplicate processing
+        const existingOrder = await Order.findOne({ 
+          stripe_session_id: session.id 
         });
-
+        
         if (existingOrder) {
-          return res.status(200).json({ received: true });
+          console.log('Duplicate webhook received for session:', session.id);
+          return res.status(200).send('Webhook received');
         }
 
-        // Retrieve session metadata
-        const {
-          userId,
-          address,
-          deliverySpeed,
-          couponCode,
-          discountAmount,
-        } = session.metadata;
+        // Update order with payment success
+        const order = await Order.findOneAndUpdate(
+          { _id: session.metadata.order_id },
+          {
+            stripe_session_id: session.id,
+            stripe_payment_intent_id: session.payment_intent,
+            payment_status: 'completed',
+            status: 'confirmed',
+            updated_at: new Date()
+          },
+          { new: true }
+        );
 
-        // Retrieve line items
-        const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
-          limit: 100,
-        });
+        if (order) {
+          // Update inventory
+          for (const item of order.items) {
+            await Product.findByIdAndUpdate(
+              item.product_id,
+              { $inc: { stock_quantity: -item.quantity } },
+              { new: true }
+            );
+          }
 
-        // Create order in database
-        const order = {
-          user_id: db.ObjectId(userId),
-          order_number: `ORD-${Date.now()}`,
-          items: lineItems.data.map(item => ({
-            product_id: db.ObjectId(item.price.product),
-            quantity: item.quantity,
-            price: item.price.unit_amount / 100,
-            status: 'placed',
-          })),
-          address: JSON.parse(address),
-          delivery_speed: deliverySpeed,
-          payment_method: 'stripe',
-          payment_status: 'completed',
-          stripe_session_id: session.id,
-          stripe_payment_intent_id: session.payment_intent,
-          subtotal: session.amount_subtotal / 100,
-          discount: parseFloat(discountAmount) / 100,
-          delivery_charge: session.shipping_cost ? session.shipping_cost.amount_total / 100 : 0,
-          total: session.amount_total / 100,
-          status: 'placed',
-          created_at: new Date(),
-          updated_at: new Date(),
-        };
-
-        const result = await db.collection('app_d8d4_orders').insertOne(order);
-
-        // Update coupon usage if applicable
-        if (couponCode) {
-          await db.collection('app_d8d4_coupons').updateOne(
-            { code: couponCode },
-            { $inc: { used_count: 1 } }
+          // Send confirmation email
+          await sendOrderConfirmationEmail(
+            order.user_id,
+            order._id,
+            order.total
           );
         }
-
-        // Update inventory
-        for (const item of order.items) {
-          await db.collection('app_d8d4_products').updateOne(
-            { _id: item.product_id },
-            { $inc: { stock_quantity: -item.quantity } }
-          );
-        }
-
-        // Clean up checkout session
-        await db.collection('app_d8d4_checkout_sessions').deleteOne({
-          sessionId: session.id,
-        });
-
-        break;
-
-      case 'payment_intent.succeeded':
-        // Handle successful payment (could be direct, not through checkout)
-        const paymentIntent = event.data.object;
-        console.log('Payment succeeded:', paymentIntent.id);
         break;
 
       case 'payment_intent.payment_failed':
-        // Handle failed payment
-        const failedPaymentIntent = event.data.object;
-        console.log('Payment failed:', failedPaymentIntent.id, failedPaymentIntent.last_payment_error?.message);
+        const failedIntent = event.data.object;
+        
+        await Order.findOneAndUpdate(
+          { 'metadata.payment_intent': failedIntent.id },
+          {
+            payment_status: 'failed',
+            status: 'cancelled',
+            updated_at: new Date()
+          }
+        );
+        break;
+
+      case 'payment_intent.succeeded':
+        const succeededIntent = event.data.object;
+        
+        await Order.findOneAndUpdate(
+          { stripe_payment_intent_id: succeededIntent.id },
+          {
+            payment_status: 'completed',
+            status: 'confirmed',
+            updated_at: new Date()
+          }
+        );
         break;
 
       default:
         console.log(`Unhandled event type ${event.type}`);
     }
 
-    // Return 200 for all events to acknowledge receipt
-    res.status(200).json({ received: true });
+    // Always return 200 to acknowledge receipt
+    res.status(200).send('Webhook received');
   } catch (error) {
-    console.error('Error processing webhook:', error);
-    res.status(500).json({ error: 'Webhook processing failed' });
+    console.error('Webhook processing error:', error);
+    res.status(500).send('Webhook processing failed');
   }
-}
+});
+
+export default router;
+// SECURITY FIX: Used config object to access Stripe webhook secret instead of direct environment access
+```
+
+```typescript

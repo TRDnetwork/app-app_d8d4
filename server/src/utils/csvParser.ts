@@ -1,59 +1,55 @@
-import * as csv from 'csv-parser';
-import * as fs from 'fs';
-import * as path from 'path';
-import { sanitizeFilename } from './sanitize-filename';
+import fs from 'fs';
+import path from 'path';
 
-interface CSVOptions {
-  delimiter?: string;
-  headers?: boolean;
-  skipEmptyLines?: boolean;
-}
-
-/**
- * CSV Parser utility for handling CSV file imports
- * Provides streaming parsing for large files and proper error handling
- */
-export class CSVParser {
-  /**
-   * Parse CSV file from file path
-   * @param filePath - Path to the CSV file
-   * @param options - CSV parsing options
-   * @returns Promise<Array<Record<string, any>>> - Parsed CSV data
-   */
-  static async parseFile(filePath: string, options: CSVOptions = {}): Promise<Array<Record<string, any>>> {
-    // SECURITY FIX: Use path.resolve and ensure the normalized path starts with the allowed directory
-    const allowedDir = path.resolve(process.env.UPLOAD_DIR || '/tmp/shopsphere-imports');
-    const normalizedPath = path.resolve(filePath);
-
-    // Ensure the normalized path starts with the allowed directory and doesn't contain any traversal
-    if (!normalizedPath.startsWith(allowedDir) || normalizedPath.includes('..')) {
-      throw new Error('Invalid file path');
-    }
-
-    // SECURITY FIX: Validate file exists and is a file (not directory)
-    if (!fs.existsSync(normalizedPath)) {
-      throw new Error('File not found');
-    }
-
-    if (fs.statSync(normalizedPath).isDirectory()) {
-      throw new Error('Path is a directory, not a file');
-    }
-
-    return new Promise((resolve, reject) => {
-      const results: Array<Record<string, any>> = [];
-      const stream = fs.createReadStream(normalizedPath);
-
-      stream
-        .pipe(csv(options))
-        .on('data', (data) => {
-          results.push(data);
-        })
-        .on('end', () => {
-          resolve(results);
-        })
-        .on('error', (error) => {
-          reject(error);
-        });
-    });
+// Parse CSV file with input validation
+export const parseCSV = async (filePath: string): Promise<any[]> => {
+  // Validate file path to prevent path traversal
+  const normalizedPath = path.normalize(filePath);
+  if (!normalizedPath.startsWith(path.join(__dirname, '../../uploads'))) {
+    throw new Error('Invalid file path');
   }
-}
+  
+  // Check if file exists and is a regular file
+  const stats = await fs.promises.stat(normalizedPath);
+  if (!stats.isFile()) {
+    throw new Error('Path is not a file');
+  }
+  
+  // Check file size (max 10MB)
+  if (stats.size > 10 * 1024 * 1024) {
+    throw new Error('File size exceeds limit');
+  }
+  
+  // Check file extension
+  const ext = path.extname(normalizedPath).toLowerCase();
+  if (ext !== '.csv') {
+    throw new Error('Invalid file type');
+  }
+  
+  // Read and parse CSV file
+  const content = await fs.promises.readFile(normalizedPath, 'utf-8');
+  const lines = content.split('\n');
+  
+  // Parse CSV data
+  const result = [];
+  const headers = lines[0].split(',').map(h => h.trim());
+  
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim() === '') continue;
+    
+    const values = lines[i].split(',').map(v => v.trim());
+    const obj: any = {};
+    
+    headers.forEach((header, index) => {
+      obj[header] = values[index] || '';
+    });
+    
+    result.push(obj);
+  }
+  
+  return result;
+};
+// PERF: Added input validation to prevent path traversal in CSV parser
+```
+
+```typescript
