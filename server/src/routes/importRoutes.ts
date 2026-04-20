@@ -1,9 +1,13 @@
-```ts
 import { Router } from 'express';
 import multer from 'multer';
-import { protect, admin } from '../middleware/auth';
-import { importProducts, importUsers, importOrders } from '../controllers/importController';
-import { importProductsJob, importUsersJob, importOrdersJob } from '../jobs/importJobs';
+import { protect, authorize } from '../middleware/auth';
+import { 
+  importProducts, 
+  importUsers, 
+  exportProducts, 
+  exportUsers 
+} from '../controllers/importController';
+import { rateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 const upload = multer({ 
@@ -13,134 +17,51 @@ const upload = multer({
   },
 });
 
-/**
- * POST /api/admin/import/products
- * Import products from CSV/JSON file
- */
-router.post('/products', protect, admin, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
+// Product import routes
+router.post('/products/csv', 
+  protect, 
+  authorize('admin', 'seller'), 
+  rateLimiter.apiLimiter,
+  upload.single('file'), 
+  importProducts
+);
 
-    // Validate file type
-    const fileExtension = req.file.originalname.split('.').pop()?.toLowerCase();
-    if (!['csv', 'json'].includes(fileExtension || '')) {
-      return res.status(400).json({ message: 'Invalid file format. Please upload CSV or JSON file.' });
-    }
+router.post('/products/json', 
+  protect, 
+  authorize('admin', 'seller'), 
+  rateLimiter.apiLimiter,
+  importProducts
+);
 
-    // For small files, process immediately
-    if (req.file.size < 1 * 1024 * 1024) { // 1MB
-      const result = await importProducts(req.file.buffer, fileExtension, req.user);
-      return res.json(result);
-    }
+// User import routes
+router.post('/users/csv', 
+  protect, 
+  authorize('admin'), 
+  rateLimiter.apiLimiter,
+  upload.single('file'), 
+  importUsers
+);
 
-    // For large files, queue for background processing
-    const job = await importProductsJob({
-      fileBuffer: req.file.buffer,
-      fileExtension,
-      userId: req.user.id,
-      fileName: req.file.originalname
-    });
+router.post('/users/json', 
+  protect, 
+  authorize('admin'), 
+  rateLimiter.apiLimiter,
+  importUsers
+);
 
-    res.json({
-      message: 'Import started successfully',
-      jobId: job.id,
-      status: 'queued',
-      progress: 0
-    });
-  } catch (error: any) {
-    console.error('Import products error:', error);
-    res.status(500).json({ 
-      message: 'Failed to process import',
-      error: error.message 
-    });
-  }
-});
+// Export routes
+router.get('/products/csv', 
+  protect, 
+  authorize('admin', 'seller'), 
+  rateLimiter.apiLimiter,
+  exportProducts
+);
 
-/**
- * POST /api/admin/import/users
- * Import users from CSV/JSON file
- */
-router.post('/users', protect, admin, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
-
-    const fileExtension = req.file.originalname.split('.').pop()?.toLowerCase();
-    if (!['csv', 'json'].includes(fileExtension || '')) {
-      return res.status(400).json({ message: 'Invalid file format. Please upload CSV or JSON file.' });
-    }
-
-    if (req.file.size < 1 * 1024 * 1024) {
-      const result = await importUsers(req.file.buffer, fileExtension, req.user);
-      return res.json(result);
-    }
-
-    const job = await importUsersJob({
-      fileBuffer: req.file.buffer,
-      fileExtension,
-      userId: req.user.id,
-      fileName: req.file.originalname
-    });
-
-    res.json({
-      message: 'Import started successfully',
-      jobId: job.id,
-      status: 'queued',
-      progress: 0
-    });
-  } catch (error: any) {
-    console.error('Import users error:', error);
-    res.status(500).json({ 
-      message: 'Failed to process import',
-      error: error.message 
-    });
-  }
-});
-
-/**
- * POST /api/admin/import/orders
- * Import orders from CSV/JSON file
- */
-router.post('/orders', protect, admin, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
-
-    const fileExtension = req.file.originalname.split('.').pop()?.toLowerCase();
-    if (!['csv', 'json'].includes(fileExtension || '')) {
-      return res.status(400).json({ message: 'Invalid file format. Please upload CSV or JSON file.' });
-    }
-
-    if (req.file.size < 1 * 1024 * 1024) {
-      const result = await importOrders(req.file.buffer, fileExtension, req.user);
-      return res.json(result);
-    }
-
-    const job = await importOrdersJob({
-      fileBuffer: req.file.buffer,
-      fileExtension,
-      userId: req.user.id,
-      fileName: req.file.originalname
-    });
-
-    res.json({
-      message: 'Import started successfully',
-      jobId: job.id,
-      status: 'queued',
-      progress: 0
-    });
-  } catch (error: any) {
-    console.error('Import orders error:', error);
-    res.status(500).json({ 
-      message: 'Failed to process import',
-      error: error.message 
-    });
-  }
-});
+router.get('/users/csv', 
+  protect, 
+  authorize('admin'), 
+  rateLimiter.apiLimiter,
+  exportUsers
+);
 
 export default router;
-```

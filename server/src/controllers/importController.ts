@@ -1,438 +1,423 @@
-```ts
+import { Request, Response } from 'express';
 import csv from 'csv-parser';
-import { Readable } from 'stream';
 import { Product } from '../models/Product';
 import { User } from '../models/User';
-import { Order } from '../models/Order';
-import { Category } from '../models/Category';
-import { Address } from '../models/Address';
-import { Cart } from '../models/Cart';
-import { Wishlist } from '../models/Wishlist';
-import { Review } from '../models/Review';
-import { Coupon } from '../models/Coupon';
-import { Question } from '../models/Question';
-import { SellerAnalytics } from '../models/SellerAnalytics';
-import { parse } from 'json2csv';
-import { v4 as uuidv4 } from 'uuid';
+import { StatusCodes } from 'http-status-codes';
+import { loggerWithId } from '../utils/logger';
+import { EmailService } from '../services/emailService';
 
 interface ImportResult {
   success: boolean;
   total: number;
-  imported: number;
-  failed: number;
-  errors: string[];
-  summary: Record<string, any>;
+  processed: number;
+  errors: Array<{
+    row: number;
+    error: string;
+    data: any;
+  }>;
+  message?: string;
 }
 
-/**
- * Import products from CSV/JSON
- */
-export const importProducts = async (
-  fileBuffer: Buffer,
-  fileExtension: string,
-  user: any
-): Promise<ImportResult> => {
-  const result: ImportResult = {
-    success: true,
-    total: 0,
-    imported: 0,
-    failed: 0,
-    errors: [],
-    summary: {}
+// Validate product data
+const validateProduct = (data: any, rowIndex: number): { valid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (!data.title?.trim()) {
+    errors.push('Title is required');
+  }
+  
+  if (!data.price || isNaN(parseFloat(data.price))) {
+    errors.push('Valid price is required');
+  }
+  
+  if (!data.stock || isNaN(parseInt(data.stock))) {
+    errors.push('Valid stock is required');
+  }
+  
+  if (!data.category_id?.trim()) {
+    errors.push('Category ID is required');
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
   };
+};
 
-  try {
-    let records: any[] = [];
+// Validate user data
+const validateUser = (data: any, rowIndex: number): { valid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (!data.email?.trim()) {
+    errors.push('Email is required');
+  } else if (!/\S+@\S+\.\S+/.test(data.email)) {
+    errors.push('Invalid email format');
+  }
+  
+  if (!data.name?.trim()) {
+    errors.push('Name is required');
+  }
+  
+  if (!data.role || !['customer', 'seller', 'admin'].includes(data.role)) {
+    errors.push('Valid role is required (customer, seller, admin)');
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+};
 
-    if (fileExtension === 'csv') {
-      // Parse CSV
-      records = await parseCSV(fileBuffer);
-    } else if (fileExtension === 'json') {
-      // Parse JSON
-      records = JSON.parse(fileBuffer.toString());
+// Process CSV file
+const processCSV = (req: Request, validateFn: (data: any, rowIndex: number) => { valid: boolean; errors: string[] }): Promise<ImportResult> => {
+  return new Promise((resolve) => {
+    if (!req.file) {
+      return resolve({
+        success: false,
+        total: 0,
+        processed: 0,
+        errors: [{ row: 0, error: 'No file uploaded', data: {} }]
+      });
     }
 
-    result.total = records.length;
+    const results: any[] = [];
+    const errors: Array<{ row: number; error: string; data: any }> = [];
+    let rowIndex = 0;
+    let processed = 0;
 
-    // Validate records
-    const validationErrors = validateProductRecords(records);
-    if (validationErrors.length > 0) {
-      result.success = false;
-      result.errors = validationErrors;
-      result.failed = records.length;
-      return result;
-    }
+    req.file.buffer
+      .toString()
+      .split('\n')
+      .slice(1) // Skip header row
+      .forEach((line, index) => {
+        if (!line.trim()) return; // Skip empty lines
+        
+        rowIndex = index + 2; // +2 because we skip header and 0-indexing
+        try {
+          // Simple CSV parsing (for production, use a proper CSV parser)
+          const columns = line.split(',').map(col => col.trim().replace(/^"(.*)"$/, '$1'));
+          const headers = req.file?.originalname.includes('products') 
+            ? ['title', 'description', 'price', 'stock', 'category_id', 'brand', 'images', 'tags', 'status']
+            : ['name', 'email', 'role', 'phone', 'profile_picture_url'];
+          
+          const data: any = {};
+          columns.forEach((value, i) => {
+            if (headers[i]) {
+              // Handle array fields
+              if (headers[i] === 'images' || headers[i] === 'tags') {
+                data[headers[i]] = value ? value.split(';').map(v => v.trim()) : [];
+              } else {
+                data[headers[i]] = value || undefined;
+              }
+            }
+          });
 
-    // Process records
-    for (const record of records) {
-      try {
-        // Find or create category
-        let category = await Category.findOne({ name: record.category });
-        if (!category) {
-          category = await Category.create({
-            name: record.category,
-            slug: record.category.toLowerCase().replace(/\s+/g, '-'),
-            parentId: null
+          results.push(data);
+        } catch (error: any) {
+          errors.push({
+            row: rowIndex,
+            error: `Failed to parse row: ${error.message}`,
+            data: { raw: line }
           });
         }
+      });
 
-        // Create product
-        const productData = {
-          seller_id: record.seller_id || user.id,
-          title: record.title,
-          description: record.description,
-          brand: record.brand,
-          category_id: category._id,
-          price: parseFloat(record.price),
-          discount_percent: parseFloat(record.discount_percent || 0),
-          stock: parseInt(record.stock || 0),
-          images: record.images ? record.images.split(',') : [],
-          tags: record.tags ? record.tags.split(',') : [],
-          status: record.status || 'active'
-        };
-
-        await Product.create(productData);
-        result.imported++;
-      } catch (error: any) {
-        result.failed++;
-        result.errors.push(`Error importing product ${record.title}: ${error.message}`);
+    // Validate all rows
+    results.forEach((data, index) => {
+      const validation = validateFn(data, index + 2);
+      if (!validation.valid) {
+        errors.push({
+          row: index + 2,
+          error: validation.errors.join(', '),
+          data
+        });
       }
-    }
+    });
 
-    result.success = result.failed === 0;
-    result.summary = {
-      total: result.total,
-      imported: result.imported,
-      failed: result.failed,
-      success_rate: ((result.imported / result.total) * 100).toFixed(2) + '%'
-    };
-
-  } catch (error: any) {
-    result.success = false;
-    result.errors.push(`Import failed: ${error.message}`);
-    result.failed = result.total;
-  }
-
-  return result;
-};
-
-/**
- * Import users from CSV/JSON
- */
-export const importUsers = async (
-  fileBuffer: Buffer,
-  fileExtension: string,
-  user: any
-): Promise<ImportResult> => {
-  const result: ImportResult = {
-    success: true,
-    total: 0,
-    imported: 0,
-    failed: 0,
-    errors: [],
-    summary: {}
-  };
-
-  try {
-    let records: any[] = [];
-
-    if (fileExtension === 'csv') {
-      records = await parseCSV(fileBuffer);
-    } else if (fileExtension === 'json') {
-      records = JSON.parse(fileBuffer.toString());
-    }
-
-    result.total = records.length;
-
-    const validationErrors = validateUserRecords(records);
-    if (validationErrors.length > 0) {
-      result.success = false;
-      result.errors = validationErrors;
-      result.failed = records.length;
-      return result;
-    }
-
-    for (const record of records) {
-      try {
-        // Check if user already exists
-        const existingUser = await User.findOne({ email: record.email });
-        if (existingUser) {
-          result.failed++;
-          result.errors.push(`User with email ${record.email} already exists`);
-          continue;
-        }
-
-        const userData = {
-          email: record.email,
-          name: record.name,
-          role: record.role || 'customer',
-          phone: record.phone,
-          email_verified: record.email_verified === 'true',
-          profile_picture_url: record.profile_picture_url,
-          created_at: record.created_at ? new Date(record.created_at) : new Date()
-        };
-
-        await User.create(userData);
-        result.imported++;
-      } catch (error: any) {
-        result.failed++;
-        result.errors.push(`Error importing user ${record.email}: ${error.message}`);
-      }
-    }
-
-    result.success = result.failed === 0;
-    result.summary = {
-      total: result.total,
-      imported: result.imported,
-      failed: result.failed,
-      success_rate: ((result.imported / result.total) * 100).toFixed(2) + '%'
-    };
-
-  } catch (error: any) {
-    result.success = false;
-    result.errors.push(`Import failed: ${error.message}`);
-    result.failed = result.total;
-  }
-
-  return result;
-};
-
-/**
- * Import orders from CSV/JSON
- */
-export const importOrders = async (
-  fileBuffer: Buffer,
-  fileExtension: string,
-  user: any
-): Promise<ImportResult> => {
-  const result: ImportResult = {
-    success: true,
-    total: 0,
-    imported: 0,
-    failed: 0,
-    errors: [],
-    summary: {}
-  };
-
-  try {
-    let records: any[] = [];
-
-    if (fileExtension === 'csv') {
-      records = await parseCSV(fileBuffer);
-    } else if (fileExtension === 'json') {
-      records = JSON.parse(fileBuffer.toString());
-    }
-
-    result.total = records.length;
-
-    const validationErrors = validateOrderRecords(records);
-    if (validationErrors.length > 0) {
-      result.success = false;
-      result.errors = validationErrors;
-      result.failed = records.length;
-      return result;
-    }
-
-    for (const record of records) {
-      try {
-        // Verify user exists
-        const userExists = await User.findById(record.user_id);
-        if (!userExists) {
-          result.failed++;
-          result.errors.push(`User with ID ${record.user_id} does not exist`);
-          continue;
-        }
-
-        // Verify address exists
-        const addressExists = await Address.findById(record.address_id);
-        if (!record.address_id || !addressExists) {
-          // Create address if it doesn't exist
-          const addressData = {
-            userId: record.user_id,
-            addressLine1: record.address_line1,
-            addressLine2: record.address_line2,
-            city: record.city,
-            state: record.state,
-            zip: record.zip,
-            country: record.country,
-            isDefault: record.is_default === 'true'
-          };
-          
-          const address = await Address.create(addressData);
-          record.address_id = address._id;
-        }
-
-        // Process items
-        const items = [];
-        if (record.items) {
-          const itemRecords = JSON.parse(record.items);
-          for (const item of itemRecords) {
-            const productExists = await Product.findById(item.product_id);
-            if (!productExists) {
-              result.failed++;
-              result.errors.push(`Product with ID ${item.product_id} does not exist`);
-              continue;
-            }
-            
-            items.push({
-              product_id: item.product_id,
-              quantity: parseInt(item.quantity),
-              price_at_purchase: parseFloat(item.price_at_purchase)
-            });
-          }
-        }
-
-        const orderData = {
-          user_id: record.user_id,
-          items,
-          subtotal: parseFloat(record.subtotal),
-          tax: parseFloat(record.tax),
-          shipping_cost: parseFloat(record.shipping_cost),
-          total: parseFloat(record.total),
-          address_id: record.address_id,
-          payment_method: record.payment_method,
-          payment_status: record.payment_status || 'pending',
-          order_status: record.order_status || 'placed',
-          tracking_number: record.tracking_number,
-          stripe_payment_intent_id: record.stripe_payment_intent_id,
-          created_at: record.created_at ? new Date(record.created_at) : new Date()
-        };
-
-        await Order.create(orderData);
-        result.imported++;
-      } catch (error: any) {
-        result.failed++;
-        result.errors.push(`Error importing order ${record.id}: ${error.message}`);
-      }
-    }
-
-    result.success = result.failed === 0;
-    result.summary = {
-      total: result.total,
-      imported: result.imported,
-      failed: result.failed,
-      success_rate: ((result.imported / result.total) * 100).toFixed(2) + '%'
-    };
-
-  } catch (error: any) {
-    result.success = false;
-    result.errors.push(`Import failed: ${error.message}`);
-    result.failed = result.total;
-  }
-
-  return result;
-};
-
-/**
- * Parse CSV file to array of objects
- */
-const parseCSV = (fileBuffer: Buffer): Promise<any[]> => {
-  return new Promise((resolve, reject) => {
-    const results: any[] = [];
-    const stream = Readable.from(fileBuffer);
-    
-    stream
-      .pipe(csv())
-      .on('data', (data) => results.push(data))
-      .on('end', () => resolve(results))
-      .on('error', (error) => reject(error));
+    resolve({
+      success: errors.length === 0,
+      total: results.length,
+      processed: results.length - errors.length,
+      errors
+    });
   });
 };
 
-/**
- * Validate product records
- */
-const validateProductRecords = (records: any[]): string[] => {
-  const errors: string[] = [];
+// Process JSON data
+const processJSON = (req: Request, validateFn: (data: any, rowIndex: number) => { valid: boolean; errors: string[] }): ImportResult => {
+  const data = req.body.data;
   
-  for (let i = 0; i < records.length; i++) {
-    const record = records[i];
-    
-    if (!record.title) {
-      errors.push(`Row ${i + 1}: Title is required`);
-    }
-    
-    if (!record.description) {
-      errors.push(`Row ${i + 1}: Description is required`);
-    }
-    
-    if (!record.price || isNaN(parseFloat(record.price))) {
-      errors.push(`Row ${i + 1}: Price must be a valid number`);
-    }
-    
-    if (record.discount_percent && (isNaN(parseFloat(record.discount_percent)) || parseFloat(record.discount_percent) < 0 || parseFloat(record.discount_percent) > 100)) {
-      errors.push(`Row ${i + 1}: Discount percent must be between 0 and 100`);
-    }
-    
-    if (record.stock && isNaN(parseInt(record.stock))) {
-      errors.push(`Row ${i + 1}: Stock must be a valid number`);
-    }
-    
-    if (record.status && !['active', 'inactive'].includes(record.status)) {
-      errors.push(`Row ${i + 1}: Status must be 'active' or 'inactive'`);
-    }
+  if (!Array.isArray(data)) {
+    return {
+      success: false,
+      total: 0,
+      processed: 0,
+      errors: [{ row: 0, error: 'Data must be an array', data: {} }]
+    };
   }
+
+  const errors: Array<{ row: number; error: string; data: any }> = [];
   
-  return errors;
+  data.forEach((item, index) => {
+    const validation = validateFn(item, index + 1);
+    if (!validation.valid) {
+      errors.push({
+        row: index + 1,
+        error: validation.errors.join(', '),
+        data: item
+      });
+    }
+  });
+
+  return {
+    success: errors.length === 0,
+    total: data.length,
+    processed: data.length - errors.length,
+    errors
+  };
 };
 
-/**
- * Validate user records
- */
-const validateUserRecords = (records: any[]): string[] => {
-  const errors: string[] = [];
-  
-  for (let i = 0; i < records.length; i++) {
-    const record = records[i];
-    
-    if (!record.email) {
-      errors.push(`Row ${i + 1}: Email is required`);
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(record.email)) {
-      errors.push(`Row ${i + 1}: Invalid email format`);
+// Import products
+export const importProducts = async (req: Request, res: Response): Promise<void> => {
+  const logger = loggerWithId(req.id);
+  logger.info({ message: 'Starting product import' });
+
+  try {
+    let result: ImportResult;
+
+    if (req.file) {
+      // CSV import
+      result = await processCSV(req, validateProduct);
+    } else {
+      // JSON import
+      result = processJSON(req, validateProduct);
     }
-    
-    if (!record.name) {
-      errors.push(`Row ${i + 1}: Name is required`);
+
+    if (!result.success) {
+      logger.warn({ message: 'Product import validation failed', errors: result.errors });
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Validation failed',
+        ...result
+      });
     }
+
+    // Bulk insert products
+    const productsToInsert = req.file 
+      ? req.file.buffer.toString().split('\n').slice(1).map(line => {
+          if (!line.trim()) return null;
+          const columns = line.split(',').map(col => col.trim().replace(/^"(.*)"$/, '$1'));
+          const headers = ['title', 'description', 'price', 'stock', 'category_id', 'brand', 'images', 'tags', 'status'];
+          const data: any = {};
+          columns.forEach((value, i) => {
+            if (headers[i]) {
+              if (headers[i] === 'images' || headers[i] === 'tags') {
+                data[headers[i]] = value ? value.split(';').map(v => v.trim()) : [];
+              } else if (headers[i] === 'price' || headers[i] === 'stock') {
+                data[headers[i]] = parseFloat(value);
+              } else {
+                data[headers[i]] = value || undefined;
+              }
+            }
+          });
+          return data;
+        }).filter(Boolean)
+      : req.body.data;
+
+    const inserted = await Product.insertMany(productsToInsert, { ordered: false });
     
-    if (record.role && !['customer', 'seller', 'admin'].includes(record.role)) {
-      errors.push(`Row ${i + 1}: Role must be 'customer', 'seller', or 'admin'`);
-    }
+    logger.info({ message: 'Products imported successfully', count: inserted.length });
+    
+    // Send success email to admin
+    await EmailService.sendEmailVerification(
+      'admin@example.com', 
+      'product_import_success'
+    );
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: `Successfully imported ${inserted.length} products`,
+      count: inserted.length
+    });
+  } catch (error: any) {
+    logger.error({ message: 'Product import failed', error: error.message });
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Import failed',
+      error: error.message
+    });
   }
-  
-  return errors;
 };
 
-/**
- * Validate order records
- */
-const validateOrderRecords = (records: any[]): string[] => {
-  const errors: string[] = [];
-  
-  for (let i = 0; i < records.length; i++) {
-    const record = records[i];
-    
-    if (!record.user_id) {
-      errors.push(`Row ${i + 1}: User ID is required`);
+// Import users
+export const importUsers = async (req: Request, res: Response): Promise<void> => {
+  const logger = loggerWithId(req.id);
+  logger.info({ message: 'Starting user import' });
+
+  try {
+    let result: ImportResult;
+
+    if (req.file) {
+      // CSV import
+      result = await processCSV(req, validateUser);
+    } else {
+      // JSON import
+      result = processJSON(req, validateUser);
     }
-    
-    if (!record.subtotal || isNaN(parseFloat(record.subtotal))) {
-      errors.push(`Row ${i + 1}: Subtotal must be a valid number`);
+
+    if (!result.success) {
+      logger.warn({ message: 'User import validation failed', errors: result.errors });
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Validation failed',
+        ...result
+      });
     }
+
+    // Bulk insert users
+    const usersToInsert = req.file 
+      ? req.file.buffer.toString().split('\n').slice(1).map(line => {
+          if (!line.trim()) return null;
+          const columns = line.split(',').map(col => col.trim().replace(/^"(.*)"$/, '$1'));
+          const headers = ['name', 'email', 'role', 'phone', 'profile_picture_url'];
+          const data: any = {};
+          columns.forEach((value, i) => {
+            if (headers[i]) {
+              data[headers[i]] = value || undefined;
+            }
+          });
+          return data;
+        }).filter(Boolean)
+      : req.body.data;
+
+    const inserted = await User.insertMany(usersToInsert, { ordered: false });
     
-    if (!record.total || isNaN(parseFloat(record.total))) {
-      errors.push(`Row ${i + 1}: Total must be a valid number`);
-    }
+    logger.info({ message: 'Users imported successfully', count: inserted.length });
     
-    if (record.payment_status && !['pending', 'succeeded', 'failed', 'refunded'].includes(record.payment_status)) {
-      errors.push(`Row ${i + 1}: Payment status must be 'pending', 'succeeded', 'failed', or 'refunded'`);
-    }
-    
-    if (record.order_status && !['placed', 'confirmed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'].includes(record.order_status)) {
-      errors.push(`Row ${i + 1}: Order status must be valid`);
-    }
+    // Send success email to admin
+    await EmailService.sendEmailVerification(
+      'admin@example.com', 
+      'user_import_success'
+    );
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: `Successfully imported ${inserted.length} users`,
+      count: inserted.length
+    });
+  } catch (error: any) {
+    logger.error({ message: 'User import failed', error: error.message });
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Import failed',
+      error: error.message
+    });
   }
-  
-  return errors;
 };
-```
+
+// Export products to CSV
+export const exportProducts = async (req: Request, res: Response): Promise<void> => {
+  const logger = loggerWithId(req.id);
+  logger.info({ message: 'Starting product export' });
+
+  try {
+    // Apply filters from query parameters
+    const filters: any = {};
+    
+    if (req.query.category_id) {
+      filters.category_id = req.query.category_id;
+    }
+    
+    if (req.query.brand) {
+      filters.brand = req.query.brand;
+    }
+    
+    if (req.query.status) {
+      filters.status = req.query.status;
+    }
+    
+    if (req.query.minPrice) {
+      filters.price = { ...filters.price, $gte: parseFloat(req.query.minPrice as string) };
+    }
+    
+    if (req.query.maxPrice) {
+      filters.price = { ...filters.price, $lte: parseFloat(req.query.maxPrice as string) };
+    }
+
+    const products = await Product.find(filters).lean();
+    
+    // Create CSV content
+    const headers = ['title', 'description', 'price', 'stock', 'category_id', 'brand', 'images', 'tags', 'status'];
+    const csvContent = [
+      headers.join(','),
+      ...products.map(product => {
+        return headers.map(header => {
+          if (header === 'images' || header === 'tags') {
+            return (product[header] as string[] || []).join(';');
+          }
+          return product[header] || '';
+        }).join(',');
+      })
+    ].join('\n');
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=products.csv');
+    
+    logger.info({ message: 'Product export completed', count: products.length });
+    res.send(csvContent);
+  } catch (error: any) {
+    logger.error({ message: 'Product export failed', error: error.message });
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Export failed',
+      error: error.message
+    });
+  }
+};
+
+// Export users to CSV
+export const exportUsers = async (req: Request, res: Response): Promise<void> => {
+  const logger = loggerWithId(req.id);
+  logger.info({ message: 'Starting user export' });
+
+  try {
+    // Apply filters from query parameters
+    const filters: any = {};
+    
+    if (req.query.role) {
+      filters.role = req.query.role;
+    }
+    
+    if (req.query.email_verified !== undefined) {
+      filters.email_verified = req.query.email_verified === 'true';
+    }
+
+    const users = await User.find(filters).lean();
+    
+    // Create CSV content
+    const headers = ['name', 'email', 'role', 'phone', 'profile_picture_url', 'email_verified'];
+    const csvContent = [
+      headers.join(','),
+      ...users.map(user => {
+        return headers.map(header => {
+          return user[header] || '';
+        }).join(',');
+      })
+    ].join('\n');
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=users.csv');
+    
+    logger.info({ message: 'User export completed', count: users.length });
+    res.send(csvContent);
+  } catch (error: any) {
+    logger.error({ message: 'User export failed', error: error.message });
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Export failed',
+      error: error.message
+    });
+  }
+};

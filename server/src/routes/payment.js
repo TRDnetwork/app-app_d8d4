@@ -1,59 +1,50 @@
 const express = require('express');
 const router = express.Router();
-const stripeService = require('../services/stripe');
-const { auth } = require('../middleware/auth');
+const StripeService = require('../services/stripeService');
+const { authenticateToken, authorizeRole } = require('../middleware/auth');
 
-// Create Checkout Session
-router.post('/create-checkout-session', auth, async (req, res) => {
+// Create checkout session
+router.post('/create-checkout-session', authenticateToken, async (req, res) => {
   try {
-    const { successUrl, cancelUrl } = req.body;
-    
-    if (!successUrl || !cancelUrl) {
+    const { addressId, deliveryMethod, couponCode } = req.body;
+
+    if (!addressId || !deliveryMethod) {
       return res.status(400).json({
-        error: 'successUrl and cancelUrl are required'
+        success: false,
+        message: 'Address and delivery method are required'
       });
     }
 
-    const session = await stripeService.createCheckoutSession(
-      req.user.userId,
-      successUrl,
-      cancelUrl
-    );
+    const result = await StripeService.createCheckoutSession(req.user.userId, {
+      addressId,
+      deliveryMethod,
+      couponCode
+    });
 
-    res.json({ id: session.id });
+    res.json({
+      success: true,
+      sessionId: result.sessionId,
+      sessionUrl: result.sessionUrl
+    });
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    console.error('Create checkout session error:', error);
     res.status(500).json({
-      error: 'Failed to create checkout session',
-      message: error.message
+      success: false,
+      message: error.message || 'Failed to create checkout session'
     });
   }
 });
 
 // Stripe webhook handler
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  let event;
-
+  const signature = req.headers['stripe-signature'];
+  
   try {
-    event = stripeService.stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  try {
-    await stripeService.handleWebhook(event);
+    await StripeService.handleWebhookEvent(signature, req.body);
     res.json({ received: true });
   } catch (error) {
-    console.error('Error processing webhook:', error);
-    res.status(500).json({
-      error: 'Webhook processing failed'
-    });
+    console.error('Webhook error:', error);
+    res.status(400).send(`Webhook Error: ${error.message}`);
   }
 });
 
