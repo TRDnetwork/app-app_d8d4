@@ -29,35 +29,32 @@
   }
   body {
     @apply bg-bg text-text;
-    font-family: 'Source Sans Pro', sans-serif;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    @apply text-text;
-    font-family: 'Playfair Display', serif;
-    letter-spacing: -0.5px;
   }
 }
 
 @layer components {
-  .btn {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50;
+  .font-display {
+    @apply font-[Playfair Display] tracking-[-0.5px];
   }
-  .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  .font-body {
+    @apply font-[Source Sans Pro] leading-[1.6];
   }
-  .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90;
+}
+
+@layer utilities {
+  .text-dim {
+    @apply text-text_dim;
   }
-  .card {
-    @apply bg-card text-card-foreground rounded-lg border shadow-sm;
+  .bg-surface {
+    @apply bg-surface;
   }
-  .card-header {
-    @apply p-6 border-b border-border rounded-t-lg;
+  .accent-orange {
+    @apply text-[#FF9900];
   }
-  .card-content {
-    @apply p-6;
+  .accent-blue {
+    @apply text-[#1E40AF];
   }
-  .card-footer {
-    @apply p-6 border-t border-border rounded-b-lg;
+  .border-surface {
+    @apply border-[#334155];
   }
 }

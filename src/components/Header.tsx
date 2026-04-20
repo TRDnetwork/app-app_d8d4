@@ -1,125 +1,103 @@
-import React, { useState } from 'react';
-import { useAuth } from '../lib/auth';
-import { useCartStore } from '../stores/cart';
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
+import { useCartStore } from '../stores/cartStore';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Search, ShoppingCart, User, Menu, X } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { LanguageSwitcher } from './LanguageSwitcher';
+import { Search, ShoppingCart, User, Menu } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
+import SearchBar from './SearchBar';
 
-const Header = () => {
-  const { t } = useTranslation();
-  const { user, logout } = useAuth();
+const Header: React.FC = () => {
+  const { user, isAuthenticated, logout } = useAuthStore();
+  const { itemCount } = useCartStore();
   const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  // PERF: Memoize cart item count to prevent unnecessary re-renders
-  const cartItemCount = useCartStore(state => state.getTotalItems());
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   return (
-    <header className="sticky top-0 z-50 bg-card border-b border-border">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-8">
-            <Link to="/" className="text-2xl font-bold text-primary">ShopSphere</Link>
-            <nav className="hidden md:flex space-x-6">
-              <Link to="/" className="hover:text-primary transition-colors">{t('nav.home')}</Link>
-              <Link to="/products" className="hover:text-primary transition-colors">{t('nav.products')}</Link>
-              <Link to="/wishlist" className="hover:text-primary transition-colors">{t('nav.wishlist')}</Link>
-            </nav>
-          </div>
-
-          <div className="flex-1 max-w-xl mx-8 hidden md:block">
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder={t('header.search')}
-                className="pl-10 pr-4 py-2 w-full"
-              />
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <Link to="/cart" className="relative">
-              <ShoppingCart className="h-6 w-6" />
-              {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs">
-                  {cartItemCount}
-                </span>
-              )}
+    <header className="sticky top-0 z-50 bg-surface border-b border-surface shadow-sm">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-8">
+          <Link to="/" className="font-display text-2xl font-bold text-accent">
+            ShopSphere
+          </Link>
+          <nav className="hidden md:flex space-x-6">
+            <Link to="/" className="text-text_dim hover:text-text transition-colors">
+              Home
             </Link>
-
-            {user ? (
-              <div className="relative group">
-                <Button variant="ghost" className="flex items-center space-x-2">
-                  <img
-                    src={user.profile_picture_url || `https://ui-avatars.com/api/?name=${user.name}`}
-                    alt={user.name}
-                    className="w-8 h-8 rounded-full"
-                  />
-                  <span className="font-medium">{user.name}</span>
-                </Button>
-                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                  <div className="py-1">
-                    <Link
-                      to="/profile"
-                      className="block px-4 py-2 text-sm hover:bg-muted"
-                    >
-                      {t('nav.profile')}
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm hover:bg-muted"
-                    >
-                      {t('nav.logout')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <Button asChild>
-                <Link to="/login">{t('nav.login')}</Link>
-              </Button>
-            )}
-
-            <LanguageSwitcher />
-
-            <button
-              className="md:hidden"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
-          </div>
+            <Link to="/products" className="text-text_dim hover:text-text transition-colors">
+              Products
+            </Link>
+            <Link to="/wishlist" className="text-text_dim hover:text-text transition-colors">
+              Wishlist
+            </Link>
+          </nav>
         </div>
 
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden mt-4 pb-4 border-t border-border">
-            <div className="flex flex-col space-y-3 pt-4">
-              <Link to="/" className="px-4 py-2 hover:bg-muted rounded">{t('nav.home')}</Link>
-              <Link to="/products" className="px-4 py-2 hover:bg-muted rounded">{t('nav.products')}</Link>
-              <Link to="/wishlist" className="px-4 py-2 hover:bg-muted rounded">{t('nav.wishlist')}</Link>
-              <div className="px-4">
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder={t('header.search')}
-                    className="pl-10 pr-4 py-2 w-full"
-                  />
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <div className="flex-1 max-w-2xl mx-8">
+          <SearchBar />
+        </div>
+
+        <div className="flex items-center space-x-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/cart')} className="relative">
+            <ShoppingCart className="h-5 w-5" />
+            {itemCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-accent text-xs flex items-center justify-center text-background">
+                {itemCount}
+              </span>
+            )}
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <User className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {isAuthenticated ? (
+                <>
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/orders')}>
+                    Orders
+                  </DropdownMenuItem>
+                  {user?.role === 'seller' && (
+                    <DropdownMenuItem onClick={() => navigate('/seller')}>
+                      Seller Dashboard
+                    </DropdownMenuItem>
+                  )}
+                  {user?.role === 'admin' && (
+                    <DropdownMenuItem onClick={() => navigate('/admin')}>
+                      Admin Panel
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem onClick={() => navigate('/login')}>
+                    Log in
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/register')}>
+                    Register
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button variant="outline" className="md:hidden">
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
     </header>
   );

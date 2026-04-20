@@ -1,68 +1,87 @@
-'use client';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from './ui/button';
+import { Star, Heart } from 'lucide-react';
+import { useWishlistStore } from '../stores/wishlistStore';
+import { cn } from '../lib/utils';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Star, ShoppingCart } from 'lucide-react';
-import Image from 'next/image';
-import { useTranslations } from 'next-intl';
-
-interface Product {
+interface ProductCardProps {
   id: string;
-  name: string;
+  title: string;
   price: number;
   originalPrice?: number;
   image: string;
   rating?: number;
-  reviews?: number;
-  discount?: number;
+  reviewCount?: number;
+  className?: string;
 }
 
-export function ProductCard({ product }: { product: Product }) {
-  const t = useTranslations();
-  const { name, price, originalPrice, image, rating = 0, reviews = 0, discount } = product;
+const ProductCard: React.FC<ProductCardProps> = ({
+  id,
+  title,
+  price,
+  originalPrice,
+  image,
+  rating = 0,
+  reviewCount = 0,
+  className,
+}) => {
+  const { isInWishlist, toggleWishlist } = useWishlistStore();
 
-  const renderStars = () => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
-      />
-    ));
+  const handleWishlistClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toggleWishlist(id);
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="relative h-48">
-        <Image
-          src={image}
-          alt={name}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
-        {discount && (
-          <div className="absolute top-2 left-2 bg-accent text-white text-xs font-bold px-2 py-1 rounded">
-            {discount}% {t('product.discount')}
-          </div>
-        )}
+    <div
+      className={cn(
+        'bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col',
+        className
+      )}
+    >
+      <div className="relative">
+        <Link to={`/product/${id}`}>
+          <img src={image} alt={title} className="w-full h-48 object-cover" />
+        </Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2 rounded-full bg-background/80 hover:bg-background"
+          onClick={handleWishlistClick}
+        >
+          <Heart
+            className={cn('h-5 w-5', isInWishlist(id) ? 'fill-accent text-accent' : 'text-text_dim')}
+          />
+        </Button>
       </div>
-      <CardContent className="p-4">
-        <h3 className="font-semibold text-sm mb-2 line-clamp-2">{name}</h3>
-        <div className="flex items-center mb-2">
-          {renderStars()}
-          <span className="text-xs text-text_dim ml-1">({reviews})</span>
+      <div className="p-4 flex-1 flex flex-col">
+        <Link to={`/product/${id}`} className="font-medium text-text hover:underline line-clamp-2">
+          {title}
+        </Link>
+        <div className="mt-2 flex items-center">
+          <div className="flex items-center">
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                className={cn(
+                  'h-4 w-4',
+                  i < Math.floor(rating) ? 'fill-yellow-500 text-yellow-500' : 'text-text_dim'
+                )}
+              />
+            ))}
+          </div>
+          <span className="text-sm text-text_dim ml-1">({reviewCount})</span>
         </div>
-        <div className="flex items-center mb-3">
-          <span className="font-bold text-lg">${price}</span>
-          {originalPrice && (
-            <span className="text-sm text-text_dim line-through ml-2">${originalPrice}</span>
+        <div className="mt-2 flex items-center space-x-2">
+          <span className="font-semibold">{formatCurrency(price)}</span>
+          {originalPrice && originalPrice > price && (
+            <span className="text-sm text-text_dim line-through">{formatCurrency(originalPrice)}</span>
           )}
         </div>
-        <Button variant="outline" size="sm" className="w-full">
-          <ShoppingCart className="mr-2 h-4 w-4" />
-          {t('product.addToCart')}
-        </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
-}
+};
+
+export default ProductCard;

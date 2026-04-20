@@ -1,4 +1,4 @@
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '../components/ui/use-toast';
 
 const API_BASE = '/api';
 
@@ -8,16 +8,13 @@ export const apiClient = async (endpoint: string, options: RequestInit = {}) => 
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers || {}),
     },
   };
 
-  const token = localStorage.getItem('authToken');
+  const token = localStorage.getItem('accessToken');
   if (token) {
-    config.headers = {
-      ...config.headers,
-      Authorization: `Bearer ${token}`,
-    };
+    (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
 
   try {

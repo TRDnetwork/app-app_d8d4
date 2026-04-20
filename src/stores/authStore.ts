@@ -1,85 +1,136 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { apiClient } from '../lib/api';
 
-interface User {
-  _id: string;
-  email: string;
-  name: string;
-  role: 'customer' | 'seller' | 'admin';
-  profile_picture_url?: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
+interface AuthState {
+  user: any;
+  accessToken: string | null;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   refresh: () => Promise<void>;
+  fetchMe: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      isAuthenticated: false,
+      isLoading: true,
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+      login: async (email: string, password: string) => {
+        set({ isLoading: true });
+        try {
+          const data = await apiClient('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password }),
+          });
+          set({
+            user: data.user,
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+            isAuthenticated: true,
+          });
+          toast({
+            title: 'Logged in',
+            description: `Welcome back, ${data.user.name}!`,
+          });
+        } catch (err) {
+          set({ isLoading: false });
+        }
+      },
 
-  useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      refresh().catch(() => {
-        localStorage.removeItem('authToken');
-        setUser(null);
-      });
-    } else {
-      setLoading(false);
+      register: async (name: string, email: string, password: string) => {
+        set({ isLoading: true });
+        try {
+          const data = await apiClient('/auth/register', {
+            method: 'POST',
+            body: JSON.stringify({ name, email, password }),
+          });
+          set({
+            user: data.user,
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+            isAuthenticated: true,
+          });
+          toast({
+            title: 'Account created',
+            description: 'Please verify your email.',
+          });
+        } catch (err) {
+          set({ isLoading: false });
+        }
+      },
+
+      logout: () => {
+        set({
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
+        });
+        toast({
+          title: 'Logged out',
+          description: 'See you next time!',
+        });
+      },
+
+      refresh: async () => {
+        const { refreshToken } = get();
+        if (!refreshToken) return;
+        try {
+          const data = await apiClient('/auth/refresh', {
+            method: 'POST',
+            body: JSON.stringify({ refreshToken }),
+          });
+          set({
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+          });
+        } catch (err) {
+          get().logout();
+        }
+      },
+
+      fetchMe: async () => {
+        if (!get().accessToken) {
+          set({ isLoading: false });
+          return;
+        }
+        try {
+          const data = await apiClient('/users/me');
+          set({ user: data, isAuthenticated: true });
+        } catch (err) {
+          // Token invalid, try refresh
+          try {
+            await get().refresh();
+          } catch (refreshErr) {
+            get().logout();
+          }
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+    }),
+    {
+      name: 'auth-storage',
     }
-  }, []);
+  )
+);
 
-  const refresh = async () => {
-    try {
-      const data = await apiClient('/auth/refresh', { method: 'POST' });
-      localStorage.setItem('authToken', data.token);
-      setUser(data.user);
-    } catch (err) {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { fetchMe } = useAuthStore();
+  const [isReady, setIsReady] = React.useState(false);
 
-  const login = async (email: string, password: string) => {
-    const data = await apiClient('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-    localStorage.setItem('authToken', data.token);
-    setUser(data.user);
-  };
+  React.useEffect(() => {
+    fetchMe().finally(() => setIsReady(true));
+  }, [fetchMe]);
 
-  const register = async (email: string, password: string, name: string) => {
-    const data = await apiClient('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ email, password, name }),
-    });
-    localStorage.setItem('authToken', data.token);
-    setUser(data.user);
-  };
-
-  const logout = () => {
-    localStorage.removeItem('authToken');
-    setUser(null);
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refresh }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
-  return context;
+  return <>{isReady ? children : <div>Loading...</div>}</>;
 };

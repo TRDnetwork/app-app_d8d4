@@ -2,21 +2,9 @@ import * as React from "react"
 import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
 import { Circle } from "lucide-react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "../lib/utils"
 
-const RadioGroup = React.forwardRef<
-  React.ElementRef<typeof RadioGroupPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root>
->(({ className, ...props }, ref) => {
-  return (
-    <RadioGroupPrimitive.Root
-      className={cn("grid gap-2", className)}
-      {...props}
-      ref={ref}
-    />
-  )
-})
-RadioGroup.displayName = RadioGroupPrimitive.Root.displayName
+const RadioGroup = RadioGroupPrimitive.Root
 
 const RadioGroupItem = React.forwardRef<
   React.ElementRef<typeof RadioGroupPrimitive.Item>,
@@ -39,4 +27,39 @@ const RadioGroupItem = React.forwardRef<
 })
 RadioGroupItem.displayName = RadioGroupPrimitive.Item.displayName
 
-export { RadioGroup, RadioGroupItem }
+// Enhanced RadioGroup with analytics tracking
+const TrackedRadioGroup = React.forwardRef<
+  React.ElementRef<typeof RadioGroupPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root> & {
+    fieldName?: string;
+    formName?: string;
+  }
+>(({ className, fieldName, formName, onValueChange, ...props }, ref) => {
+  const handleValueChange = (value: string) => {
+    import('../lib/analytics').then(({ analytics }) => {
+      analytics.track('form_field_change', {
+        field: fieldName || props.name,
+        form: formName,
+        fieldType: 'radio',
+        value: value,
+      });
+    });
+    
+    if (onValueChange) {
+      onValueChange(value);
+    }
+  };
+
+  return (
+    <RadioGroup
+      ref={ref}
+      className={className}
+      {...props}
+      onValueChange={handleValueChange}
+    />
+  );
+});
+
+TrackedRadioGroup.displayName = "TrackedRadioGroup";
+
+export { RadioGroup, RadioGroupItem
