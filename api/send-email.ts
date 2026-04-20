@@ -3,89 +3,6 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Email template functions
-const OrderConfirmationTemplate = ({ orderNumber, total, estimatedDelivery }: { orderNumber: string; total: number; estimatedDelivery: string }) => `
-  <div style="font-family: 'Source Sans Pro', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="text-align: center; margin-bottom: 30px;">
-      <h1 style="color: #FF9900; font-family: 'Playfair Display', serif; font-size: 2.5rem; margin: 0;">ShopSphere</h1>
-      <p style="color: #94A3B8; margin-top: 8px;">Your order is confirmed</p>
-    </div>
-    <div style="background: #1E293B; border-radius: 8px; padding: 20px; color: #F8FAFC; margin-bottom: 20px;">
-      <h2 style="margin: 0 0 15px 0; color: #F8FAFC;">Order #${orderNumber}</h2>
-      <p style="margin: 5px 0;">Total: <strong>$${total.toFixed(2)}</strong></p>
-      <p style="margin: 5px 0;">Estimated Delivery: <strong>${estimatedDelivery}</strong></p>
-    </div>
-    <p style="color: #94A3B8; font-size: 14px;">
-      Thank you for shopping with ShopSphere. Your order is being processed and will be shipped soon.
-    </p>
-    <div style="margin-top: 30px; text-align: center; color: #94A3B8; font-size: 12px;">
-      <p>&copy; ${new Date().getFullYear()} ShopSphere. All rights reserved.</p>
-      <p>You're receiving this email because you placed an order on ShopSphere.</p>
-    </div>
-  </div>
-`;
-
-const PasswordResetTemplate = ({ resetLink }: { resetLink: string }) => `
-  <div style="font-family: 'Source Sans Pro', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="text-align: center; margin-bottom: 30px;">
-      <h1 style="color: #FF9900; font-family: 'Playfair Display', serif; font-size: 2.5rem; margin: 0;">ShopSphere</h1>
-      <p style="color: #94A3B8; margin-top: 8px;">Reset your password</p>
-    </div>
-    <div style="background: #1E293B; border-radius: 8px; padding: 20px; color: #F8FAFC; margin-bottom: 20px;">
-      <h2 style="margin: 0 0 15px 0; color: #F8FAFC;">Password Reset Request</h2>
-      <p style="margin: 5px 0;">We received a request to reset your password. Click the button below to create a new password.</p>
-      <div style="text-align: center; margin: 20px 0;">
-        <a href="${resetLink}" style="background: #FF9900; color: #0F172A; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-          Reset Password
-        </a>
-      </div>
-      <p style="margin: 5px 0; font-size: 14px;">
-        This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.
-      </p>
-    </div>
-    <div style="margin-top: 30px; text-align: center; color: #94A3B8; font-size: 12px;">
-      <p>&copy; ${new Date().getFullYear()} ShopSphere. All rights reserved.</p>
-      <p>You're receiving this email because a password reset was requested for your account.</p>
-    </div>
-  </div>
-`;
-
-const SellerApplicationReceivedTemplate = ({ businessName }: { businessName: string }) => `
-  <div style="font-family: 'Source Sans Pro', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="text-align: center; margin-bottom: 30px;">
-      <h1 style="color: #FF9900; font-family: 'Playfair Display', serif; font-size: 2.5rem; margin: 0;">ShopSphere</h1>
-      <p style="color: #94A3B8; margin-top: 8px;">Seller application received</p>
-    </div>
-    <div style="background: #1E293B; border-radius: 8px; padding: 20px; color: #F8FAFC; margin-bottom: 20px;">
-      <h2 style="margin: 0 0 15px 0; color: #F8FAFC;">Application Received</h2>
-      <p style="margin: 5px 0;">Thank you for applying to become a seller on ShopSphere, <strong>${businessName}</strong>.</p>
-      <p style="margin: 5px 0;">Our team will review your application shortly. You will receive another email once your application has been approved or if we need additional information.</p>
-    </div>
-    <div style="margin-top: 30px; text-align: center; color: #94A3B8; font-size: 12px;">
-      <p>&copy; ${new Date().getFullYear()} ShopSphere. All rights reserved.</p>
-      <p>You're receiving this email because a seller application was submitted for your business.</p>
-    </div>
-  </div>
-`;
-
-const WelcomeTemplate = ({ name }: { name: string }) => `
-  <div style="font-family: 'Source Sans Pro', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="text-align: center; margin-bottom: 30px;">
-      <h1 style="color: #FF9900; font-family: 'Playfair Display', serif; font-size: 2.5rem; margin: 0;">ShopSphere</h1>
-      <p style="color: #94A3B8; margin-top: 8px;">Welcome to our community</p>
-    </div>
-    <div style="background: #1E293B; border-radius: 8px; padding: 20px; color: #F8FAFC; margin-bottom: 20px;">
-      <h2 style="margin: 0 0 15px 0; color: #F8FAFC;">Welcome, ${name}!</h2>
-      <p style="margin: 5px 0;">Thank you for joining ShopSphere. We're excited to have you on board.</p>
-      <p style="margin: 5px 0;">Start exploring our wide range of products and enjoy a seamless shopping experience.</p>
-    </div>
-    <div style="margin-top: 30px; text-align: center; color: #94A3B8; font-size: 12px;">
-      <p>&copy; ${new Date().getFullYear()} ShopSphere. All rights reserved.</p>
-      <p>You're receiving this email because you created an account on ShopSphere.</p>
-    </div>
-  </div>
-`;
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -98,40 +15,142 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    let htmlContent = '';
     let subject = '';
+    let htmlContent = '';
 
+    // Render template based on type
     switch (template) {
       case 'order-confirmation':
-        htmlContent = OrderConfirmationTemplate(data);
-        subject = `Your ShopSphere Order #${data.orderNumber} is Confirmed`;
+        subject = `Your ShopSphere Order #${data.orderNumber} is Confirmed!`;
+        htmlContent = orderConfirmationTemplate(data);
         break;
       case 'password-reset':
-        htmlContent = PasswordResetTemplate(data);
         subject = 'Reset Your ShopSphere Password';
-        break;
-      case 'seller-application-received':
-        htmlContent = SellerApplicationReceivedTemplate(data);
-        subject = 'Your Seller Application Has Been Received';
+        htmlContent = passwordResetTemplate(data);
         break;
       case 'welcome':
-        htmlContent = WelcomeTemplate(data);
         subject = 'Welcome to ShopSphere!';
+        htmlContent = welcomeTemplate(data);
+        break;
+      case 'seller-application-received':
+        subject = 'Your Seller Application Has Been Received';
+        htmlContent = sellerApplicationReceivedTemplate(data);
         break;
       default:
         return res.status(400).json({ error: 'Invalid template' });
     }
 
-    const email = await resend.emails.send({
-      from: 'ShopSphere <onboarding@resend.dev>',
-      to: Array.isArray(to) ? to : [to],
+    const from = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+
+    const emailRes = await resend.emails.send({
+      from,
+      to,
       subject,
       html: htmlContent,
     });
 
-    return res.status(200).json({ message: 'Email sent successfully', id: email.data?.id });
+    return res.status(200).json({ message: 'Email sent', id: emailRes.data?.id });
   } catch (error: any) {
     console.error('Error sending email:', error);
     return res.status(500).json({ error: error.message || 'Failed to send email' });
   }
+}
+
+// Template: Order Confirmation
+function orderConfirmationTemplate(data: any) {
+  return `
+    <div style="font-family: 'Source Sans Pro', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0F172A; color: #F8FAFC;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF9900; font-size: 2.5rem; margin: 0;">ShopSphere</h1>
+        <p style="color: #94A3B8;">Your order is confirmed!</p>
+      </div>
+      <div style="background-color: #1E293B; padding: 20px; border-radius: 8px; border: 1px solid #334155;">
+        <h2 style="color: #FF9900; margin-top: 0;">Order #${data.orderNumber}</h2>
+        <p>Thank you for your purchase, <strong>${data.customerName}</strong>! Your order has been confirmed and is being processed.</p>
+        <p><strong>Total: ${data.total}</strong></p>
+        <p>We'll send another email when your order ships.</p>
+        <hr style="border: 1px solid #334155; margin: 20px 0;" />
+        <p style="font-size: 0.9rem; color: #94A3B8;">
+          Need help? Visit our <a href="https://shopsphere.com/help" style="color: #FF9900;">Help Center</a> or reply to this email.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 20px; font-size: 0.8rem; color: #94A3B8;">
+        &copy; ${new Date().getFullYear()} ShopSphere. All rights reserved.
+        <br />
+        <a href="https://shopsphere.com/unsubscribe" style="color: #EF4444;">Unsubscribe</a>
+      </div>
+    </div>
+  `;
+}
+
+// Template: Password Reset
+function passwordResetTemplate(data: any) {
+  return `
+    <div style="font-family: 'Source Sans Pro', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0F172A; color: #F8FAFC;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF9900; font-size: 2.5rem; margin: 0;">ShopSphere</h1>
+        <p style="color: #94A3B8;">Secure password reset</p>
+      </div>
+      <div style="background-color: #1E293B; padding: 20px; border-radius: 8px; border: 1px solid #334155;">
+        <h2 style="color: #FF9900; margin-top: 0;">Reset Your Password</h2>
+        <p>Hello,</p>
+        <p>We received a request to reset your password. Click the button below to choose a new one.</p>
+        <p style="text-align: center; margin: 30px 0;">
+          <a href="${data.resetLink}" style="background-color: #FF9900; color: #0F172A; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Reset Password</a>
+        </p>
+        <p>This link will expire in 1 hour.</p>
+        <p>If you didn’t request this, you can safely ignore this email.</p>
+      </div>
+      <div style="text-align: center; margin-top: 20px; font-size: 0.8rem; color: #94A3B8;">
+        &copy; ${new Date().getFullYear()} ShopSphere. All rights reserved.
+      </div>
+    </div>
+  `;
+}
+
+// Template: Welcome Email
+function welcomeTemplate(data: any) {
+  return `
+    <div style="font-family: 'Source Sans Pro', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0F172A; color: #F8FAFC;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF9900; font-size: 2.5rem; margin: 0;">ShopSphere</h1>
+        <p style="color: #94A3B8;">Welcome to the future of shopping</p>
+      </div>
+      <div style="background-color: #1E293B; padding: 20px; border-radius: 8px; border: 1px solid #334155;">
+        <h2 style="color: #FF9900; margin-top: 0;">Welcome, ${data.name}!</h2>
+        <p>Thanks for joining ShopSphere. You now have access to millions of products, fast delivery, and exclusive deals.</p>
+        <p>Start exploring today:</p>
+        <p style="text-align: center; margin: 30px 0;">
+          <a href="https://shopsphere.com" style="background-color: #FF9900; color: #0F172A; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Start Shopping</a>
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 20px; font-size: 0.8rem; color: #94A3B8;">
+        &copy; ${new Date().getFullYear()} ShopSphere. All rights reserved.
+        <br />
+        <a href="https://shopsphere.com/unsubscribe" style="color: #EF4444;">Unsubscribe</a>
+      </div>
+    </div>
+  `;
+}
+
+// Template: Seller Application Received
+function sellerApplicationReceivedTemplate(data: any) {
+  return `
+    <div style="font-family: 'Source Sans Pro', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0F172A; color: #F8FAFC;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF9900; font-size: 2.5rem; margin: 0;">ShopSphere</h1>
+        <p style="color: #94A3B8;">Seller application update</p>
+      </div>
+      <div style="background-color: #1E293B; padding: 20px; border-radius: 8px; border: 1px solid #334155;">
+        <h2 style="color: #FF9900; margin-top: 0;">Application Received</h2>
+        <p>Hello ${data.name},</p>
+        <p>Thank you for applying to become a seller on ShopSphere. We’ve received your application for <strong>${data.businessName}</strong> and are reviewing it.</p>
+        <p>You’ll receive another email within 3-5 business days with our decision.</p>
+        <p>If you have questions, reply to this email or visit our <a href="https://shopsphere.com/seller-help" style="color: #FF9900;">Seller Help Center</a>.</p>
+      </div>
+      <div style="text-align: center; margin-top: 20px; font-size: 0.8rem; color: #94A3B8;">
+        &copy; ${new Date().getFullYear()} ShopSphere. All rights reserved.
+      </div>
+    </div>
+  `;
 }

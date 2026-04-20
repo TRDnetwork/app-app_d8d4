@@ -2,49 +2,32 @@
 
 ## Base URL
 ```
-https://api.shopsphere.com/v1
+https://api.shopsphere.com/api
 ```
 
 ## Authentication
 
-All endpoints require authentication via JWT token, except for public endpoints.
-
-### Authentication Headers
-```
-Authorization: Bearer <access_token>
-```
-
-### Token Refresh
-When access token expires, use refresh token to get new access token:
+All endpoints require authentication except for public routes. Include the JWT token in the Authorization header:
 
 ```
-POST /api/auth/refresh
-Content-Type: application/json
-
-{
-  "refreshToken": "your_refresh_token"
-}
+Authorization: Bearer <your-jwt-token>
 ```
-
-## Public Endpoints
 
 ### Register User
 Create a new user account.
 
-```
-POST /api/auth/register
-```
+**Endpoint**: `POST /api/auth/register`
 
-**Request Body**
+**Request Body**:
 ```json
 {
   "name": "John Doe",
   "email": "john@example.com",
-  "password": "securePassword123"
+  "password": "securePassword123!"
 }
 ```
 
-**Response (201 Created)**
+**Success Response (201)**:
 ```json
 {
   "success": true,
@@ -52,44 +35,52 @@ POST /api/auth/register
   "message": "User registered successfully. Please check your email to verify your account.",
   "data": {
     "user": {
-      "_id": "60d5ecf9f6578d001c54a3b1",
-      "name": "John Doe",
+      "_id": "60d5ecf9c456789012345678",
       "email": "john@example.com",
+      "name": "John Doe",
       "role": "customer",
-      "emailVerified": false
+      "email_verified": false,
+      "created_at": "2023-06-15T10:30:00.000Z",
+      "updated_at": "2023-06-15T10:30:00.000Z"
+    },
+    "tokens": {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     }
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z"
+  }
 }
 ```
 
-**Curl Command**
+**Error Responses**:
+- `400 Bad Request`: Missing required fields
+- `409 Conflict`: User with this email already exists
+- `500 Internal Server Error`: Failed to register user
+
+**Example cURL**:
 ```bash
-curl -X POST https://api.shopsphere.com/v1/api/auth/register \
+curl -X POST https://api.shopsphere.com/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
     "email": "john@example.com",
-    "password": "securePassword123"
+    "password": "securePassword123!"
   }'
 ```
 
 ### Login User
 Authenticate user and get JWT tokens.
 
-```
-POST /api/auth/login
-```
+**Endpoint**: `POST /api/auth/login`
 
-**Request Body**
+**Request Body**:
 ```json
 {
   "email": "john@example.com",
-  "password": "securePassword123"
+  "password": "securePassword123!"
 }
 ```
 
-**Response (200 OK)**
+**Success Response (200)**:
 ```json
 {
   "success": true,
@@ -97,92 +88,170 @@ POST /api/auth/login
   "message": "Login successful",
   "data": {
     "user": {
-      "_id": "60d5ecf9f6578d001c54a3b1",
-      "name": "John Doe",
+      "_id": "60d5ecf9c456789012345678",
       "email": "john@example.com",
+      "name": "John Doe",
       "role": "customer",
-      "profilePictureUrl": null,
-      "emailVerified": true
+      "email_verified": true,
+      "created_at": "2023-06-15T10:30:00.000Z",
+      "updated_at": "2023-06-15T10:30:00.000Z"
     },
     "tokens": {
-      "accessToken": "your_access_token",
-      "refreshToken": "your_refresh_token"
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     }
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z"
+  }
 }
 ```
 
-**Curl Command**
+**Error Responses**:
+- `400 Bad Request`: Missing email or password
+- `401 Unauthorized`: Invalid credentials
+- `403 Forbidden`: Email not verified
+- `429 Too Many Requests`: Rate limited
+- `500 Internal Server Error`: Failed to login
+
+**Example cURL**:
 ```bash
-curl -X POST https://api.shopsphere.com/v1/api/auth/login \
+curl -X POST https://api.shopsphere.com/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john@example.com",
-    "password": "securePassword123"
+    "password": "securePassword123!"
   }'
+```
+
+### Refresh Access Token
+Get a new access token using refresh token.
+
+**Endpoint**: `POST /api/auth/refresh`
+
+**Request Body**:
+```json
+{
+  "refreshToken": "your-refresh-token"
+}
+```
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Token refreshed",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Refresh token required
+- `403 Forbidden`: Invalid or expired refresh token
+- `404 Not Found`: User not found
+- `500 Internal Server Error`: Failed to refresh token
+
+**Example cURL**:
+```bash
+curl -X POST https://api.shopsphere.com/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "your-refresh-token"
+  }'
+```
+
+### Logout User
+Invalidate the current session.
+
+**Endpoint**: `POST /api/auth/logout`
+
+**Headers**:
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Logged out successfully"
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized`: Authentication required
+- `500 Internal Server Error`: Failed to logout
+
+**Example cURL**:
+```bash
+curl -X POST https://api.shopsphere.com/api/auth/logout \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 ### Verify Email
 Verify user's email address using verification token.
 
-```
-POST /api/auth/verify-email
-```
+**Endpoint**: `POST /api/auth/verify-email`
 
-**Request Body**
+**Request Body**:
 ```json
 {
-  "token": "verification_token_from_email"
+  "token": "verification-token-from-email"
 }
 ```
 
-**Response (200 OK)**
+**Success Response (200)**:
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "message": "Email verified successfully",
-  "timestamp": "2024-01-15T10:30:00.000Z"
+  "message": "Email verified successfully"
 }
 ```
 
-**Curl Command**
+**Error Responses**:
+- `400 Bad Request`: Verification token required
+- `400 Bad Request`: Invalid or expired verification token
+- `500 Internal Server Error`: Failed to verify email
+
+**Example cURL**:
 ```bash
-curl -X POST https://api.shopsphere.com/v1/api/auth/verify-email \
+curl -X POST https://api.shopsphere.com/api/auth/verify-email \
   -H "Content-Type: application/json" \
   -d '{
-    "token": "verification_token_from_email"
+    "token": "verification-token-from-email"
   }'
 ```
 
 ### Forgot Password
 Request password reset link.
 
-```
-POST /api/auth/forgot-password
-```
+**Endpoint**: `POST /api/auth/forgot-password`
 
-**Request Body**
+**Request Body**:
 ```json
 {
   "email": "john@example.com"
 }
 ```
 
-**Response (200 OK)**
+**Success Response (200)**:
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "message": "If an account with this email exists, a password reset link has been sent",
-  "timestamp": "2024-01-15T10:30:00.000Z"
+  "message": "If an account with this email exists, a password reset link has been sent"
 }
 ```
 
-**Curl Command**
+**Error Responses**:
+- `400 Bad Request`: Email required
+- `500 Internal Server Error`: Failed to process request
+
+**Example cURL**:
 ```bash
-curl -X POST https://api.shopsphere.com/v1/api/auth/forgot-password \
+curl -X POST https://api.shopsphere.com/api/auth/forgot-password \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john@example.com"
@@ -192,228 +261,321 @@ curl -X POST https://api.shopsphere.com/v1/api/auth/forgot-password \
 ### Reset Password
 Reset password using reset token.
 
-```
-POST /api/auth/reset-password
-```
+**Endpoint**: `POST /api/auth/reset-password`
 
-**Request Body**
+**Request Body**:
 ```json
 {
-  "token": "reset_token_from_email",
-  "newPassword": "newSecurePassword123"
+  "token": "reset-token-from-email",
+  "newPassword": "newSecurePassword123!"
 }
 ```
 
-**Response (200 OK)**
+**Success Response (200)**:
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "message": "Password reset successfully",
-  "timestamp": "2024-01-15T10:30:00.000Z"
+  "message": "Password reset successfully"
 }
 ```
 
-**Curl Command**
+**Error Responses**:
+- `400 Bad Request`: Token and new password required
+- `400 Bad Request`: Password must be at least 8 characters
+- `400 Bad Request`: Invalid or expired reset token
+- `500 Internal Server Error`: Failed to reset password
+
+**Example cURL**:
 ```bash
-curl -X POST https://api.shopsphere.com/v1/api/auth/reset-password \
+curl -X POST https://api.shopsphere.com/api/auth/reset-password \
   -H "Content-Type: application/json" \
   -d '{
-    "token": "reset_token_from_email",
-    "newPassword": "newSecurePassword123"
+    "token": "reset-token-from-email",
+    "newPassword": "newSecurePassword123!"
   }'
 ```
 
-## User Endpoints
+### Google OAuth
+Redirect to Google OAuth login.
+
+**Endpoint**: `GET /api/auth/oauth/google`
+
+**Success Response**: Redirects to Google OAuth page.
+
+**Example cURL**:
+```bash
+curl -X GET https://api.shopsphere.com/api/auth/oauth/google
+```
+
+### Google OAuth Callback
+Handle Google OAuth callback.
+
+**Endpoint**: `GET /api/auth/oauth/google/callback`
+
+**Query Parameters**:
+- `code`: Authorization code from Google
+
+**Success Response**: Redirects to frontend with tokens.
+
+**Example cURL**:
+```bash
+curl -X GET "https://api.shopsphere.com/api/auth/oauth/google/callback?code=authorization-code"
+```
+
+### Facebook OAuth
+Redirect to Facebook OAuth login.
+
+**Endpoint**: `GET /api/auth/oauth/facebook`
+
+**Success Response**: Redirects to Facebook OAuth page.
+
+**Example cURL**:
+```bash
+curl -X GET https://api.shopsphere.com/api/auth/oauth/facebook
+```
+
+### Facebook OAuth Callback
+Handle Facebook OAuth callback.
+
+**Endpoint**: `GET /api/auth/oauth/facebook/callback`
+
+**Query Parameters**:
+- `code`: Authorization code from Facebook
+
+**Success Response**: Redirects to frontend with tokens.
+
+**Example cURL**:
+```bash
+curl -X GET "https://api.shopsphere.com/api/auth/oauth/facebook/callback?code=authorization-code"
+```
+
+## Users
 
 ### Get User Profile
 Get current user's profile information.
 
+**Endpoint**: `GET /api/users/profile`
+
+**Headers**:
 ```
-GET /api/users/profile
+Authorization: Bearer <your-jwt-token>
 ```
 
-**Response (200 OK)**
+**Success Response (200)**:
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "message": "User profile retrieved successfully",
   "data": {
     "user": {
-      "_id": "60d5ecf9f6578d001c54a3b1",
-      "name": "John Doe",
+      "_id": "60d5ecf9c456789012345678",
       "email": "john@example.com",
-      "phone": "+1234567890",
-      "profilePictureUrl": "https://s3.amazonaws.com/shopsphere/profiles/john.jpg",
+      "name": "John Doe",
+      "phone": "+15551234567",
+      "profile_picture_url": "https://example.com/images/profile.jpg",
+      "email_verified": true,
       "role": "customer",
-      "loyaltyPoints": 250,
-      "emailVerified": true,
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-15T10:30:00.000Z"
+      "loyalty_points": 150,
+      "created_at": "2023-06-15T10:30:00.000Z",
+      "updated_at": "2023-06-15T10:30:00.000Z"
     }
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z"
+  }
 }
 ```
 
-**Curl Command**
+**Error Responses**:
+- `401 Unauthorized`: Authentication required
+- `404 Not Found`: User not found
+- `500 Internal Server Error`: Failed to get profile
+
+**Example cURL**:
 ```bash
-curl -X GET https://api.shopsphere.com/v1/api/users/profile \
-  -H "Authorization: Bearer your_access_token"
+curl -X GET https://api.shopsphere.com/api/users/profile \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 ### Update User Profile
 Update user's profile information.
 
+**Endpoint**: `PUT /api/users/profile`
+
+**Headers**:
 ```
-PUT /api/users/profile
+Authorization: Bearer <your-jwt-token>
 ```
 
-**Request Body**
+**Request Body**:
 ```json
 {
   "name": "John Smith",
-  "phone": "+1987654321"
+  "phone": "+15559876543"
 }
 ```
 
-**Response (200 OK)**
+**Success Response (200)**:
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "message": "User profile updated successfully",
+  "message": "Profile updated successfully",
   "data": {
     "user": {
-      "_id": "60d5ecf9f6578d001c54a3b1",
-      "name": "John Smith",
+      "_id": "60d5ecf9c456789012345678",
       "email": "john@example.com",
-      "phone": "+1987654321",
-      "profilePictureUrl": "https://s3.amazonaws.com/shopsphere/profiles/john.jpg",
+      "name": "John Smith",
+      "phone": "+15559876543",
+      "profile_picture_url": "https://example.com/images/profile.jpg",
+      "email_verified": true,
       "role": "customer",
-      "loyaltyPoints": 250,
-      "emailVerified": true,
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-15T10:30:00.000Z"
+      "loyalty_points": 150,
+      "created_at": "2023-06-15T10:30:00.000Z",
+      "updated_at": "2023-06-15T11:00:00.000Z"
     }
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z"
+  }
 }
 ```
 
-**Curl Command**
+**Error Responses**:
+- `400 Bad Request`: Name must be at least 2 characters
+- `401 Unauthorized`: Authentication required
+- `404 Not Found`: User not found
+- `500 Internal Server Error`: Failed to update profile
+
+**Example cURL**:
 ```bash
-curl -X PUT https://api.shopsphere.com/v1/api/users/profile \
-  -H "Authorization: Bearer your_access_token" \
+curl -X PUT https://api.shopsphere.com/api/users/profile \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Smith",
-    "phone": "+1987654321"
+    "phone": "+15559876543"
   }'
 ```
 
 ### Upload Profile Picture
-Upload and update user's profile picture.
+Upload user's profile picture to AWS S3.
 
+**Endpoint**: `PUT /api/users/profile/picture`
+
+**Headers**:
 ```
-PUT /api/users/profile/picture
+Authorization: Bearer <your-jwt-token>
+Content-Type: multipart/form-data
 ```
 
-**Request Body (multipart/form-data)**
-- `file`: Image file (JPG, PNG, WebP)
+**Request Body**:
+- `file`: Image file (JPEG, PNG, WebP)
 
-**Response (200 OK)**
+**Success Response (200)**:
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "message": "Profile picture updated successfully",
+  "message": "Profile picture uploaded successfully",
   "data": {
-    "profilePictureUrl": "https://s3.amazonaws.com/shopsphere/profiles/john-new.jpg"
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z"
+    "profile_picture_url": "https://shopsphere-uploads.s3.amazonaws.com/profile/60d5ecf9c456789012345678.jpg"
+  }
 }
 ```
 
-**Curl Command**
+**Error Responses**:
+- `400 Bad Request`: File is required
+- `400 Bad Request`: Invalid file type
+- `400 Bad Request`: File size too large
+- `401 Unauthorized`: Authentication required
+- `404 Not Found`: User not found
+- `500 Internal Server Error`: Failed to upload picture
+
+**Example cURL**:
 ```bash
-curl -X PUT https://api.shopsphere.com/v1/api/users/profile/picture \
-  -H "Authorization: Bearer your_access_token" \
+curl -X PUT https://api.shopsphere.com/api/users/profile/picture \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
   -F "file=@/path/to/profile.jpg"
 ```
 
-### List Addresses
+### List User Addresses
 Get all saved addresses for the user.
 
+**Endpoint**: `GET /api/users/addresses`
+
+**Headers**:
 ```
-GET /api/users/addresses
+Authorization: Bearer <your-jwt-token>
 ```
 
-**Response (200 OK)**
+**Success Response (200)**:
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "message": "Addresses retrieved successfully",
   "data": {
     "addresses": [
       {
-        "_id": "60d5ecf9f6578d001c54a3b2",
+        "_id": "60d5ecf9c456789012345679",
+        "user_id": "60d5ecf9c456789012345678",
         "type": "home",
         "line1": "123 Main St",
         "line2": "Apt 4B",
         "city": "San Francisco",
         "state": "CA",
-        "postalCode": "94107",
+        "postal_code": "94105",
         "country": "USA",
-        "isDefault": true,
-        "createdAt": "2024-01-01T00:00:00.000Z"
+        "is_default": true,
+        "created_at": "2023-06-15T10:30:00.000Z"
       },
       {
-        "_id": "60d5ecf9f6578d001c54a3b3",
+        "_id": "60d5ecf9c456789012345680",
+        "user_id": "60d5ecf9c456789012345678",
         "type": "work",
-        "line1": "456 Business Ave",
+        "line1": "456 Market St",
         "city": "San Francisco",
         "state": "CA",
-        "postalCode": "94105",
+        "postal_code": "94105",
         "country": "USA",
-        "isDefault": false,
-        "createdAt": "2024-01-05T00:00:00.000Z"
+        "is_default": false,
+        "created_at": "2023-06-15T10:35:00.000Z"
       }
     ]
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z"
+  }
 }
 ```
 
-**Curl Command**
+**Error Responses**:
+- `401 Unauthorized`: Authentication required
+- `404 Not Found`: User not found
+- `500 Internal Server Error`: Failed to get addresses
+
+**Example cURL**:
 ```bash
-curl -X GET https://api.shopsphere.com/v1/api/users/addresses \
-  -H "Authorization: Bearer your_access_token"
+curl -X GET https://api.shopsphere.com/api/users/addresses \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-### Add Address
+### Add User Address
 Add a new address for the user.
 
+**Endpoint**: `POST /api/users/addresses`
+
+**Headers**:
 ```
-POST /api/users/addresses
+Authorization: Bearer <your-jwt-token>
 ```
 
-**Request Body**
+**Request Body**:
 ```json
 {
-  "type": "home",
+  "type": "other",
   "line1": "789 Oak St",
   "city": "San Francisco",
   "state": "CA",
-  "postalCode": "94110",
+  "postal_code": "94105",
   "country": "USA",
-  "isDefault": false
+  "is_default": false
 }
 ```
 
-**Response (201 Created)**
+**Success Response (201)**:
 ```json
 {
   "success": true,
@@ -421,54 +583,63 @@ POST /api/users/addresses
   "message": "Address added successfully",
   "data": {
     "address": {
-      "_id": "60d5ecf9f6578d001c54a3b4",
-      "type": "home",
+      "_id": "60d5ecf9c456789012345681",
+      "user_id": "60d5ecf9c456789012345678",
+      "type": "other",
       "line1": "789 Oak St",
       "city": "San Francisco",
       "state": "CA",
-      "postalCode": "94110",
+      "postal_code": "94105",
       "country": "USA",
-      "isDefault": false,
-      "createdAt": "2024-01-15T10:30:00.000Z"
+      "is_default": false,
+      "created_at": "2023-06-15T10:40:00.000Z",
+      "updated_at": "2023-06-15T10:40:00.000Z"
     }
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z"
+  }
 }
 ```
 
-**Curl Command**
+**Error Responses**:
+- `400 Bad Request`: Missing required fields
+- `401 Unauthorized`: Authentication required
+- `404 Not Found`: User not found
+- `500 Internal Server Error`: Failed to add address
+
+**Example cURL**:
 ```bash
-curl -X POST https://api.shopsphere.com/v1/api/users/addresses \
-  -H "Authorization: Bearer your_access_token" \
+curl -X POST https://api.shopsphere.com/api/users/addresses \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "home",
+    "type": "other",
     "line1": "789 Oak St",
     "city": "San Francisco",
     "state": "CA",
-    "postalCode": "94110",
+    "postal_code": "94105",
     "country": "USA",
-    "isDefault": false
+    "is_default": false
   }'
 ```
 
-### Update Address
+### Update User Address
 Update an existing address.
 
+**Endpoint**: `PUT /api/users/addresses/:id`
+
+**Headers**:
 ```
-PUT /api/users/addresses/:id
+Authorization: Bearer <your-jwt-token>
 ```
 
-**Request Body**
+**Request Body**:
 ```json
 {
-  "line1": "789 Oak St",
-  "line2": "Unit 2",
-  "isDefault": true
+  "line2": "Suite 100",
+  "is_default": true
 }
 ```
 
-**Response (200 OK)**
+**Success Response (200)**:
 ```json
 {
   "success": true,
@@ -476,240 +647,93 @@ PUT /api/users/addresses/:id
   "message": "Address updated successfully",
   "data": {
     "address": {
-      "_id": "60d5ecf9f6578d001c54a3b4",
+      "_id": "60d5ecf9c456789012345679",
+      "user_id": "60d5ecf9c456789012345678",
       "type": "home",
-      "line1": "789 Oak St",
-      "line2": "Unit 2",
+      "line1": "123 Main St",
+      "line2": "Suite 100",
       "city": "San Francisco",
       "state": "CA",
-      "postalCode": "94110",
+      "postal_code": "94105",
       "country": "USA",
-      "isDefault": true,
-      "createdAt": "2024-01-15T10:30:00.000Z",
-      "updatedAt": "2024-01-15T10:35:00.000Z"
+      "is_default": true,
+      "created_at": "2023-06-15T10:30:00.000Z",
+      "updated_at": "2023-06-15T11:00:00.000Z"
     }
-  },
-  "timestamp": "2024-01-15T10:35:00.000Z"
+  }
 }
 ```
 
-**Curl Command**
+**Error Responses**:
+- `400 Bad Request`: Invalid address ID format
+- `400 Bad Request`: Address not found
+- `401 Unauthorized`: Authentication required
+- `403 Forbidden`: Address does not belong to user
+- `500 Internal Server Error`: Failed to update address
+
+**Example cURL**:
 ```bash
-curl -X PUT https://api.shopsphere.com/v1/api/users/addresses/60d5ecf9f6578d001c54a3b4 \
-  -H "Authorization: Bearer your_access_token" \
+curl -X PUT https://api.shopsphere.com/api/users/addresses/60d5ecf9c456789012345679 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
   -H "Content-Type: application/json" \
   -d '{
-    "line1": "789 Oak St",
-    "line2": "Unit 2",
-    "isDefault": true
+    "line2": "Suite 100",
+    "is_default": true
   }'
 ```
 
-### Delete Address
+### Delete User Address
 Delete an address.
 
+**Endpoint**: `DELETE /api/users/addresses/:id`
+
+**Headers**:
 ```
-DELETE /api/users/addresses/:id
+Authorization: Bearer <your-jwt-token>
 ```
 
-**Response (200 OK)**
+**Success Response (200)**:
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "message": "Address deleted successfully",
-  "timestamp": "2024-01-15T10:35:00.000Z"
+  "message": "Address deleted successfully"
 }
 ```
 
-**Curl Command**
+**Error Responses**:
+- `400 Bad Request`: Invalid address ID format
+- `400 Bad Request`: Address not found
+- `401 Unauthorized`: Authentication required
+- `403 Forbidden`: Address does not belong to user
+- `500 Internal Server Error`: Failed to delete address
+
+**Example cURL**:
 ```bash
-curl -X DELETE https://api.shopsphere.com/v1/api/users/addresses/60d5ecf9f6578d001c54a3b4 \
-  -H "Authorization: Bearer your_access_token"
+curl -X DELETE https://api.shopsphere.com/api/users/addresses/60d5ecf9c456789012345679 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## Product Endpoints
+## Products
 
 ### List Products
-Get a list of products with filtering and pagination.
+Get a list of products with filtering, sorting, and pagination.
 
-```
-GET /api/products
-```
+**Endpoint**: `GET /api/products`
 
-**Query Parameters**
+**Query Parameters**:
 - `page`: Page number (default: 1)
-- `limit`: Items per page (default: 20, max: 50)
+- `limit`: Items per page (default: 20)
 - `category`: Filter by category ID
 - `brand`: Filter by brand
-- `minPrice`: Minimum price
-- `maxPrice`: Maximum price
+- `min_price`: Minimum price
+- `max_price`: Maximum price
 - `rating`: Minimum rating (1-5)
-- `inStock`: Filter by stock status (true/false)
-- `sort`: Sort by (priceAsc, priceDesc, newest, bestSelling, rating)
-- `search`: Search query
+- `status`: Filter by status (active/inactive/out_of_stock)
+- `sort`: Sort by (price_asc, price_desc, newest, best_seller, avg_rating)
+- `search`: Search term
 
-**Response (200 OK)**
+**Success Response (200)**:
 ```json
 {
-  "success": true,
-  "statusCode": 200,
-  "message": "Products retrieved successfully",
-  "data": {
-    "products": [
-      {
-        "_id": "60d5ecf9f6578d001c54a3b5",
-        "title": "iPhone 15 Pro",
-        "slug": "iphone-15-pro",
-        "description": "Latest Apple smartphone with A17 chip and titanium design.",
-        "category": {
-          "_id": "60d5ecf9f6578d001c54a3b6",
-          "name": "Smartphones"
-        },
-        "brand": "Apple",
-        "price": 999,
-        "originalPrice": 1099,
-        "discountPercent": 9,
-        "sku": "IP15P-256GB-NATURAL",
-        "stockQuantity": 50,
-        "images": [
-          "https://s3.amazonaws.com/shopsphere/products/iphone15pro-1.jpg",
-          "https://s3.amazonaws.com/shopsphere/products/iphone15pro-2.jpg"
-        ],
-        "variants": [
-          {
-            "name": "Storage",
-            "values": ["128GB", "256GB", "512GB"],
-            "priceModifier": 0
-          }
-        ],
-        "tags": ["smartphone", "apple", "ios"],
-        "isFeatured": true,
-        "isSponsored": true,
-        "status": "active",
-        "views": 150,
-        "createdAt": "2024-01-10T00:00:00.000Z",
-        "updatedAt": "2024-01-15T10:30:00.000Z"
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 150,
-      "totalPages": 8,
-      "hasNext": true,
-      "hasPrev": false
-    }
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z"
-}
-```
-
-**Curl Command**
-```bash
-curl -X GET "https://api.shopsphere.com/v1/api/products?page=1&limit=10&category=60d5ecf9f6578d001c54a3b6&minPrice=500&sort=priceAsc" \
-  -H "Authorization: Bearer your_access_token"
-```
-
-### Get Product by Slug
-Get a product by its slug.
-
-```
-GET /api/products/:slug
-```
-
-**Response (200 OK)**
-```json
-{
-  "success": true,
-  "statusCode": 200,
-  "message": "Product retrieved successfully",
-  "data": {
-    "product": {
-      "_id": "60d5ecf9f6578d001c54a3b5",
-      "title": "iPhone 15 Pro",
-      "slug": "iphone-15-pro",
-      "description": "Latest Apple smartphone with A17 chip and titanium design.",
-      "category": {
-        "_id": "60d5ecf9f6578d001c54a3b6",
-        "name": "Smartphones"
-      },
-      "brand": "Apple",
-      "price": 999,
-      "originalPrice": 1099,
-      "discountPercent": 9,
-      "sku": "IP15P-256GB-NATURAL",
-      "stockQuantity": 50,
-      "images": [
-        "https://s3.amazonaws.com/shopsphere/products/iphone15pro-1.jpg",
-        "https://s3.amazonaws.com/shopsphere/products/iphone15pro-2.jpg"
-      ],
-      "variants": [
-        {
-          "name": "Storage",
-          "values": ["128GB", "256GB", "512GB"],
-          "priceModifier": 0
-        }
-      ],
-      "tags": ["smartphone", "apple", "ios"],
-      "isFeatured": true,
-      "isSponsored": true,
-      "status": "active",
-      "views": 150,
-      "createdAt": "2024-01-10T00:00:00.000Z",
-      "updatedAt": "2024-01-15T10:30:00.000Z"
-    }
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z"
-}
-```
-
-**Curl Command**
-```bash
-curl -X GET https://api.shopsphere.com/v1/api/products/iphone-15-pro \
-  -H "Authorization: Bearer your_access_token"
-```
-
-### Get Product Reviews
-Get reviews for a product.
-
-```
-GET /api/products/:id/reviews
-```
-
-**Query Parameters**
-- `page`: Page number (default: 1)
-- `limit`: Items per page (default: 10, max: 20)
-- `sort`: Sort by (newest, oldest, highestRating, lowestRating)
-
-**Response (200 OK)**
-```json
-{
-  "success": true,
-  "statusCode": 200,
-  "message": "Product reviews retrieved successfully",
-  "data": {
-    "reviews": [
-      {
-        "_id": "60d5ecf9f6578d001c54a3b7",
-        "product": {
-          "_id": "60d5ecf9f6578d001c54a3b5",
-          "title": "iPhone 15 Pro"
-        },
-        "user": {
-          "_id": "60d5ecf9f6578d001c54a3b1",
-          "name": "John Doe"
-        },
-        "order": {
-          "_id": "60d5ecf9f6578d001c54a3b8"
-        },
-        "rating": 5,
-        "title": "Amazing phone!",
-        "comment": "The iPhone 15 Pro is incredible. The camera quality is outstanding and the performance is lightning fast.",
-        "images": [
-          "https://s3.amazonaws.com/shopsphere/reviews/iphone15pro-review1.jpg"
-        ],
-        "helpfulVotes": 12,
-        "verifiedPurchase": true,
-        "createdAt": "2024-01-12T10:30:00.000Z",
-        "updatedAt": "2024-01-12T10:30:00.000Z"
+  "
