@@ -1,73 +1,59 @@
 const express = require('express');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const Order = require('../models/Order');
-const Cart = require('../models/Cart');
-const User = require('../models/User');
-const { authenticateToken } = require('../middleware/auth');
-
 const router = express.Router();
+const stripeService = require('../services/stripe');
+const { auth } = require('../middleware/auth');
 
-// Create a payment intent
-router.post('/create-payment-intent', authenticateToken, async (req, res) => {
+// Create Checkout Session
+router.post('/create-checkout-session', auth, async (req, res) => {
   try {
-    const { amount, currency = 'usd', orderId } = req.body;
-
-    // Verify order belongs to user
-    const order = await Order.findOne({
-      _id: orderId,
-      user_id: req.user.id
-    });
-
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+    const { successUrl, cancelUrl } = req.body;
+    
+    if (!successUrl || !cancelUrl) {
+      return res.status(400).json({
+        error: 'successUrl and cancelUrl are required'
+      });
     }
 
-    // Create payment intent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount,
-      currency: currency,
-      metadata: {
-        orderId: orderId,
-        userId: req.user.id
-      },
-      automatic_payment_methods: {
-        enabled: true,
-      },
-    });
+    const session = await stripeService.createCheckoutSession(
+      req.user.userId,
+      successUrl,
+      cancelUrl
+    );
 
-    res.json({
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id
-    });
-
+    res.json({ id: session.id });
   } catch (error) {
-    console.error('Error creating payment intent:', error);
-    res.status(500).json({ error: 'Failed to create payment intent' });
+    console.error('Error creating checkout session:', error);
+    res.status(500).json({
+      error: 'Failed to create checkout session',
+      message: error.message
+    });
   }
 });
 
-// Get payment intent status
-router.get('/payment-intent/:id', authenticateToken, async (req, res) => {
+// Stripe webhook handler
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+
   try {
-    const { id } = req.params;
+    event = stripeService.stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
 
-    const paymentIntent = await stripe.paymentIntents.retrieve(id);
-
-    // Verify payment intent belongs to user
-    if (paymentIntent.metadata.userId !== req.user.id) {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
-
-    res.json({
-      status: paymentIntent.status,
-      amount: paymentIntent.amount,
-      currency: paymentIntent.currency,
-      paymentMethod: paymentIntent.payment_method_types[0]
-    });
-
+  try {
+    await stripeService.handleWebhook(event);
+    res.json({ received: true });
   } catch (error) {
-    console.error('Error retrieving payment intent:', error);
-    res.status(500).json({ error: 'Failed to retrieve payment intent' });
+    console.error('Error processing webhook:', error);
+    res.status(500).json({
+      error: 'Webhook processing failed'
+    });
   }
 });
 
