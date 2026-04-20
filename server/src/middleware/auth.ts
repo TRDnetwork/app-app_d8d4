@@ -1,124 +1,81 @@
 ```ts
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { User } from '../models/User';
 import { StatusCodes } from 'http-status-codes';
-import User, { IUser } from '../models/User';
 
-// Extend Express Request interface to include user property
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        role: string;
-      };
-    }
+// JWT token verification middleware
+export const protect = async (req: Request, res: Response, next: NextFunction) => {
+  let token: string | undefined;
+
+  // Check for token in Authorization header
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
   }
-}
 
-// Middleware to protect routes
-export const protect = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  let token;
+  // Check for token in cookies (for refresh tokens)
+  if (!token && req.cookies?.refreshToken) {
+    token = req.cookies.refreshToken;
+  }
 
-  // Check if token exists in Authorization header
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    try {
-      // Get token from header
-      token = req.headers.authorization.split(' ')[1];
+  if (!token) {
+    return res.status(StatusCodes.UNAUTHORIZED).json({
+      message: 'Not authorized, no token'
+    });
+  }
 
-      // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-        id: string;
-      };
-
-      // Get user from token (exclude password from returned user object)
-      req.user = await User.findById(decoded.id).select('-password');
-
-      next();
-    } catch (error) {
-      console.error('Auth middleware error:', error);
-      res.status(StatusCodes.UNAUTHORIZED).json({
-        message: 'Not authorized, token failed',
+  try {
+    // Verify token using JWT_SECRET
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
+    
+    // Find user and attach to request
+    const user = await User.findById(decoded.id).select('-password');
+    
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        message: 'User not found'
       });
     }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    return res.status(StatusCodes.UNAUTHORIZED).json({
+      message: 'Not authorized, token failed'
+    });
   }
+};
 
-  // If no token in header, check for refresh token cookie
-  if (!token && req.cookies.refreshToken) {
-    try {
-      const decoded = jwt.verify(
-        req.cookies.refreshToken,
-        process.env.JWT_REFRESH_SECRET!
-      ) as { id: string };
-
-      // Get user from token
-      req.user = await User.findById(decoded.id).select('-password');
-
-      // Generate new access token
-      const newToken = jwt.sign(
-        { id: req.user._id },
-        process.env.JWT_SECRET!,
-        {
-          expiresIn: '15m',
-        }
-      );
-
-      // Set new access token in response
-      res.setHeader('Authorization', `Bearer ${newToken}`);
-
-      next();
-    } catch (error) {
-      console.error('Refresh token verification failed:', error);
-      res.status(StatusCodes.UNAUTHORIZED).json({
-        message: 'Not authorized, refresh token failed',
+// Role-based authorization middleware
+export const authorize = (...roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        message: 'Not authorized'
       });
     }
-  }
 
-  if (!token && !req.cookies.refreshToken) {
-    res.status(StatusCodes.UNAUTHORIZED).json({
-      message: 'Not authorized, no token',
-    });
-  }
+    if (!roles.includes(req.user.role)) {
+      return res.status(StatusCodes.FORBIDDEN).json({
+        message: `User role ${req.user.role} is not authorized to access this route`
+      });
+    }
+
+    next();
+  };
 };
 
-// Middleware to check if user is admin
-export const admin = (req: Request, res: Response, next: NextFunction) => {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    res.status(StatusCodes.FORBIDDEN).json({
-      message: `User role ${req.user?.role} is not authorized to access this route`,
-    });
+// Security enhancement: Constant-time comparison for tokens
+export const constantTimeCompare = (a: string, b: string): boolean => {
+  if (a.length !== b.length) {
+    return false;
   }
-};
-
-// Middleware to check if user is seller
-export const seller = (req: Request, res: Response, next: NextFunction) => {
-  if (req.user && (req.user.role === 'seller' || req.user.role === 'admin')) {
-    next();
-  } else {
-    res.status(StatusCodes.FORBIDDEN).json({
-      message: `User role ${req.user?.role} is not authorized to access this route`,
-    });
+  
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
-};
-
-// Middleware to check if user is customer
-export const customer = (req: Request, res: Response, next: NextFunction) => {
-  if (req.user && (req.user.role === 'customer' || req.user.role === 'admin')) {
-    next();
-  } else {
-    res.status(StatusCodes.FORBIDDEN).json({
-      message: `User role ${req.user?.role} is not authorized to access this route`,
-    });
-  }
+  
+  return result === 0;
 };
 ```

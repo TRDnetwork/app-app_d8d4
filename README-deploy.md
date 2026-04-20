@@ -2,32 +2,63 @@
 
 ## Deploy to Vercel
 
-1. Push code to GitHub repository
-2. Log in to Vercel and import the project from GitHub
-3. Select the `client` directory as the root directory
-4. Add environment variables from `.env.example` (only frontend variables)
-5. Deploy
+1. Push code to a GitHub repository.
+2. Log in to Vercel and import the project.
+3. During setup:
+   - Framework: Select "Next.js"
+   - Root Directory: `/client`
+   - Build Command: `cd ../server && npm run build && cd ../client && next build`
+   - Output Directory: `out`
+4. Add environment variables (see below).
+5. Deploy.
 
 ## Environment Variables
 
-Set these in Vercel project settings:
+Add these to Vercel project settings:
 
-| Key | Value |
-|-----|-------|
-| `NEXT_PUBLIC_API_URL` | Backend API URL (e.g., `https://shopsphere-backend.onrender.com`) |
-| `NEXT_PUBLIC_CLIENT_URL` | Vercel app URL (e.g., `https://shopsphere.vercel.app`) |
-| `NEXT_PUBLIC_POSTHOG_KEY` | (Optional) PostHog project key |
-| `NEXT_PUBLIC_POSTHOG_HOST` | (Optional) PostHog instance URL |
-| `NEXT_PUBLIC_SENTRY_DSN` | (Optional) Sentry DSN for error tracking |
+```
+NEXT_PUBLIC_API_URL
+NEXT_PUBLIC_CLIENT_URL
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+JWT_SECRET
+JWT_REFRESH_SECRET
+MONGODB_URI
+RESEND_API_KEY
+EMAIL_FROM
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+FACEBOOK_APP_ID
+FACEBOOK_APP_SECRET
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_REGION
+S3_BUCKET_NAME
+GA4_MEASUREMENT_ID
+REDIS_HOST
+REDIS_PORT
+REDIS_PASSWORD
+```
 
 ## First-time Setup
 
-1. Deploy backend to Render or Railway using the `server` directory
-2. Set all backend environment variables in the backend hosting platform
-3. Run database seed script: `node db/seed.js` (connects to MongoDB URI)
-4. Enable MongoDB Atlas search indexes for product search
-5. Configure Stripe webhook endpoint: `https://shopsphere-backend.onrender.com/api/webhooks/stripe`
-6. Set OAuth redirect URIs:
-   - Google: `https://shopsphere.vercel.app/api/auth/callback/google`
-   - Facebook: `https://shopsphere.vercel.app/api/auth/callback/facebook`
-7. Verify email service configuration (Nodemailer)
+1. Run database seed:
+   ```bash
+   cd server && node dist/db/seed.js
+   ```
+2. Ensure MongoDB is running and accessible via `MONGODB_URI`.
+3. Set up Stripe webhook endpoint to `https://your-domain.com/api/webhook/stripe`.
+4. Configure OAuth apps (Google/Facebook) with redirect URIs:
+   - Google: `https://your-domain.com/api/auth/oauth/google/callback`
+   - Facebook: `https://your-domain.com/api/auth/oauth/facebook/callback`
+5. Deploy backend to Render/Railway using `server/package.json` and same env vars.
+6. Update `NEXT_PUBLIC_API_URL` to point to deployed backend.
+
+## Important Notes
+
+- Frontend is in `/client`, backend in `/server`.
+- Vercel serves frontend; backend must be deployed separately.
+- API routes are proxied via `vercel.json` rewrites to `api/index.ts`.
+- Use `httpOnly` cookies for JWTs — never expose secrets in browser.
+- Change all placeholder keys before production deployment.

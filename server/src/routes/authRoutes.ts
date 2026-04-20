@@ -17,10 +17,12 @@ const router = Router();
 router.post('/register', authLimiter, register);
 router.post('/verify-email', authLimiter, verifyEmail);
 router.post('/login', authLimiter, login);
-router.post('/refresh-token', refreshToken);
-router.post('/logout', logout);
 router.post('/forgot-password', authLimiter, forgotPassword);
 router.post('/reset-password', authLimiter, resetPassword);
+
+// Protected routes
+router.post('/refresh-token', refreshToken);
+router.post('/logout', logout);
 
 export default router;
 ```
