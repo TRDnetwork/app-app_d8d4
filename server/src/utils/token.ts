@@ -1,28 +1,44 @@
 import jwt from 'jsonwebtoken';
-import { StatusCodes } from 'http-status-codes';
+import { IUser } from '../models/User';
 
 // Validate environment variables
 if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET is not set in environment variables');
+  throw new Error('JWT_SECRET environment variable is required');
 }
 
 if (!process.env.JWT_REFRESH_SECRET) {
-  throw new Error('JWT_REFRESH_SECRET is not set in environment variables');
+  throw new Error('JWT_REFRESH_SECRET environment variable is required');
 }
 
-// Token generation and verification utilities
+if (process.env.JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET must be at least 32 characters long');
+}
+
+if (process.env.JWT_REFRESH_SECRET.length < 32) {
+  throw new Error('JWT_REFRESH_SECRET must be at least 32 characters long');
+}
+
+/**
+ * Generate JWT access token
+ */
 export const generateAccessToken = (payload: { id: string; role: string }): string => {
   return jwt.sign(payload, process.env.JWT_SECRET!, {
-    expiresIn: '15m',
+    expiresIn: '15m'
   });
 };
 
+/**
+ * Generate JWT refresh token
+ */
 export const generateRefreshToken = (payload: { id: string; role: string }): string => {
   return jwt.sign(payload, process.env.JWT_REFRESH_SECRET!, {
-    expiresIn: '7d',
+    expiresIn: '7d'
   });
 };
 
+/**
+ * Verify JWT access token
+ */
 export const verifyAccessToken = (token: string): { id: string; role: string } | null => {
   try {
     return jwt.verify(token, process.env.JWT_SECRET!) as { id: string; role: string };
@@ -31,6 +47,9 @@ export const verifyAccessToken = (token: string): { id: string; role: string } |
   }
 };
 
+/**
+ * Verify JWT refresh token
+ */
 export const verifyRefreshToken = (token: string): { id: string; role: string } | null => {
   try {
     return jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as { id: string; role: string };
@@ -39,7 +58,9 @@ export const verifyRefreshToken = (token: string): { id: string; role: string } 
   }
 };
 
-// Token refresh utility
+/**
+ * Refresh tokens
+ */
 export const refreshTokens = async (refreshToken: string) => {
   const decoded = verifyRefreshToken(refreshToken);
   
@@ -48,7 +69,9 @@ export const refreshTokens = async (refreshToken: string) => {
   }
   
   // Check if user still exists
+  const User = require('../models/User');
   const user = await User.findById(decoded.id).select('-password');
+  
   if (!user) {
     return null;
   }
@@ -67,11 +90,10 @@ export const refreshTokens = async (refreshToken: string) => {
       role: user.role,
       profilePictureUrl: user.profilePictureUrl,
       phone: user.phone,
-      emailVerified: user.emailVerified,
-    },
+      emailVerified: user.emailVerified
+    }
   };
 };
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for email service

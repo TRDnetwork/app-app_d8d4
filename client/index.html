@@ -3,56 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0F172A" />
+    <meta name="description" content="ShopSphere – Premium e-commerce platform with curated products, fast delivery, and secure payments." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
     <title>ShopSphere</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
-    <style>
-      body {
-        margin: 0;
-        font-family: 'Source Sans Pro', sans-serif;
-        background-color: #0F172A;
-        color: #F8FAFC;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-      #root {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-      }
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.8; }
-      }
-      .animate-pulse-slow {
-        animation: pulse 2s ease-in-out infinite;
-      }
-    </style>
-    <!-- ANALYTICS: GA4 tracking script with DNT support -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=GA4_MEASUREMENT_ID"></script>
+    <!-- ANALYTICS: PostHog for e-commerce -->
     <script>
-      // Respect Do Not Track
-      if (!navigator.doNotTrack || navigator.doNotTrack === "0") {
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'GA4_MEASUREMENT_ID', {
-          page_path: window.location.pathname,
-          anonymize_ip: true
-        });
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') {
+          navigator.sendBeacon && navigator.sendBeacon('/api/analytics/pageleave');
+        }
+      });
+      
+      if (!navigator.doNotTrack) {
+        !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing opt_in_capturing has_opted_out_capturing has_opted_in_capturing reset isFeatureEnabled onFeatureFlags".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e._i=[],e.init.prototype=e._i, e.reset=function(){e._i.forEach(function(t){e[t[2]||"posthog"].call(e,t[0],t[1])})},e.doneScript=!1,e.reset(),e.config={api_host:"/* ANALYTICS_KEY */"}}(document,window.posthog||[]);
+        posthog.init('phc_/* ANALYTICS_KEY */', {api_host:'https://app.posthog.com'})
       }
     </script>
   </head>
-  <body>
+  <body class="bg-bg text-text font-body antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-```
-
-```typescript

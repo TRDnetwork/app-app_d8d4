@@ -1,42 +1,55 @@
-'use client';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Home, ShoppingCart, Heart, User } from 'lucide-react';
+import { useCartStore } from '../stores/cartStore';
 
-import { usePathname } from 'next/navigation';
-import { Home, ShoppingCart, Heart, User, Search } from 'lucide-react';
-import Link from 'next/link';
+const MobileBottomNav: React.FC = () => {
+  const location = useLocation();
+  const { itemCount } = useCartStore();
+  
+  // Only show on mobile devices
+  if (window.innerWidth > 768) {
+    return null;
+  }
 
-const navItems = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/search', label: 'Search', icon: Search },
-  { href: '/cart', label: 'Cart', icon: ShoppingCart },
-  { href: '/wishlist', label: 'Wishlist', icon: Heart },
-  { href: '/account', label: 'Account', icon: User },
-];
-
-export default function MobileBottomNav() {
-  const pathname = usePathname();
+  const navItems = [
+    { path: '/', icon: Home, label: 'Home' },
+    { path: '/cart', icon: ShoppingCart, label: 'Cart' },
+    { path: '/wishlist', icon: Heart, label: 'Wishlist' },
+    { path: '/profile', icon: User, label: 'Profile' }
+  ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 border-t bg-white md:hidden">
-      <div className="grid grid-cols-5">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
-          
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex flex-col items-center justify-center py-2 text-xs transition-colors ${
-                isActive ? 'text-accent' : 'text-text_dim'
-              }`}
-              aria-current={isActive ? 'page' : undefined}
-            >
-              <Icon className="mb-1 h-6 w-6" />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
+    <nav className="mobile-bottom-nav" role="navigation" aria-label="Mobile navigation">
+      {navItems.map((item) => {
+        const isActive = location.pathname === item.path;
+        return (
+          <Link 
+            key={item.path} 
+            to={item.path} 
+            className={`flex flex-col items-center ${isActive ? 'active' : ''}`}
+            aria-current={isActive ? 'page' : undefined}
+          >
+            <item.icon 
+              className={`h-5 w-5 ${isActive ? 'text-accent' : 'text-text_dim'}`} 
+              aria-hidden="true" 
+            />
+            <span className={`text-xs ${isActive ? 'text-accent' : 'text-text_dim'}`}>
+              {item.label}
+            </span>
+            {item.path === '/cart' && itemCount > 0 && (
+              <span 
+                className="absolute bottom-8 right-4 bg-accent text-background text-xs rounded-full h-5 w-5 flex items-center justify-center"
+                aria-label={`${itemCount} items in cart`}
+              >
+                {itemCount}
+              </span>
+            )}
+          </Link>
+        );
+      })}
     </nav>
   );
-}
+};
+
+export default MobileBottomNav;

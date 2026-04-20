@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 
 // Initialize Resend with environment variable
-const resend = new Resend(process.env.RESEND_API_KEY); // SECURITY FIX: Use environment variable
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Email templates
 const templates = {
@@ -88,11 +88,6 @@ const templates = {
 class EmailService {
   /**
    * Sends order confirmation email
-   * @param orderId - The order ID
-   * @param email - Recipient email address
-   * @param orderDate - Date the order was placed
-   * @param items - Array of order items
-   * @param total - Total order amount
    */
   static async sendOrderConfirmation(
     orderId: string, 
@@ -103,7 +98,7 @@ class EmailService {
   ): Promise<void> {
     try {
       const { data, error } = await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'ShopSphere <onboarding@resend.dev>', // SECURITY FIX: Use environment variable
+        from: process.env.EMAIL_FROM || 'ShopSphere <onboarding@resend.dev>',
         to: [email],
         subject: `Order Confirmation #${orderId}`,
         html: templates.orderConfirmation(orderId, orderDate, items, total),
@@ -123,15 +118,13 @@ class EmailService {
 
   /**
    * Sends password reset email
-   * @param email - Recipient email address
-   * @param token - Password reset token
    */
   static async sendPasswordReset(email: string, token: string): Promise<void> {
     try {
-      const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${token}`; // SECURITY FIX: Use environment variable
+      const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
       
       const { data, error } = await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'ShopSphere <onboarding@resend.dev>', // SECURITY FIX: Use environment variable
+        from: process.env.EMAIL_FROM || 'ShopSphere <onboarding@resend.dev>',
         to: [email],
         subject: 'Password Reset Request',
         html: templates.passwordReset(resetUrl),
@@ -151,15 +144,13 @@ class EmailService {
 
   /**
    * Sends email verification email
-   * @param email - Recipient email address
-   * @param token - Verification token
    */
   static async sendEmailVerification(email: string, token: string): Promise<void> {
     try {
-      const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${token}`; // SECURITY FIX: Use environment variable
+      const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
       
       const { data, error } = await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'ShopSphere <onboarding@resend.dev>', // SECURITY FIX: Use environment variable
+        from: process.env.EMAIL_FROM || 'ShopSphere <onboarding@resend.dev>',
         to: [email],
         subject: 'Verify your email address',
         html: templates.emailVerification(verificationUrl),
@@ -182,4 +173,3 @@ export default EmailService;
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for Stripe keys

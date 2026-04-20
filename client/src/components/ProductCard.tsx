@@ -2,7 +2,8 @@ import React from 'react';
 import { Button } from './ui/button';
 import { Star, Heart } from 'lucide-react';
 import { useWishlistStore } from '../stores/wishlist';
-import { useAnalytics } from '../lib/analytics';
+import { Link } from 'react-router-dom';
+import { cn } from '../lib/utils';
 
 interface ProductCardProps {
   product: {
@@ -13,91 +14,109 @@ interface ProductCardProps {
     image: string;
     rating?: number;
     review_count?: number;
-    category?: string;
   };
+  className?: string;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
   const { isInWishlist, toggle } = useWishlistStore();
-  const { trackCTAClick, trackAddToCart } = useAnalytics();
 
   // Calculate discount percentage
   const discountPercent = product.original_price 
     ? Math.round(((product.original_price - product.price) / product.original_price) * 100)
     : 0;
 
-  const handleAddToCart = () => {
-    trackAddToCart({
-      _id: product._id,
-      name: product.title,
-      price: product.price,
-      category: product.category || 'Uncategorized',
-    });
-    // Add to cart logic would go here
-  };
+  // a11y fix: Calculate proper aria-label for rating
+  const ratingLabel = product.rating 
+    ? `${product.rating} out of 5 stars, based on ${product.review_count || 0} reviews`
+    : 'No reviews yet';
 
-  const handleCardClick = () => {
-    trackCTAClick('product_card_click', 'product_grid');
-  };
+  // Ensure touch targets are at least 44x44px
+  const touchTargetClass = "min-h-11 min-w-11 flex items-center justify-center";
 
   return (
-    <div 
-      className="group relative bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-      onClick={handleCardClick}
+    <article 
+      className={cn(
+        "group relative bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow",
+        "touch-manipulation", // Enable touch events
+        className
+      )} 
+      role="article"
     >
-      {/* Image with lazy loading */}
+      {/* Image with lazy loading and proper dimensions */}
       <div className="relative aspect-square bg-muted">
-        {/* PERF: Added loading="lazy" and width/height attributes */}
-        <img 
-          src={product.image} 
-          alt={product.title}
-          loading="lazy"
-          width={300}
-          height={300}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
+        {/* a11y fix: Added proper alt text and ARIA attributes */}
+        <Link to={`/product/${product._id}`}>
+          <img 
+            src={product.image} 
+            alt={product.title}
+            loading="lazy"
+            width={300}
+            height={300}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            aria-describedby={`product-rating-${product._id}`}
+          />
+        </Link>
         
-        {/* Wishlist button */}
+        {/* Wishlist button - increased touch target */}
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-2 right-2 rounded-full bg-background/80 hover:bg-background"
+          className={cn(
+            "absolute top-2 right-2 rounded-full bg-background/80 hover:bg-background",
+            touchTargetClass
+          )}
           onClick={(e) => {
             e.preventDefault();
-            e.stopPropagation();
             toggle(product._id);
           }}
+          aria-label={isInWishlist(product._id) ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`}
         >
           <Heart 
-            className={`h-4 w-4 transition-colors ${
+            className={cn(
+              "h-5 w-5 transition-colors",
               isInWishlist(product._id) ? 'fill-current text-destructive' : 'text-muted-foreground'
-            }`} 
+            )} 
+            aria-hidden="true"
           />
         </Button>
         
         {/* Discount badge */}
         {discountPercent > 0 && (
-          <div className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 rounded">
+          <div 
+            className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 rounded"
+            role="status"
+            aria-live="polite"
+          >
             {discountPercent}% OFF
           </div>
         )}
       </div>
       
       {/* Product info */}
-      <div className="p-4">
-        <h3 className="font-medium text-foreground line-clamp-2 mb-2">
-          {product.title}
+      <div className="p-3 sm:p-4">
+        {/* a11y fix: Use proper heading hierarchy */}
+        <h3 className="font-medium text-foreground line-clamp-2 mb-1 text-base sm:text-lg">
+          <Link 
+            to={`/product/${product._id}`} 
+            className="hover:text-primary transition-colors block"
+          >
+            {product.title}
+          </Link>
         </h3>
         
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-1 sm:gap-2 mb-1">
           {/* Price */}
-          <span className="text-lg font-bold text-primary">
+          <span className="text-base sm:text-lg font-bold text-primary" aria-label="Current price">
             ${product.price.toFixed(2)}
           </span>
           
           {/* Original price */}
           {product.original_price && (
-            <span className="text-sm text-muted-foreground line-through">
+            <span 
+              className="text-xs sm:text-sm text-muted-foreground line-through"
+              aria-label="Original price"
+            >
               ${product.original_price.toFixed(2)}
             </span>
           )}
@@ -105,41 +124,37 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         
         {/* Rating */}
         {product.rating && (
-          <div className="flex items-center gap-1 mb-2">
-            <div className="flex">
+          <div className="flex items-center gap-1 mb-2" id={`product-rating-${product._id}`}>
+            <div className="flex" role="img" aria-label={ratingLabel}>
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
-                  className={`h-4 w-4 ${
+                  className={cn(
+                    "h-3 w-3 sm:h-4 sm:w-4",
                     i < Math.floor(product.rating!) 
                       ? 'text-yellow-400 fill-current' 
                       : 'text-muted-foreground'
-                  }`}
+                  )}
+                  aria-hidden="true"
                 />
               ))}
             </div>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground" aria-hidden="true">
               {product.review_count ? `${product.review_count} reviews` : 'No reviews'}
             </span>
           </div>
         )}
         
-        {/* Add to cart button */}
+        {/* Add to cart button - increased touch target */}
         <Button 
-          className="w-full"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleAddToCart();
-          }}
+          className={cn("w-full", touchTargetClass)}
+          aria-label={`Add ${product.title} to cart`}
         >
           Add to Cart
         </Button>
       </div>
-    </div>
+    </article>
   );
 };
 
 export default ProductCard;
-```
-
-```typescript

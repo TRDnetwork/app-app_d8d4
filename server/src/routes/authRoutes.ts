@@ -1,26 +1,26 @@
-import express from 'express';
-import { authRateLimit } from '../middleware/rateLimit';
-import { authController } from '../controllers/authController';
-import { rls } from '../middleware/rls';
+import { Router } from 'express';
+import { 
+  register, 
+  verifyEmail, 
+  login, 
+  refreshToken, 
+  logout, 
+  forgotPassword, 
+  resetPassword 
+} from '../controllers/authController';
 
-const router = express.Router();
-
-// Apply rate limiting to all auth routes
-router.use(authRateLimit);
+const router = Router();
 
 // Public routes
-router.post('/register', authController.register);
-router.post('/login', authController.login);
-router.post('/verify-email', authController.verifyEmail);
-router.post('/forgot-password', authController.forgotPassword);
-router.post('/reset-password', authController.resetPassword);
-
-// Protected routes
-router.post('/refresh', rls, authController.refreshToken);
-router.post('/logout', rls, authController.logout);
+router.post('/register', register);
+router.post('/verify-email', verifyEmail);
+router.post('/login', login);
+router.post('/refresh', refreshToken);
+router.post('/logout', logout);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 export default router;
 ```
 
 ```typescript
-// SECURITY FIX: Update cart routes to use RLS

@@ -1,20 +1,22 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import api from './api';
+import { api } from './api';
 
 interface User {
   _id: string;
   email: string;
   name: string;
   role: 'customer' | 'seller' | 'admin';
-  profile_picture_url?: string;
+  profilePictureUrl?: string;
+  phone?: string;
+  emailVerified: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
+  loading: boolean;
   isAuthenticated: boolean;
-  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   refresh: () => Promise<void>;
 }
@@ -23,45 +25,47 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (token) {
-      refresh();
+      refresh().catch(() => {
+        localStorage.removeItem('accessToken');
+        setUser(null);
+        setIsAuthenticated(false);
+      });
     } else {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, []);
 
   const refresh = async () => {
     try {
-      const res = await api.get('/auth/refresh');
-      const { user, accessToken } = res.data;
-      localStorage.setItem('accessToken', accessToken);
-      setUser(user);
+      const data = await api.auth.refresh();
+      localStorage.setItem('accessToken', data.accessToken);
+      setUser(data.user);
       setIsAuthenticated(true);
-    } catch (error) {
-      logout();
+    } catch (err) {
+      setUser(null);
+      setIsAuthenticated(false);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const login = async (email: string, password: string) => {
-    const res = await api.post('/auth/login', { email, password });
-    const { user, accessToken } = res.data;
-    localStorage.setItem('accessToken', accessToken);
-    setUser(user);
+    const data = await api.auth.login(email, password);
+    localStorage.setItem('accessToken', data.accessToken);
+    setUser(data.user);
     setIsAuthenticated(true);
   };
 
-  const register = async (email: string, password: string, name: string) => {
-    const res = await api.post('/auth/register', { email, password, name });
-    const { user, accessToken } = res.data;
-    localStorage.setItem('accessToken', accessToken);
-    setUser(user);
+  const register = async (name: string, email: string, password: string) => {
+    const data = await api.auth.register(name, email, password);
+    localStorage.setItem('accessToken', data.accessToken);
+    setUser(data.user);
     setIsAuthenticated(true);
   };
 
@@ -69,10 +73,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('accessToken');
     setUser(null);
     setIsAuthenticated(false);
+    api.auth.logout();
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, register, logout, refresh }}>
+    <AuthContext.Provider value={{ user, loading, isAuthenticated, login, register, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );
@@ -80,11 +85,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-```
-
-```typescript
+  if (!context)

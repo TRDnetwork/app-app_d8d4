@@ -1,57 +1,69 @@
-// Validate email format
+import validator from 'validator';
+
+/**
+ * Validate email format
+ */
 export const validateEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  return validator.isEmail(email);
 };
 
-// Validate phone number (basic validation)
-export const validatePhoneNumber = (phone: string): boolean => {
-  const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
-  return phoneRegex.test(phone);
-};
-
-// Validate address
-export const validateAddress = (address: any): { isValid: boolean; errors: string[] } => {
+/**
+ * Validate password strength
+ * Must contain:
+ * - At least 8 characters
+ * - At least one uppercase letter
+ * - At least one lowercase letter
+ * - At least one number
+ * - At least one special character
+ */
+export const validatePasswordStrength = (password: string): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
-  if (!address.name || address.name.trim() === '') {
-    errors.push('Name is required');
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters long');
   }
   
-  if (!address.phone || !validatePhoneNumber(address.phone)) {
-    errors.push('Valid phone number is required');
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter');
   }
   
-  if (!address.street || address.street.trim() === '') {
-    errors.push('Street address is required');
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter');
   }
   
-  if (!address.city || address.city.trim() === '') {
-    errors.push('City is required');
+  if (!/\d/.test(password)) {
+    errors.push('Password must contain at least one number');
   }
   
-  if (!address.state || address.state.trim() === '') {
-    errors.push('State is required');
-  }
-  
-  if (!address.zip || address.zip.trim() === '') {
-    errors.push('ZIP code is required');
-  } else {
-    // Basic ZIP code validation
-    const zipRegex = /^\d{5}(-\d{4})?$/;
-    if (!zipRegex.test(address.zip)) {
-      errors.push('Invalid ZIP code format');
-    }
-  }
-  
-  if (!address.country || address.country.trim() === '') {
-    errors.push('Country is required');
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    errors.push('Password must contain at least one special character');
   }
   
   return {
     isValid: errors.length === 0,
     errors
   };
+};
+
+/**
+ * Validate phone number
+ */
+export const validatePhone = (phone: string): boolean => {
+  return validator.isMobilePhone(phone, 'any');
+};
+
+/**
+ * Validate URL
+ */
+export const validateUrl = (url: string): boolean => {
+  return validator.isURL(url);
+};
+
+/**
+ * Sanitize user input
+ */
+export const sanitizeInput = (input: string): string => {
+  return validator.escape(validator.trim(input));
 };
 ```
 

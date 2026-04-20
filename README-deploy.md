@@ -4,49 +4,55 @@
 
 1. Push code to GitHub repository
 2. Log in to Vercel dashboard (vercel.com)
-3. Click "New Project" and import the ShopSphere repository
-4. Configure project settings:
-   - Framework: Auto-detected (Vite)
-   - Root Directory: project root
-   - Build Command: `npm run build` (in client directory)
-   - Output Directory: `dist` (or `build` if using different config)
-5. Add environment variables from `.env.example` (VITE_* variables only)
-6. Click "Deploy"
+3. Click "New Project" and import the repository
+4. Set framework preset to "Vite" (auto-detected)
+5. Add environment variables from `.env.example` (see below)
+6. Set build command: `cd client && npm run build`
+7. Set output directory: `client/dist`
+8. Deploy
 
 ## Environment Variables
 
-### Frontend (Vercel Environment Variables)
-- `VITE_API_BASE_URL`: Base URL of deployed backend API (e.g., `https://shopsphere-backend.onrender.com/api`)
-- `VITE_STRIPE_PUBLIC_KEY`: Stripe public key for payment forms
+Required environment variables:
 
-### Backend (Set in backend hosting - Render/Railway)
-- `MONGODB_URI`: MongoDB connection string
-- `JWT_SECRET`: Secret key for JWT token signing
-- `JWT_REFRESH_SECRET`: Secret key for JWT refresh token signing
-- `STRIPE_SECRET_KEY`: Stripe secret key for server-side payments
+- `MONGODB_URI`: MongoDB connection string (from Atlas)
+- `JWT_SECRET`: JWT signing secret (32+ characters)
+- `JWT_REFRESH_SECRET`: JWT refresh token secret (32+ characters)
+- `STRIPE_SECRET_KEY`: Stripe secret key (from Stripe dashboard)
+- `STRIPE_PUBLISHABLE_KEY`: Stripe publishable key
 - `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret
-- `RESEND_API_KEY`: Resend API key for transactional emails
+- `RESEND_API_KEY`: Resend API key (from resend.com)
+- `EMAIL_FROM`: Email sender address
+- `FRONTEND_URL`: Production frontend URL (e.g., https://shopsphere.vercel.app)
+- `API_BASE_URL`: Production API base URL (e.g., https://shopsphere-api.onrender.com/api)
 - `GOOGLE_CLIENT_ID`: Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
-- `FACEBOOK_APP_ID`: Facebook App ID
-- `FACEBOOK_APP_SECRET`: Facebook App secret
-- `FRONTEND_URL`: Frontend URL for redirect URLs (e.g., `https://shopsphere.vercel.app`)
-- `CLIENT_URL`: Same as FRONTEND_URL
+- `FACEBOOK_APP_ID`: Facebook app ID
+- `FACEBOOK_APP_SECRET`: Facebook app secret
+- `AWS_ACCESS_KEY_ID`: AWS access key for S3
+- `AWS_SECRET_ACCESS_KEY`: AWS secret key for S3
+- `S3_BUCKET`: S3 bucket name for product images
+- `S3_REGION`: AWS region for S3 bucket
+- `ALGOLIA_APP_ID`: Algolia application ID
+- `ALGOLIA_API_KEY`: Algolia admin API key
+- `ALGOLIA_SEARCH_KEY`: Algolia search-only API key
+- `ALGOLIA_INDEX_NAME`: Algolia index name for products
 
 ## First-time Setup
 
-1. Deploy backend service first (to Render/Railway) and obtain the base URL
-2. Set backend environment variables in the backend hosting platform
-3. Run database migrations and seed data:
+1. Deploy backend to Railway/Render first to get API base URL
+2. Run database migrations:
    ```bash
-   # SSH into backend or run via script
-   node db/seed.js
+   cd server && node db/migrate.js
    ```
-4. Configure Stripe:
-   - Set webhook endpoint to `https://shopsphere-backend.onrender.com/api/stripe/webhook`
-   - Verify and copy the webhook secret to backend environment variables
-5. Configure OAuth providers:
-   - Set Google/Facebook OAuth redirect URLs to `/api/auth/oauth/callback`
-   - Add credentials to backend environment variables
-6. Deploy frontend to Vercel with frontend environment variables
-7. Verify deployment by accessing the Vercel app URL
+3. Seed database with sample data:
+   ```bash
+   cd server && node db/seed.js
+   ```
+4. Configure Stripe webhooks:
+   - Set webhook URL to `https://shopsphere-api.onrender.com/api/stripe/webhook`
+   - Copy webhook signing secret to `STRIPE_WEBHOOK_SECRET`
+5. Set up OAuth providers:
+   - Google: Add authorized redirect URI `https://shopsphere.vercel.app/api/auth/oauth/google/callback`
+   - Facebook: Add authorized redirect URI `https://shopsphere.vercel.app/api/auth/oauth/facebook/callback`
+6. Configure CORS in backend to allow `https://shopsphere.vercel.app`

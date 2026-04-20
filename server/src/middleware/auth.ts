@@ -1,91 +1,76 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { verifyAccessToken } from '../utils/token';
 import { User } from '../models/User';
-import { StatusCodes } from 'http-status-codes';
 
-// Extend Express Request interface to include user property
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        role: string;
-      };
-      userId?: string;
-    }
-  }
-}
+/**
+ * Authenticate token middleware
+ * Verify JWT access token and attach user to request
+ */
+export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
-// Authentication middleware
-export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
-  // Get token from header
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(StatusCodes.UNAUTHORIZED).json({
+  if (!token) {
+    return res.status(401).json({
       success: false,
-      message: 'Access token required',
+      message: 'Access token is required'
     });
   }
 
-  const token = authHeader.split(' ')[1];
-
-  try {
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string; role: string };
-    
-    // Check if user exists
-    const user = await User.findById(decoded.id).select('-password');
-    if (!user) {
-      return res.status(StatusCodes.UNAUTHORIZED).json({
-        success: false,
-        message: 'Invalid token',
-      });
-    }
-
-    // Add user to request object
-    req.user = {
-      id: decoded.id,
-      role: decoded.role,
-    };
-    req.userId = decoded.id;
-
-    next();
-  } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      return res.status(StatusCodes.UNAUTHORIZED).json({
-        success: false,
-        message: 'Token expired',
-      });
-    }
-    
-    return res.status(StatusCodes.UNAUTHORIZED).json({
+  const decoded = verifyAccessToken(token);
+  
+  if (!decoded) {
+    return res.status(403).json({
       success: false,
-      message: 'Invalid token',
+      message: 'Invalid or expired access token'
     });
   }
+
+  // Attach user to request
+  req.user = decoded;
+  next();
 };
 
-// Role-based authorization middleware
-export const authorize = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+/**
+ * Role-based access control middleware
+ * Check if user has required role
+ */
+export const requireRole = (roles: string[]) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(StatusCodes.UNAUTHORIZED).json({
+      return res.status(401).json({
         success: false,
-        message: 'Authentication required',
+        message: 'Authentication required'
       });
     }
 
+    // Check if user role is in allowed roles
     if (!roles.includes(req.user.role)) {
-      return res.status(StatusCodes.FORBIDDEN).json({
+      return res.status(403).json({
         success: false,
-        message: 'Insufficient permissions',
+        message: 'Insufficient permissions'
       });
     }
 
     next();
   };
 };
+
+/**
+ * Protect route middleware
+ * Combine authentication and role checking
+ */
+export const protect = (...roles: string[]) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    await authenticateToken(req, res, () => {
+      if (roles.length === 0) {
+        next();
+      } else {
+        requireRole(roles)(req, res, next);
+      }
+    });
+  };
+};
 ```
 
 ```typescript
-// SECURITY FIX: Update routes to use RLS middleware

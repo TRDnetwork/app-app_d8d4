@@ -1,17 +1,23 @@
 import bcrypt from 'bcryptjs';
 
-// Hash password
+/**
+ * Hash password
+ */
 export const hashPassword = async (password: string): Promise<string> => {
   const salt = await bcrypt.genSalt(12);
-  return bcrypt.hash(password, salt);
+  return await bcrypt.hash(password, salt);
 };
 
-// Verify password
+/**
+ * Verify password
+ */
 export const verifyPassword = async (password: string, hashedPassword: string): Promise<boolean> => {
-  return bcrypt.compare(password, hashedPassword);
+  return await bcrypt.compare(password, hashedPassword);
 };
 
-// Validate password strength
+/**
+ * Validate password strength
+ */
 export const validatePasswordStrength = (password: string): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
@@ -27,7 +33,7 @@ export const validatePasswordStrength = (password: string): { isValid: boolean; 
     errors.push('Password must contain at least one lowercase letter');
   }
   
-  if (!/[0-9]/.test(password)) {
+  if (!/\d/.test(password)) {
     errors.push('Password must contain at least one number');
   }
   
