@@ -1,0 +1,12 @@
+```ini
+[auth]
+token=/* SENTRY_AUTH_TOKEN */
+
+[defaults]
+url=https://sentry.io/
+org=/* SENTRY_ORG */
+project=/* SENTRY_PROJECT */
+
+[cli]
+return_traceback=true
+```
