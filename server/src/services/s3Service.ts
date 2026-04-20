@@ -1,46 +1,27 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { cleanEnv, str } from 'envalid';
-import { v4 as uuidv4 } from 'uuid';
+```ts
+import { S3Client } from '@aws-sdk/client-s3';
+import { config } from '../config/env';
 
-const env = cleanEnv(process.env, {
-  AWS_ACCESS_KEY_ID: str(),
-  AWS_SECRET_ACCESS_KEY: str(),
-  AWS_REGION: str(),
-  S3_BUCKET_NAME: str(),
-});
+// Validate AWS config at module load
+const requiredEnvVars = [
+  { key: 'AWS_ACCESS_KEY_ID', value: config.AWS_ACCESS_KEY_ID },
+  { key: 'AWS_SECRET_ACCESS_KEY', value: config.AWS_SECRET_ACCESS_KEY },
+  { key: 'S3_BUCKET_NAME', value: config.S3_BUCKET_NAME },
+];
+
+const missingVars = requiredEnvVars.filter(env => !env.value);
+if (missingVars.length > 0) {
+  throw new Error(`❌ Missing required environment variables: ${missingVars.map(v => v.key).join(', ')}`);
+}
 
 const s3Client = new S3Client({
-  region: env.AWS_REGION,
+  region: config.AWS_REGION,
   credentials: {
-    accessKeyId: env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+    accessKeyId: config.AWS_ACCESS_KEY_ID,
+    secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
   },
+  ...(process.env.NODE_ENV === 'production' ? {} : { useDualStack: true }), // Enable dual-stack in non-prod
 });
 
-export const generatePresignedUrl = async (fileName: string, fileType: string) => {
-  const key = `uploads/${uuidv4()}-${Date.now()}-${fileName}`;
-
-  const command = new PutObjectCommand({
-    Bucket: env.S3_BUCKET_NAME,
-    Key: key,
-    ContentType: fileType,
-  });
-
-  const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-
-  return { url, key };
-};
-
-export const deleteFileFromS3 = async (key: string) => {
-  const command = new DeleteObjectCommand({
-    Bucket: env.S3_BUCKET_NAME,
-    Key: key,
-  });
-
-  await s3Client.send(command);
-};
-
-export const getS3Url = (key: string) => {
-  return `https://${env.S3_BUCKET_NAME}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
-};
+export { s3Client };
+```

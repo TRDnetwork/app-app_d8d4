@@ -1,43 +1,42 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
 
-// Interface for usage event document
-export interface IUsageEvent extends Document {
-  userId: string;
-  eventType: string;
-  quantity: number;
-  timestamp: Date;
-}
+const usageEventSchema = new Schema(
+  {
+    user_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    event_type: {
+      type: String,
+      required: true,
+      enum: ['api_call', 'storage', 'seats'],
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  {
+    timestamps: true,
+    collection: 'app_d8d4_usage_events',
+  }
+);
 
-// Schema definition
-const usageEventSchema = new Schema<IUsageEvent>({
-  userId: {
-    type: String,
-    required: true,
-    index: true,
-  },
-  eventType: {
-    type: String,
-    required: true,
-    index: true,
-  },
-  quantity: {
-    type: Number,
-    required: true,
-    min: 1,
-  },
-  timestamp: {
-    type: Date,
-    required: true,
-    default: Date.now,
-    index: true,
-  },
-}, {
-  timestamps: false,
-});
+// Create indexes for frequently queried fields
+usageEventSchema.index({ user_id: 1 });
+usageEventSchema.index({ event_type: 1 });
+usageEventSchema.index({ timestamp: 1 });
 
-// Create and export the model
-const UsageEvent = mongoose.model<IUsageEvent>('UsageEvent', usageEventSchema);
-export default UsageEvent;
+// Cap the collection size to prevent unbounded growth
+usageEventSchema.index({ timestamp: 1 }, { expireAfterSeconds: 2592000 }); // 30 days
+
+export default models.UsageEvent || model('UsageEvent', usageEventSchema);
 ```
 
 ```typescript

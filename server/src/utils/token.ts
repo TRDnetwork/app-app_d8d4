@@ -1,44 +1,54 @@
+```ts
 import jwt from 'jsonwebtoken';
-import { v4 as uuidv4 } from 'uuid';
-import { cleanEnv } from 'envalid';
+import { config } from '../config/env';
 
-// Validate required environment variables
-const env = cleanEnv(process.env, {
-  JWT_SECRET: str({ length: 32 }),
-  JWT_REFRESH_SECRET: str({ length: 32 }),
-  JWT_EXPIRES_IN: str({ default: '15m' }),
-  JWT_REFRESH_EXPIRES_IN: str({ default: '7d' }),
-});
+// Validate JWT secrets at module load
+if (!config.JWT_SECRET || config.JWT_SECRET.length < 32) {
+  throw new Error('❌ Invalid or missing JWT_SECRET (must be at least 32 characters)');
+}
+
+if (!config.REFRESH_TOKEN_SECRET || config.REFRESH_TOKEN_SECRET.length < 32) {
+  throw new Error('❌ Invalid or missing REFRESH_TOKEN_SECRET (must be at least 32 characters)');
+}
 
 interface TokenPayload {
   userId: string;
   role: string;
-  email: string;
 }
 
-export const generateTokens = (payload: TokenPayload) => {
-  const accessToken = jwt.sign(payload, env.JWT_SECRET, {
-    expiresIn: env.JWT_EXPIRES_IN,
+export const generateAccessToken = (payload: TokenPayload): string => {
+  return jwt.sign(payload, config.JWT_SECRET, {
+    expiresIn: config.JWT_EXPIRES_IN,
+    algorithm: 'HS256',
   });
-
-  const refreshToken = jwt.sign(
-    { ...payload, jti: uuidv4() },
-    env.JWT_REFRESH_SECRET,
-    {
-      expiresIn: env.JWT_REFRESH_EXPIRES_IN,
-    }
-  );
-
-  return { accessToken, refreshToken };
 };
 
-export const verifyToken = (token: string, type: 'access' | 'refresh') => {
+export const generateRefreshToken = (payload: TokenPayload): string => {
+  return jwt.sign(payload, config.REFRESH_TOKEN_SECRET, {
+    expiresIn: config.REFRESH_TOKEN_EXPIRES_IN,
+    algorithm: 'HS256',
+  });
+};
+
+export const verifyAccessToken = (token: string): TokenPayload | null => {
   try {
-    return jwt.verify(token, type === 'access' ? env.JWT_SECRET : env.JWT_REFRESH_SECRET);
+    return jwt.verify(token, config.JWT_SECRET, {
+      algorithms: ['HS256'],
+    }) as TokenPayload;
   } catch (error) {
+    console.error('Invalid access token:', error);
     return null;
   }
 };
 
-export const verifyAccessToken = (token: string) => verifyToken(token, 'access');
-export const verifyRefreshToken = (token: string) => verifyToken(token, 'refresh');
+export const verifyRefreshToken = (token: string): TokenPayload | null => {
+  try {
+    return jwt.verify(token, config.REFRESH_TOKEN_SECRET, {
+      algorithms: ['HS256'],
+    }) as TokenPayload;
+  } catch (error) {
+    console.error('Invalid refresh token:', error);
+    return null;
+  }
+};
+```

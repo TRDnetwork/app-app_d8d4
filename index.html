@@ -27,6 +27,25 @@
         100% { opacity: 0.6; }
       }
     </style>
+    
+    <!-- GA4 Analytics Script - respects DNT and loads asynchronously -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=/* ANALYTICS_KEY */"></script>
+    <script>
+      // Check for Do Not Track
+      const isDNT = navigator.doNotTrack === "1" || 
+                   window.doNotTrack === "1" || 
+                   navigator.msDoNotTrack === "1";
+      
+      if (!isDNT) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '/* ANALYTICS_KEY */', {
+          page_path: window.location.pathname,
+          anonymize_ip: true
+        });
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
