@@ -1,60 +1,35 @@
-/* Minimal analytics event tracking - <2KB */
-export const trackEvent = (action: string, params?: Record<string, any>) => {
-  if (typeof window === 'undefined') return;
-  
-  // Respect Do Not Track
-  if (navigator.doNotTrack === "1" || window.doNotTrack === "1") {
-    return;
-  }
-  
-  // Track standard events
-  const eventMap: Record<string, string> = {
-    'page_view': 'page_view',
-    'form_submit': 'form_submit',
-    'cta_click': 'click',
-    'purchase': 'purchase',
-    'add_to_cart': 'add_to_cart',
-    'login': 'login',
-    'sign_up': 'sign_up',
-    'search': 'search'
-  };
-  
-  const gtag = (window as any).gtag;
-  if (gtag) {
-    gtag('event', eventMap[action] || action, {
-      ...params,
-      timestamp: Date.now()
+import { useEffect } from 'react';
+
+// Track page views
+export const trackPageView = (url: string) => {
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('config', 'GA4_MEASUREMENT_ID', {
+      page_path: url,
     });
   }
 };
 
-// Enhanced ecommerce tracking
-export const trackPurchase = (orderId: string, value: number, currency: string = 'USD') => {
-  trackEvent('purchase', {
-    transaction_id: orderId,
-    value: value,
-    currency: currency,
-    items: []
-  });
+// Track events
+export const trackEvent = (action: string, category: string, label?: string, value?: number) => {
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('event', action, {
+      event_category: category,
+      event_label: label,
+      value: value,
+    });
+  }
 };
 
-export const trackAddToCart = (productId: string, name: string, price: number) => {
-  trackEvent('add_to_cart', {
-    items: [{
-      item_id: productId,
-      item_name: name,
-      price: price,
-      currency: 'USD',
-      quantity: 1
-    }]
-  });
+// Hook for page view tracking
+export const usePageView = (url: string) => {
+  useEffect(() => {
+    trackPageView(url);
+  }, [url]);
 };
 
-// Initialize analytics with privacy defaults
-export const initAnalytics = () => {
-  // No additional initialization needed for GA4 snippet
-  // Event tracking handled by trackEvent function
+// Hook for event tracking
+export const useTrackEvent = (action: string, category: string, label?: string) => {
+  useEffect(() => {
+    trackEvent(action, category, label);
+  }, [action, category, label]);
 };
-
-// Export for dashboard widget
-export { AnalyticsDashboardWidget } from '@/components/AnalyticsDashboardWidget';

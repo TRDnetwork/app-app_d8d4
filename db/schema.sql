@@ -1,2 +1,3 @@
--- No database required — application uses MongoDB (Mongoose) as specified in user prompt and architect plan.
--- Supabase PostgreSQL schema is not used for this project.
+-- No database required — app uses MongoDB via custom Express backend.
+-- All data stored in MongoDB collections (e.g., app_d8d4_users, app_d8d4_products).
+-- Supabase is not used for database, auth, or storage.

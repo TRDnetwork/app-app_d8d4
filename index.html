@@ -1,68 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><script>window.__SUPABASE_URL__="https://wmxnwapnfurwoalvkkwh.supabase.co";window.__SUPABASE_ANON_KEY__="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteG53YXBuZnVyd29hbHZra3doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDgwODEsImV4cCI6MjA5MTQ4NDA4MX0.BNgF4LD35_Ooxtkv5Pok8ldrBeHPOCDauv-ZYG1v7_Q";</script>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="ShopSphere - Premium e-commerce marketplace with fast delivery and secure payments. Discover amazing products from top brands." />
-  <meta name="keywords" content="e-commerce, online shopping, marketplace, Amazon clone, product deals, secure payments" />
-  <meta name="robots" content="index, follow" />
-  <meta name="author" content="TRD Network" />
-  
-  <!-- Open Graph / Social Media Meta Tags -->
-  <meta property="og:title" content="ShopSphere - Premium E-Commerce Marketplace" />
-  <meta property="og:description" content="Discover amazing products with fast delivery and secure payments" />
-  <meta property="og:image" content="https://shopsphere.com/og-image.jpg" />
-  <meta property="og:url" content="https://shopsphere.com/" />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="ShopSphere" />
-  
-  <!-- Twitter Card Meta Tags -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="ShopSphere - Premium E-Commerce Marketplace" />
-  <meta name="twitter:description" content="Discover amazing products with fast delivery and secure payments" />
-  <meta name="twitter:image" content="https://shopsphere.com/twitter-image.jpg" />
-  <meta name="twitter:site" content="@shopsphere" />
-  <meta name="twitter:creator" content="@shopsphere" />
-  
-  <title>ShopSphere - Premium E-Commerce Marketplace</title>
-  
-  <!-- Schema.org Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "ShopSphere",
-    "url": "https://shopsphere.com/",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://shopsphere.com/search?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    },
-    "description": "Premium e-commerce marketplace with fast delivery and secure payments"
-  }
-  </script>
-  
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "ShopSphere",
-    "url": "https://shopsphere.com/",
-    "logo": "https://shopsphere.com/logo.png",
-    "sameAs": [
-      "https://www.facebook.com/shopsphere",
-      "https://www.twitter.com/shopsphere",
-      "https://www.instagram.com/shopsphere"
-    ],
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "email": "support@shopsphere.com",
-      "contactType": "customer service"
-    }
-  }
-  </script>
-</head>
-<body>
-  <div id="root"></div>
-</body>
+  <head><script>window.__SUPABASE_URL__="https://wmxnwapnfurwoalvkkwh.supabase.co";window.__SUPABASE_ANON_KEY__="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteG53YXBuZnVyd29hbHZra3doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDgwODEsImV4cCI6MjA5MTQ4NDA4MX0.BNgF4LD35_Ooxtkv5Pok8ldrBeHPOCDauv-ZYG1v7_Q";</script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShopSphere</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Source Sans Pro', sans-serif;
+        background-color: #0F172A;
+        color: #F8FAFC;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      #root {
+        min-height: 100vh;
+        animation: fadeIn 0.3s ease-in;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

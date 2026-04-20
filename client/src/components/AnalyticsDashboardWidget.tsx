@@ -1,123 +1,135 @@
-'use client';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Bar, BarChart, Line, LineChart } from 'recharts';
+import { TrendingUp, Package, ShoppingCart, Star } from 'lucide-react';
 
-import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, FunnelChart, Funnel } from 'recharts';
-import { ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
+const mockData = {
+  revenue: [
+    { month: 'Jan', value: 4500 },
+    { month: 'Feb', value: 6800 },
+    { month: 'Mar', value: 5200 },
+    { month: 'Apr', value: 7800 },
+    { month: 'May', value: 8500 },
+    { month: 'Jun', value: 9200 },
+  ],
+  orders: [
+    { month: 'Jan', value: 120 },
+    { month: 'Feb', value: 180 },
+    { month: 'Mar', value: 140 },
+    { month: 'Apr', value: 210 },
+    { month: 'May', value: 230 },
+    { month: 'Jun', value: 250 },
+  ],
+  kpi: {
+    revenue: 9200,
+    orders: 250,
+    productsSold: 1840,
+    avgRating: 4.8,
+  },
+};
 
-// Mock data for development
-const mockFunnelData = [
-  { name: 'Visitors', value: 10000, fill: '#E2E8F0' },
-  { name: 'Viewed Product', value: 6500, fill: '#94A3B8' },
-  { name: 'Added to Cart', value: 3200, fill: '#475569' },
-  { name: 'Checkout Started', value: 1800, fill: '#1E40AF' },
-  { name: 'Purchases', value: 950, fill: '#1D4ED8' }
-];
-
-const mockRevenueData = [
-  { name: 'Mon', revenue: 4000 },
-  { name: 'Tue', revenue: 3000 },
-  { name: 'Wed', revenue: 5000 },
-  { name: 'Thu', revenue: 4500 },
-  { name: 'Fri', revenue: 6000 },
-  { name: 'Sat', revenue: 5500 },
-  { name: 'Sun', revenue: 7000 },
-];
-
-export function AnalyticsDashboardWidget() {
-  const [timeRange, setTimeRange] = useState('7d');
-  const [conversionRate, setConversionRate] = useState(0);
-
-  // Calculate conversion rate from funnel data
-  useEffect(() => {
-    if (mockFunnelData.length > 1) {
-      const visitors = mockFunnelData[0].value;
-      const purchases = mockFunnelData[mockFunnelData.length - 1].value;
-      setConversionRate(Number(((purchases / visitors) * 100).toFixed(2)));
-    }
-  }, []);
-
+const AnalyticsDashboardWidget = () => {
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      {/* Conversion Funnel */}
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {/* KPI Cards */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Conversion Funnel</CardTitle>
-            <div className="text-sm text-gray-500">
-              Conversion Rate: <span className="font-bold text-green-600">{conversionRate}%</span>
-            </div>
-          </div>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+          <TrendingUp className="h-4 w-4 text-green-500" />
         </CardHeader>
         <CardContent>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <FunnelChart>
-                <Tooltip />
-                <Funnel
-                  dataKey="value"
-                  data={mockFunnelData}
-                  isAnimationActive={true}
-                >
-                  {mockFunnelData.map((item, index) => (
-                    <Cell key={`cell-${index}`} fill={item.fill} />
-                  ))}
-                </Funnel>
-              </FunnelChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-4 grid grid-cols-5 text-center text-sm text-gray-600">
-            {mockFunnelData.map((stage, index) => (
-              <div key={stage.name}>
-                <div className="font-medium">{stage.value.toLocaleString()}</div>
-                <div>{stage.name}</div>
-              </div>
-            ))}
-          </div>
+          <div className="text-2xl font-bold">${mockData.kpi.revenue.toLocaleString()}</div>
+          <p className="text-xs text-text-dim">+12% from last month</p>
         </CardContent>
       </Card>
 
-      {/* Revenue Overview */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle>Revenue Overview</CardTitle>
-          <div className="flex space-x-1">
-            {(['7d', '30d', '90d'] as const).map((range) => (
-              <Button
-                key={range}
-                variant={timeRange === range ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setTimeRange(range)}
-                className="text-xs"
-              >
-                {range}
-              </Button>
-            ))}
-          </div>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+          <ShoppingCart className="h-4 w-4 text-blue-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">$25,500</div>
-          <p className="text-xs text-gray-500 flex items-center">
-            <ArrowUpIcon className="h-3 w-3 text-green-500 mr-1" />
-            12.5% from last period
-          </p>
-          <div className="h-32 mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mockRevenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="revenue" fill="#1D4ED8" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <div className="text-2xl font-bold">{mockData.kpi.orders.toLocaleString()}</div>
+          <p className="text-xs text-text-dim">+8% from last month</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium">Products Sold</CardTitle>
+          <Package className="h-4 w-4 text-orange-500" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{mockData.kpi.productsSold.toLocaleString()}</div>
+          <p className="text-xs text-text-dim">+15% from last month</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium">Avg. Rating</CardTitle>
+          <Star className="h-4 w-4 text-yellow-500" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{mockData.kpi.avgRating}</div>
+          <p className="text-xs text-text-dim">+0.2 from last month</p>
+        </CardContent>
+      </Card>
+
+      {/* Revenue Chart */}
+      <Card className="lg:col-span-2">
+        <CardHeader>
+          <CardTitle>Revenue Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer
+            config={{
+              value: {
+                label: 'Revenue',
+                color: 'hsl(var(--chart-1))',
+              },
+            }}
+            className="h-[300px]"
+          >
+            <LineChart data={mockData.revenue}>
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="hsl(var(--chart-1))"
+                strokeWidth={2}
+                dot={true}
+              />
+            </LineChart>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+
+      {/* Orders Chart */}
+      <Card className="lg:col-span-2">
+        <CardHeader>
+          <CardTitle>Orders Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer
+            config={{
+              value: {
+                label: 'Orders',
+                color: 'hsl(var(--chart-2))',
+              },
+            }}
+            className="h-[300px]"
+          >
+            <BarChart data={mockData.orders}>
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Bar dataKey="value" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ChartContainer>
         </CardContent>
       </Card>
     </div>
   );
-}
+};
 
-// Helper component for funnel chart
-const Cell = ({ fill }: { fill: string }) => <rect fill={fill} />;
+export default AnalyticsDashboardWidget;

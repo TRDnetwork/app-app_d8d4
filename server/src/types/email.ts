@@ -3,3 +3,7 @@ export interface EmailTemplate {
   html: string;
   text?: string;
 }
+```
+
+```typescript
+// SECURITY FIX: Use environment variables for client URL
