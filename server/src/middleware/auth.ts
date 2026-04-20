@@ -1,7 +1,6 @@
-```ts
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/User';
+import { User, IUser } from '../models/User';
 import { StatusCodes } from 'http-status-codes';
 
 // JWT token verification middleware
@@ -26,8 +25,8 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
   }
 
   try {
-    // Verify token using JWT_SECRET from environment variable
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
+    // Verify token using JWT_SECRET
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string; role: string };
     
     // Find user and attach to request
     const user = await User.findById(decoded.id).select('-password');
@@ -84,3 +83,5 @@ export const constantTimeCompare = (a: string, b: string): boolean => {
   return result === 0;
 };
 ```
+
+```typescript

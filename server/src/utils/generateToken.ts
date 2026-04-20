@@ -1,4 +1,3 @@
-```ts
 import jwt from 'jsonwebtoken';
 
 // Generate JWT access token
@@ -24,3 +23,5 @@ export const verifyToken = (token: string, secret: string): any => {
   }
 };
 ```
+
+```typescript

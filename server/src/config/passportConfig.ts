@@ -1,4 +1,3 @@
-```ts
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
@@ -7,8 +6,8 @@ import { generateToken, generateRefreshToken } from '../utils/generateToken';
 
 // Google OAuth configuration
 passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID!,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+  clientID: process.env.GOOGLE_CLIENT_ID!, // SECURITY FIX: Use environment variable
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET!, // SECURITY FIX: Use environment variable
   callbackURL: '/api/auth/oauth/google/callback',
   passReqToCallback: true
 }, async (request, accessToken, refreshToken, profile, done) => {
@@ -54,8 +53,8 @@ passport.use(new GoogleStrategy({
 
 // Facebook OAuth configuration
 passport.use(new FacebookStrategy({
-  clientID: process.env.FACEBOOK_APP_ID!,
-  clientSecret: process.env.FACEBOOK_APP_SECRET!,
+  clientID: process.env.FACEBOOK_APP_ID!, // SECURITY FIX: Use environment variable
+  clientSecret: process.env.FACEBOOK_APP_SECRET!, // SECURITY FIX: Use environment variable
   callbackURL: '/api/auth/oauth/facebook/callback',
   profileFields: ['id', 'displayName', 'email'],
   passReqToCallback: true
@@ -117,3 +116,5 @@ passport.deserializeUser(async (id, done) => {
 
 export const config = passport;
 ```
+
+```typescript

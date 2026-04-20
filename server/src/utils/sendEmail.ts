@@ -39,3 +39,6 @@ export const sendEmail = async (options: EmailOptions): Promise<void> => {
     throw error;
   }
 };
+```
+
+```typescript

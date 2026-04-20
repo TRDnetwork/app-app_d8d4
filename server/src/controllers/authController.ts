@@ -1,4 +1,3 @@
-```ts
 import { Request, Response } from 'express';
 import User, { IUser } from '../models/User';
 import { generateToken, generateRefreshToken } from '../utils/generateToken';
@@ -229,7 +228,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     });
   }
 
-  // Use longer random token and hash before storing
+  // SECURITY FIX: Use longer random token and hash before storing
   const resetToken = crypto.randomBytes(64).toString('hex');
   const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
   
@@ -272,7 +271,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
 export const resetPassword = async (req: Request, res: Response) => {
   const { token, password } = req.body;
 
-  // Hash the token before searching
+  // SECURITY FIX: Hash the token before searching
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
   const user = await User.findOne({
@@ -298,3 +297,5 @@ export const resetPassword = async (req: Request, res: Response) => {
   });
 };
 ```
+
+```typescript

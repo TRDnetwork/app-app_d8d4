@@ -1,0 +1,2 @@
+-- No database required — application uses MongoDB (Mongoose) as specified in user prompt and architect plan.
+-- Supabase PostgreSQL schema is not used for this project.
