@@ -2,90 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="ShopSphere – Premium e-commerce platform with curated products, fast delivery, and secure payments." />
-    <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#FF9900" />
-    
-    <!-- PWA specific tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="ShopSphere" />
-    
-    <!-- iOS Safari specific tags -->
-    <link rel="apple-touch-icon" href="/icons/icon-152x152.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
-    
-    <!-- Android Chrome specific tags -->
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
-    
-    <!-- Preconnect -->
+    <title>ShopSphere</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
-    
-    <!-- Schema.org Structured Data -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "ShopSphere",
-      "url": "https://shopsphere.com/",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://shopsphere.com/products?search={search_term_string}",
-        "query-input": "required name=search_term_string"
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "ShopSphere",
+        "url": "https://shopsphere.app_d8d4.com"
       }
-    }
     </script>
-    
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "ShopSphere",
-      "url": "https://shopsphere.com/",
-      "logo": "https://shopsphere.com/logo.png",
-      "foundingDate": "2024",
-      "founders": [
-        {
-          "@type": "Person",
-          "name": "TRD Network"
-        }
-      ],
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "email": "support@shopsphere.com",
-        "contactType": "customer service"
-      },
-      "sameAs": [
-        "https://twitter.com/shopsphere",
-        "https://facebook.com/shopsphere",
-        "https://instagram.com/shopsphere"
-      ]
-    }
-    </script>
-    
-    <title>ShopSphere</title>
   </head>
-  <body class="bg-bg text-text font-body antialiased">
+  <body class="bg-bg text-text antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      // Register service worker for PWA functionality
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
-            });
-        });
-      }
-    </script>
   </body>
 </html>
