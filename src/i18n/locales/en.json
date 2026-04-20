@@ -2,191 +2,142 @@
   "nav": {
     "home": "Home",
     "products": "Products",
-    "orders": "Orders",
     "wishlist": "Wishlist",
-    "login": "Login",
-    "logout": "Logout",
+    "cart": "Cart",
     "profile": "Profile",
-    "sellerDashboard": "Seller Dashboard",
-    "adminPanel": "Admin Panel"
+    "login": "Login",
+    "logout": "Logout"
   },
   "header": {
-    "searchPlaceholder": "Search for products..."
-  },
-  "footer": {
-    "customerService": "Customer Service",
-    "company": "Company",
-    "legal": "Legal",
-    "helpCenter": "Help Center",
-    "returns": "Returns & Refunds",
-    "shipping": "Shipping Info",
-    "contact": "Contact Us",
-    "about": "About Us",
-    "careers": "Careers",
-    "press": "Press",
-    "blog": "Blog",
-    "privacy": "Privacy Policy",
-    "terms": "Terms of Service",
-    "cookies": "Cookie Policy"
-  },
-  "home": {
-    "heroTitle": "Deals of the Day",
-    "heroSubtitle": "Up to 50% off on top brands",
-    "heroShopNow": "Shop Now",
-    "featuredCategories": "Featured Categories",
-    "trendingProducts": "Trending Products",
-    "viewAll": "View All"
-  },
-  "productListing": {
-    "title": "Products",
-    "showing": "Showing",
-    "of": "of",
-    "products": "products",
-    "sortBy": "Sort by",
-    "relevance": "Relevance",
-    "priceLow": "Price: Low to High",
-    "priceHigh": "Price: High to Low",
-    "newest": "Newest",
-    "rating": "Avg. Rating"
-  },
-  "productDetail": {
-    "addToCart": "Add to Cart",
-    "buyNow": "Buy Now",
-    "description": "Description",
-    "specifications": "Specifications",
-    "reviews": "Reviews",
-    "questions": "Questions",
-    "addToWishlist": "Add to Wishlist",
-    "removeFromWishlist": "Remove from Wishlist"
-  },
-  "cart": {
-    "title": "Shopping Cart",
-    "product": "Product",
-    "price": "Price",
-    "quantity": "Quantity",
-    "subtotal": "Subtotal",
-    "total": "Total",
-    "continueShopping": "Continue Shopping",
-    "checkout": "Checkout",
-    "emptyCart": "Your cart is empty"
-  },
-  "checkout": {
-    "title": "Checkout",
-    "shippingAddress": "Shipping Address",
-    "deliveryMethod": "Delivery Method",
-    "paymentMethod": "Payment Method",
-    "orderSummary": "Order Summary",
-    "continue": "Continue",
-    "back": "Back",
-    "standardDelivery": "Standard Delivery",
-    "expressDelivery": "Express Delivery",
-    "sameDayDelivery": "Same-Day Delivery",
-    "free": "Free",
-    "cardDetails": "Card Details",
-    "nameOnCard": "Name on Card",
-    "pay": "Pay"
-  },
-  "orderConfirmation": {
-    "title": "Order Confirmed!",
-    "thankYou": "Thank you for your purchase",
-    "orderNumber": "Order Number",
-    "emailSent": "We've sent a confirmation email to",
-    "viewOrderHistory": "View Order History",
-    "continueShopping": "Continue Shopping"
+    "search": "Search products..."
   },
   "auth": {
     "login": {
-      "title": "Welcome Back",
-      "email": "Email",
+      "title": "Login to Your Account",
+      "email": "Email Address",
       "password": "Password",
-      "signIn": "Sign In",
-      "forgotPassword": "Forgot password?",
-      "orContinueWith": "Or continue with",
-      "noAccount": "Don't have an account?",
-      "signUp": "Sign up"
+      "remember": "Remember me",
+      "submit": "Login",
+      "or_continue": "Or continue with",
+      "no_account": "Don't have an account?",
+      "sign_up": "Sign up"
     },
     "register": {
-      "title": "Create an Account",
-      "fullName": "Full Name",
-      "email": "Email",
+      "title": "Create New Account",
+      "name": "Full Name",
+      "email": "Email Address",
       "password": "Password",
-      "confirmPassword": "Confirm Password",
-      "createAccount": "Create Account",
-      "alreadyHaveAccount": "Already have an account?",
-      "signIn": "Sign in"
+      "confirm_password": "Confirm Password",
+      "submit": "Create Account",
+      "have_account": "Already have an account?",
+      "login": "Login"
     },
-    "forgotPassword": {
-      "title": "Reset Password",
-      "email": "Email",
-      "sendResetEmail": "Send Reset Email",
-      "backToSignIn": "Back to Sign In"
+    "forgot_password": {
+      "title": "Forgot Password?",
+      "description": "Enter your email address and we'll send you a link to reset your password.",
+      "email": "Email Address",
+      "submit": "Send Reset Link",
+      "back_to_login": "Back to Login"
     },
-    "resetPassword": {
-      "title": "Reset Password",
-      "newPassword": "New Password",
-      "confirmNewPassword": "Confirm New Password",
-      "resetPassword": "Reset Password"
+    "reset_password": {
+      "title": "Reset Your Password",
+      "new_password": "New Password",
+      "confirm_password": "Confirm New Password",
+      "submit": "Reset Password"
     }
   },
-  "profile": {
-    "title": "My Profile",
-    "personalInfo": "Personal Information",
-    "fullName": "Full Name",
-    "email": "Email",
-    "phone": "Phone",
-    "saveChanges": "Save Changes",
-    "addresses": "Addresses",
-    "addNewAddress": "Add New Address",
-    "default": "Default",
-    "edit": "Edit",
-    "delete": "Delete"
+  "product": {
+    "price": "Price",
+    "original_price": "Original Price",
+    "discount": "You save",
+    "rating": "Rating",
+    "reviews": "reviews",
+    "in_stock": "In Stock",
+    "low_stock": "Low Stock",
+    "out_of_stock": "Out of Stock",
+    "select_variant": "Select Variant",
+    "quantity": "Quantity",
+    "add_to_cart": "Add to Cart",
+    "description": "Description",
+    "reviews": "Reviews",
+    "qa": "Q&A"
   },
-  "wishlist": {
-    "title": "Wishlist",
-    "empty": "Your wishlist is empty",
-    "continueShopping": "Continue Shopping"
-  },
-  "orders": {
-    "title": "Order History",
-    "order": "Order",
-    "date": "Date",
-    "total": "Total",
-    "status": "Status",
-    "viewDetails": "View Details",
-    "empty": "You haven't placed any orders yet"
-  },
-  "orderTracking": {
-    "title": "Order Tracking",
-    "orderNumber": "Order Number",
-    "placed": "Placed",
-    "confirmed": "Confirmed",
-    "shipped": "Shipped",
-    "outForDelivery": "Out for Delivery",
-    "delivered": "Delivered",
-    "items": "Items",
-    "quantity": "Qty",
-    "deliveryAddress": "Delivery Address",
-    "orderSummary": "Order Summary",
+  "cart": {
+    "title": "Your Cart",
+    "empty": "Your cart is empty",
+    "continue_shopping": "Continue Shopping",
     "subtotal": "Subtotal",
-    "deliveryFee": "Delivery Fee",
-    "tax": "Tax",
+    "delivery": "Delivery",
     "total": "Total",
-    "paymentMethod": "Payment Method",
-    "cardEndingIn": "Card ending in"
+    "proceed_to_checkout": "Proceed to Checkout"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "step_address": "1. Address",
+    "step_delivery": "2. Delivery",
+    "step_payment": "3. Payment",
+    "step_review": "4. Review",
+    "address": {
+      "title": "Shipping Address",
+      "street": "Street Address",
+      "city": "City",
+      "state": "State",
+      "zip": "ZIP Code",
+      "country": "Country",
+      "phone": "Phone Number",
+      "save_continue": "Save & Continue"
+    },
+    "delivery": {
+      "title": "Delivery Method",
+      "standard": "Standard Delivery",
+      "standard_desc": "3-5 business days",
+      "express": "Express Delivery",
+      "express_desc": "1-2 business days",
+      "same_day": "Same Day Delivery",
+      "same_day_desc": "Delivery today"
+    },
+    "payment": {
+      "title": "Payment Method",
+      "card": "Credit/Debit Card",
+      "upi": "UPI",
+      "cod": "Cash on Delivery",
+      "name_on_card": "Name on Card",
+      "card_number": "Card Number",
+      "expiry": "Expiry Date",
+      "cvv": "CVV",
+      "upi_id": "UPI ID",
+      "pay_now": "Pay Now",
+      "continue": "Continue"
+    },
+    "review": {
+      "title": "Review Order",
+      "place_order": "Place Order"
+    }
+  },
+  "order": {
+    "confirmation": {
+      "title": "Thank you for your order!",
+      "description": "Your order has been confirmed and will be processed shortly.",
+      "order_number": "Order Number",
+      "order_date": "Order Date",
+      "total_amount": "Total Amount",
+      "view_status": "View Order Status",
+      "continue_shopping": "Continue Shopping",
+      "email_sent": "A confirmation email has been sent to your registered email address."
+    }
   },
   "common": {
+    "back": "Back",
+    "continue": "Continue",
     "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
     "edit": "Edit",
-    "close": "Close",
+    "delete": "Delete",
+    "cancel": "Cancel",
     "yes": "Yes",
     "no": "No",
-    "search": "Search",
-    "filter": "Filter",
-    "apply": "Apply",
-    "clear": "Clear",
-    "loadMore": "Load More",
-    "backToTop": "Back to Top"
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
   }
 }

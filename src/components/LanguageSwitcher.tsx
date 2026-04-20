@@ -1,48 +1,31 @@
-'use client';
-
-import { usePathname, useRouter } from 'next/navigation';
-import { useLocale, useTranslations } from 'next-intl';
-import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 export function LanguageSwitcher() {
-  const t = useTranslations();
-  const locale = useLocale();
-  const router = useRouter();
-  const pathname = usePathname();
-
+  const { i18n } = useTranslation();
+  
   const languages = [
     { code: 'en', label: 'EN', name: 'English' },
     { code: 'es', label: 'ES', name: 'Español' },
     { code: 'fr', label: 'FR', name: 'Français' },
     { code: 'de', label: 'DE', name: 'Deutsch' },
-    { code: 'ja', label: 'JA', name: '日本語' }
+    { code: 'ja', label: 'JA', name: '日本語' },
   ];
-
-  const switchLanguage = (newLocale: string) => {
-    // Extract the current path without locale prefix
-    const pathWithoutLocale = pathname.replace(/^\/[a-z]{2}/, '');
-    // Construct new path with new locale
-    const newPath = `/${newLocale}${pathWithoutLocale}`;
-    router.push(newPath);
-  };
-
+  
   return (
-    <div className="flex items-center space-x-2">
-      {languages.map((lang) => (
-        <Button
+    <div className="flex gap-2">
+      {languages.map(lang => (
+        <button
           key={lang.code}
-          variant="ghost"
-          size="sm"
-          onClick={() => switchLanguage(lang.code)}
-          className={`px-2 py-1 text-xs font-medium transition-colors ${
-            locale === lang.code 
-              ? 'bg-accent text-accent-foreground' 
-              : 'text-text_dim hover:text-text'
+          onClick={() => i18n.changeLanguage(lang.code)}
+          className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+            i18n.language === lang.code 
+              ? 'bg-accent text-black' 
+              : 'bg-surface/50 text-text-dim hover:bg-surface/80'
           }`}
-          aria-label={lang.name}
+          aria-label={`Switch to ${lang.name}`}
         >
           {lang.label}
-        </Button>
+        </button>
       ))}
     </div>
   );

@@ -1,129 +1,144 @@
-'use client';
+import React, { useState } from 'react';
+import { useAuth } from '../lib/auth';
+import { useCartStore } from '../stores/cart';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Search, ShoppingCart, User, Menu, X, Heart } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
-import { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Search, ShoppingCart, User, Menu, X, ChevronDown } from 'lucide-react';
-import Link from 'next/link';
-import { LanguageSwitcher } from '@/i18n/navigation';
-import { usePathname } from 'next/navigation';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-
-export default function Header() {
+const Header = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const pathname = usePathname();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // PERF: Memoize cart item count to prevent unnecessary re-renders
+  const cartItemCount = useCartStore(state => state.getTotalItems());
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-sm" role="banner">
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center">
-            <Link href="/" className="text-2xl font-bold text-accent" aria-label="ShopSphere home">
-              ShopSphere
-            </Link>
+    <header className="sticky top-0 z-50 bg-card border-b border-border">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-8">
+            <Link to="/" className="text-2xl font-bold text-primary">ShopSphere</Link>
+            <nav className="hidden md:flex space-x-6">
+              <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+              <Link to="/products" className="hover:text-primary transition-colors">Products</Link>
+              <Link to="/wishlist" className="hover:text-primary transition-colors flex items-center gap-1">
+                Wishlist
+                <Heart className="h-4 w-4" />
+              </Link>
+            </nav>
           </div>
 
-          <div className="hidden flex-1 max-w-xl px-8 md:block">
+          <div className="flex-1 max-w-xl mx-8 hidden md:block">
             <div className="relative">
-              <label htmlFor="search" className="sr-only">Search for products</label>
               <Input
-                id="search"
                 type="text"
-                placeholder="Search for products..."
-                className="pr-10"
-                aria-label="Search for products"
+                placeholder="Search products..."
+                className="pl-10 pr-4 py-2 w-full"
               />
-              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text_dim" aria-hidden="true" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <LanguageSwitcher />
-            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-              <SheetTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="md:hidden"
-                  aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-                >
-                  {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <div className="flex items-center space-x-4">
+            {/* Mobile search button */}
+            <button
+              className="md:hidden"
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+              aria-label="Toggle search"
+            >
+              <Search className="h-6 w-6" />
+            </button>
+
+            <Link to="/cart" className="relative">
+              <ShoppingCart className="h-6 w-6" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs">
+                  {cartItemCount}
+                </span>
+              )}
+            </Link>
+
+            {user ? (
+              <div className="relative group">
+                <Button variant="ghost" className="flex items-center space-x-2">
+                  <img
+                    src={user.profile_picture_url || `https://ui-avatars.com/api/?name=${user.name}`}
+                    alt={user.name}
+                    className="w-8 h-8 rounded-full"
+                  />
+                  <span className="font-medium">{user.name}</span>
                 </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                <nav className="flex flex-col space-y-4 py-4" role="navigation" aria-label="Main navigation">
-                  <Link 
-                    href="/products" 
-                    className={`py-2 ${pathname === '/products' ? 'text-accent font-medium' : 'text-text_dim'}`}
-                    onClick={() => setIsMenuOpen(false)}
-                    aria-current={pathname === '/products' ? 'page' : undefined}
-                  >
-                    Products
-                  </Link>
-                  <Link 
-                    href="/cart" 
-                    className={`py-2 ${pathname === '/cart' ? 'text-accent font-medium' : 'text-text_dim'}`}
-                    onClick={() => setIsMenuOpen(false)}
-                    aria-current={pathname === '/cart' ? 'page' : undefined}
-                  >
-                    Cart
-                  </Link>
-                  <Link 
-                    href="/orders" 
-                    className={`py-2 ${pathname === '/orders' ? 'text-accent font-medium' : 'text-text_dim'}`}
-                    onClick={() => setIsMenuOpen(false)}
-                    aria-current={pathname === '/orders' ? 'page' : undefined}
-                  >
-                    Orders
-                  </Link>
-                  <Link 
-                    href="/wishlist" 
-                    className={`py-2 ${pathname === '/wishlist' ? 'text-accent font-medium' : 'text-text_dim'}`}
-                    onClick={() => setIsMenuOpen(false)}
-                    aria-current={pathname === '/wishlist' ? 'page' : undefined}
-                  >
-                    Wishlist
-                  </Link>
-                  <Link 
-                    href="/profile" 
-                    className={`py-2 ${pathname === '/profile' ? 'text-accent font-medium' : 'text-text_dim'}`}
-                    onClick={() => setIsMenuOpen(false)}
-                    aria-current={pathname === '/profile' ? 'page' : undefined}
-                  >
-                    Profile
-                  </Link>
-                </nav>
-              </SheetContent>
-            </Sheet>
-            <Button variant="ghost" size="icon" asChild className="relative">
-              <Link href="/cart" aria-label="View shopping cart">
-                <ShoppingCart className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
-              </Link>
-            </Button>
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/auth/login" aria-label="Account login">
-                <User className="h-5 w-5" />
-              </Link>
-            </Button>
+                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                  <div className="py-1">
+                    <Link
+                      to="/profile"
+                      className="block px-4 py-2 text-sm hover:bg-muted"
+                    >
+                      My Profile
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm hover:bg-muted"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Button asChild>
+                <Link to="/login">Login</Link>
+              </Button>
+            )}
+
+            <button
+              className="md:hidden"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
         </div>
 
-        {/* Mobile search */}
-        <div className="py-2 md:hidden">
-          <div className="relative">
-            <label htmlFor="mobile-search" className="sr-only">Search for products</label>
-            <Input
-              id="mobile-search"
-              type="text"
-              placeholder="Search for products..."
-              className="pr-10"
-              aria-label="Search for products"
-            />
-            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text_dim" aria-hidden="true" />
+        {/* Mobile Search */}
+        {isSearchOpen && (
+          <div className="md:hidden mt-4 pb-4 border-t border-border">
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Search products..."
+                className="pl-10 pr-4 py-2 w-full"
+              />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden mt-4 pb-4 border-t border-border">
+            <div className="flex flex-col space-y-3 pt-4">
+              <Link to="/" className="px-4 py-2 hover:bg-muted rounded">Home</Link>
+              <Link to="/products" className="px-4 py-2 hover:bg-muted rounded">Products</Link>
+              <Link to="/wishlist" className="px-4 py-2 hover:bg-muted rounded flex items-center gap-1">
+                Wishlist
+                <Heart className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );
-}
+};
+
+export default Header;

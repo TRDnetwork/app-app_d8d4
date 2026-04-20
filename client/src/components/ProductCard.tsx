@@ -1,66 +1,145 @@
-'use client';
+import React from 'react';
+import { Button } from './ui/button';
+import { Star, Heart } from 'lucide-react';
+import { useWishlistStore } from '../stores/wishlist';
+import { useAnalytics } from '../lib/analytics';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Star, ShoppingCart } from 'lucide-react';
-import Image from 'next/image';
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  rating?: number;
-  reviews?: number;
-  discount?: number;
+interface ProductCardProps {
+  product: {
+    _id: string;
+    title: string;
+    price: number;
+    original_price?: number;
+    image: string;
+    rating?: number;
+    review_count?: number;
+    category?: string;
+  };
 }
 
-export function ProductCard({ product }: { product: Product }) {
-  const { name, price, originalPrice, image, rating = 0, reviews = 0, discount } = product;
+const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+  const { isInWishlist, toggle } = useWishlistStore();
+  const { trackCTAClick, trackAddToCart } = useAnalytics();
 
-  const renderStars = () => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
-      />
-    ));
+  // Calculate discount percentage
+  const discountPercent = product.original_price 
+    ? Math.round(((product.original_price - product.price) / product.original_price) * 100)
+    : 0;
+
+  const handleAddToCart = () => {
+    trackAddToCart({
+      _id: product._id,
+      name: product.title,
+      price: product.price,
+      category: product.category || 'Uncategorized',
+    });
+    // Add to cart logic would go here
+  };
+
+  const handleCardClick = () => {
+    trackCTAClick('product_card_click', 'product_grid');
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="relative h-48">
-        <Image
-          src={image}
-          alt={name}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+    <div 
+      className="group relative bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+      onClick={handleCardClick}
+    >
+      {/* Image with lazy loading */}
+      <div className="relative aspect-square bg-muted">
+        {/* PERF: Added loading="lazy" and width/height attributes */}
+        <img 
+          src={product.image} 
+          alt={product.title}
+          loading="lazy"
+          width={300}
+          height={300}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        {discount && (
-          <div className="absolute top-2 left-2 bg-accent text-white text-xs font-bold px-2 py-1 rounded">
-            {discount}% OFF
+        
+        {/* Wishlist button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2 rounded-full bg-background/80 hover:bg-background"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle(product._id);
+          }}
+        >
+          <Heart 
+            className={`h-4 w-4 transition-colors ${
+              isInWishlist(product._id) ? 'fill-current text-destructive' : 'text-muted-foreground'
+            }`} 
+          />
+        </Button>
+        
+        {/* Discount badge */}
+        {discountPercent > 0 && (
+          <div className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 rounded">
+            {discountPercent}% OFF
           </div>
         )}
       </div>
-      <CardContent className="p-4">
-        <h3 className="font-semibold text-sm mb-2 line-clamp-2">{name}</h3>
-        <div className="flex items-center mb-2">
-          {renderStars()}
-          <span className="text-xs text-text_dim ml-1">({reviews})</span>
-        </div>
-        <div className="flex items-center mb-3">
-          <span className="font-bold text-lg">${price}</span>
-          {originalPrice && (
-            <span className="text-sm text-text_dim line-through ml-2">${originalPrice}</span>
+      
+      {/* Product info */}
+      <div className="p-4">
+        <h3 className="font-medium text-foreground line-clamp-2 mb-2">
+          {product.title}
+        </h3>
+        
+        <div className="flex items-center gap-2 mb-2">
+          {/* Price */}
+          <span className="text-lg font-bold text-primary">
+            ${product.price.toFixed(2)}
+          </span>
+          
+          {/* Original price */}
+          {product.original_price && (
+            <span className="text-sm text-muted-foreground line-through">
+              ${product.original_price.toFixed(2)}
+            </span>
           )}
         </div>
-        <Button variant="outline" size="sm" className="w-full">
-          <ShoppingCart className="mr-2 h-4 w-4" />
+        
+        {/* Rating */}
+        {product.rating && (
+          <div className="flex items-center gap-1 mb-2">
+            <div className="flex">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-4 w-4 ${
+                    i < Math.floor(product.rating!) 
+                      ? 'text-yellow-400 fill-current' 
+                      : 'text-muted-foreground'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {product.review_count ? `${product.review_count} reviews` : 'No reviews'}
+            </span>
+          </div>
+        )}
+        
+        {/* Add to cart button */}
+        <Button 
+          className="w-full"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleAddToCart();
+          }}
+        >
           Add to Cart
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
-}
+};
+
+export default ProductCard;
+```
+
+```typescript

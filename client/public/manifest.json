@@ -1,10 +1,10 @@
 {
   "name": "ShopSphere",
   "short_name": "ShopSphere",
-  "description": "Premium E-Commerce Marketplace",
+  "description": "A full-featured e-commerce platform similar to Amazon",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FFFFFF",
+  "background_color": "#0F172A",
   "theme_color": "#FF9900",
   "icons": [
     {
@@ -16,12 +16,6 @@
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
     }
   ]
 }

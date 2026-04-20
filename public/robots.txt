@@ -1,9 +1,7 @@
 User-agent: *
 Allow: /
-
 Disallow: /admin/
 Disallow: /seller/
-Disallow: /checkout/
-Disallow: /cart/
+Disallow: /api/
 
-Sitemap: https://shopsphere.local/sitemap.xml
+Sitemap: https://shopsphere.com/sitemap.xml

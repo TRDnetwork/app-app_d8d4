@@ -2,191 +2,142 @@
   "nav": {
     "home": "Inicio",
     "products": "Productos",
-    "orders": "Pedidos",
     "wishlist": "Lista de deseos",
-    "login": "Iniciar sesión",
-    "logout": "Cerrar sesión",
+    "cart": "Carrito",
     "profile": "Perfil",
-    "sellerDashboard": "Panel de vendedor",
-    "adminPanel": "Panel de administrador"
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión"
   },
   "header": {
-    "searchPlaceholder": "Buscar productos..."
-  },
-  "footer": {
-    "customerService": "Servicio al cliente",
-    "company": "Empresa",
-    "legal": "Legal",
-    "helpCenter": "Centro de ayuda",
-    "returns": "Devoluciones y reembolsos",
-    "shipping": "Información de envío",
-    "contact": "Contáctenos",
-    "about": "Sobre nosotros",
-    "careers": "Trabaja con nosotros",
-    "press": "Prensa",
-    "blog": "Blog",
-    "privacy": "Política de privacidad",
-    "terms": "Términos de servicio",
-    "cookies": "Política de cookies"
-  },
-  "home": {
-    "heroTitle": "Ofertas del día",
-    "heroSubtitle": "Hasta 50% de descuento en las mejores marcas",
-    "heroShopNow": "Comprar ahora",
-    "featuredCategories": "Categorías destacadas",
-    "trendingProducts": "Productos populares",
-    "viewAll": "Ver todo"
-  },
-  "productListing": {
-    "title": "Productos",
-    "showing": "Mostrando",
-    "of": "de",
-    "products": "productos",
-    "sortBy": "Ordenar por",
-    "relevance": "Relevancia",
-    "priceLow": "Precio: Bajo a alto",
-    "priceHigh": "Precio: Alto a bajo",
-    "newest": "Más nuevos",
-    "rating": "Calificación promedio"
-  },
-  "productDetail": {
-    "addToCart": "Añadir al carrito",
-    "buyNow": "Comprar ahora",
-    "description": "Descripción",
-    "specifications": "Especificaciones",
-    "reviews": "Reseñas",
-    "questions": "Preguntas",
-    "addToWishlist": "Añadir a la lista de deseos",
-    "removeFromWishlist": "Eliminar de la lista de deseos"
-  },
-  "cart": {
-    "title": "Carrito de compras",
-    "product": "Producto",
-    "price": "Precio",
-    "quantity": "Cantidad",
-    "subtotal": "Subtotal",
-    "total": "Total",
-    "continueShopping": "Continuar comprando",
-    "checkout": "Pagar",
-    "emptyCart": "Tu carrito está vacío"
-  },
-  "checkout": {
-    "title": "Pagar",
-    "shippingAddress": "Dirección de envío",
-    "deliveryMethod": "Método de entrega",
-    "paymentMethod": "Método de pago",
-    "orderSummary": "Resumen del pedido",
-    "continue": "Continuar",
-    "back": "Atrás",
-    "standardDelivery": "Entrega estándar",
-    "expressDelivery": "Entrega exprés",
-    "sameDayDelivery": "Entrega el mismo día",
-    "free": "Gratis",
-    "cardDetails": "Detalles de la tarjeta",
-    "nameOnCard": "Nombre en la tarjeta",
-    "pay": "Pagar"
-  },
-  "orderConfirmation": {
-    "title": "¡Pedido confirmado!",
-    "thankYou": "Gracias por tu compra",
-    "orderNumber": "Número de pedido",
-    "emailSent": "Hemos enviado un correo de confirmación a",
-    "viewOrderHistory": "Ver historial de pedidos",
-    "continueShopping": "Continuar comprando"
+    "search": "Buscar productos..."
   },
   "auth": {
     "login": {
-      "title": "Bienvenido de nuevo",
-      "email": "Correo electrónico",
+      "title": "Iniciar sesión en su cuenta",
+      "email": "Dirección de correo electrónico",
       "password": "Contraseña",
-      "signIn": "Iniciar sesión",
-      "forgotPassword": "¿Olvidaste tu contraseña?",
-      "orContinueWith": "O continuar con",
-      "noAccount": "¿No tienes una cuenta?",
-      "signUp": "Regístrate"
+      "remember": "Recordarme",
+      "submit": "Iniciar sesión",
+      "or_continue": "O continuar con",
+      "no_account": "¿No tiene una cuenta?",
+      "sign_up": "Registrarse"
     },
     "register": {
-      "title": "Crear una cuenta",
-      "fullName": "Nombre completo",
-      "email": "Correo electrónico",
+      "title": "Crear nueva cuenta",
+      "name": "Nombre completo",
+      "email": "Dirección de correo electrónico",
       "password": "Contraseña",
-      "confirmPassword": "Confirmar contraseña",
-      "createAccount": "Crear cuenta",
-      "alreadyHaveAccount": "¿Ya tienes una cuenta?",
-      "signIn": "Iniciar sesión"
+      "confirm_password": "Confirmar contraseña",
+      "submit": "Crear cuenta",
+      "have_account": "¿Ya tiene una cuenta?",
+      "login": "Iniciar sesión"
     },
-    "forgotPassword": {
-      "title": "Restablecer contraseña",
-      "email": "Correo electrónico",
-      "sendResetEmail": "Enviar correo de restablecimiento",
-      "backToSignIn": "Volver a iniciar sesión"
+    "forgot_password": {
+      "title": "¿Olvidó su contraseña?",
+      "description": "Ingrese su dirección de correo electrónico y le enviaremos un enlace para restablecer su contraseña.",
+      "email": "Dirección de correo electrónico",
+      "submit": "Enviar enlace de restablecimiento",
+      "back_to_login": "Volver al inicio de sesión"
     },
-    "resetPassword": {
-      "title": "Restablecer contraseña",
-      "newPassword": "Nueva contraseña",
-      "confirmNewPassword": "Confirmar nueva contraseña",
-      "resetPassword": "Restablecer contraseña"
+    "reset_password": {
+      "title": "Restablezca su contraseña",
+      "new_password": "Nueva contraseña",
+      "confirm_password": "Confirmar nueva contraseña",
+      "submit": "Restablecer contraseña"
     }
   },
-  "profile": {
-    "title": "Mi perfil",
-    "personalInfo": "Información personal",
-    "fullName": "Nombre completo",
-    "email": "Correo electrónico",
-    "phone": "Teléfono",
-    "saveChanges": "Guardar cambios",
-    "addresses": "Direcciones",
-    "addNewAddress": "Añadir nueva dirección",
-    "default": "Predeterminado",
-    "edit": "Editar",
-    "delete": "Eliminar"
+  "product": {
+    "price": "Precio",
+    "original_price": "Precio original",
+    "discount": "Ahorra",
+    "rating": "Calificación",
+    "reviews": "reseñas",
+    "in_stock": "En stock",
+    "low_stock": "Poco stock",
+    "out_of_stock": "Agotado",
+    "select_variant": "Seleccionar variante",
+    "quantity": "Cantidad",
+    "add_to_cart": "Añadir al carrito",
+    "description": "Descripción",
+    "reviews": "Reseñas",
+    "qa": "Preguntas"
   },
-  "wishlist": {
-    "title": "Lista de deseos",
-    "empty": "Tu lista de deseos está vacía",
-    "continueShopping": "Continuar comprando"
-  },
-  "orders": {
-    "title": "Historial de pedidos",
-    "order": "Pedido",
-    "date": "Fecha",
-    "total": "Total",
-    "status": "Estado",
-    "viewDetails": "Ver detalles",
-    "empty": "Aún no has realizado ningún pedido"
-  },
-  "orderTracking": {
-    "title": "Seguimiento del pedido",
-    "orderNumber": "Número de pedido",
-    "placed": "Realizado",
-    "confirmed": "Confirmado",
-    "shipped": "Enviado",
-    "outForDelivery": "En camino",
-    "delivered": "Entregado",
-    "items": "Artículos",
-    "quantity": "Cant.",
-    "deliveryAddress": "Dirección de entrega",
-    "orderSummary": "Resumen del pedido",
+  "cart": {
+    "title": "Su carrito",
+    "empty": "Su carrito está vacío",
+    "continue_shopping": "Seguir comprando",
     "subtotal": "Subtotal",
-    "deliveryFee": "Tarifa de envío",
-    "tax": "Impuesto",
+    "delivery": "Entrega",
     "total": "Total",
-    "paymentMethod": "Método de pago",
-    "cardEndingIn": "Tarjeta terminada en"
+    "proceed_to_checkout": "Proceder al pago"
+  },
+  "checkout": {
+    "title": "Pagar",
+    "step_address": "1. Dirección",
+    "step_delivery": "2. Entrega",
+    "step_payment": "3. Pago",
+    "step_review": "4. Revisar",
+    "address": {
+      "title": "Dirección de envío",
+      "street": "Dirección",
+      "city": "Ciudad",
+      "state": "Estado",
+      "zip": "Código postal",
+      "country": "País",
+      "phone": "Número de teléfono",
+      "save_continue": "Guardar y continuar"
+    },
+    "delivery": {
+      "title": "Método de entrega",
+      "standard": "Entrega estándar",
+      "standard_desc": "3-5 días hábiles",
+      "express": "Entrega exprés",
+      "express_desc": "1-2 días hábiles",
+      "same_day": "Entrega el mismo día",
+      "same_day_desc": "Entrega hoy"
+    },
+    "payment": {
+      "title": "Método de pago",
+      "card": "Tarjeta de crédito/débito",
+      "upi": "UPI",
+      "cod": "Pago contra reembolso",
+      "name_on_card": "Nombre en la tarjeta",
+      "card_number": "Número de tarjeta",
+      "expiry": "Fecha de vencimiento",
+      "cvv": "CVV",
+      "upi_id": "ID UPI",
+      "pay_now": "Pagar ahora",
+      "continue": "Continuar"
+    },
+    "review": {
+      "title": "Revisar pedido",
+      "place_order": "Realizar pedido"
+    }
+  },
+  "order": {
+    "confirmation": {
+      "title": "¡Gracias por su pedido!",
+      "description": "Su pedido ha sido confirmado y será procesado en breve.",
+      "order_number": "Número de pedido",
+      "order_date": "Fecha del pedido",
+      "total_amount": "Importe total",
+      "view_status": "Ver estado del pedido",
+      "continue_shopping": "Seguir comprando",
+      "email_sent": "Se ha enviado un correo de confirmación a su dirección de correo registrada."
+    }
   },
   "common": {
+    "back": "Atrás",
+    "continue": "Continuar",
     "save": "Guardar",
-    "cancel": "Cancelar",
-    "delete": "Eliminar",
     "edit": "Editar",
-    "close": "Cerrar",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
     "yes": "Sí",
     "no": "No",
-    "search": "Buscar",
-    "filter": "Filtrar",
-    "apply": "Aplicar",
-    "clear": "Limpiar",
-    "loadMore": "Cargar más",
-    "backToTop": "Volver arriba"
+    "close": "Cerrar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito"
   }
 }
