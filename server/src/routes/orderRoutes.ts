@@ -1,25 +1,19 @@
 import { Router } from 'express';
-import { 
-  getOrders, 
-  getOrderById, 
-  createOrder, 
-  updateOrder, 
-  cancelOrder 
-} from '../controllers/orderController';
-import { protect } from '../middleware/auth';
+import { createOrder, getUserOrders, getOrder } from '../controllers/orderController';
+import { authLimiter } from '../middleware/security';
 
 const router = Router();
 
-// Protected routes
-router.route('/')
-  .get(protect, getOrders)
-  .post(protect, createOrder);
+// Create order
+router.post('/', authLimiter, createOrder);
 
-router.route('/:id')
-  .get(protect, getOrderById)
-  .put(protect, updateOrder);
+// Get user orders
+router.get('/', getUserOrders);
 
-router.route('/:id/cancel')
-  .put(protect, cancelOrder);
+// Get order by ID
+router.get('/:id', getOrder);
 
 export default router;
+```
+
+```typescript

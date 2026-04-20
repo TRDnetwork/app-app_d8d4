@@ -1,160 +1,194 @@
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
-import { User } from '../models/User';
 import { Subscription } from '../models/Subscription';
 import { UsageEvent } from '../models/UsageEvent';
 import { Invoice } from '../models/Invoice';
-import { apiResponse } from '../utils/apiResponse';
-import { logger } from '../middleware/logging';
+import { User } from '../models/User';
+import { logger } from '../utils/logger';
+import { config } from '../config/env';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+// Initialize Stripe with validated config
+const stripe = new Stripe(config.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
+  httpClient: Stripe.createFetchHttpClient(),
 });
 
-// Track processed webhook events to prevent duplicates
-const processedEvents = new Set<string>();
+// Cache for webhook IDs to ensure idempotency
+const webhookCache = new Map<string, boolean>();
+const WEBHOOK_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-/**
- * Get pricing page with plan comparison
- */
-export const getPricingPage = async (req: Request, res: Response) => {
+// Check if webhook has already been processed
+const isWebhookProcessed = (id: string): boolean => {
+  const isProcessed = webhookCache.get(id);
+  if (isProcessed) {
+    return true;
+  }
+  return false;
+};
+
+// Mark webhook as processed
+const markWebhookProcessed = (id: string): void => {
+  webhookCache.set(id, true);
+  setTimeout(() => {
+    webhookCache.delete(id);
+  }, WEBHOOK_CACHE_TTL);
+};
+
+// Get pricing tiers
+export const getPricingTiers = async (req: Request, res: Response) => {
   try {
-    const plans = [
-      {
-        id: 'free',
+    const pricing = {
+      free: {
         name: 'Free',
         price: 0,
-        period: 'month',
         features: [
-          'Basic workout tracking',
-          '1 workout plan',
-          '5 workout logs per month',
-          'Email support'
+          'Basic features',
+          'Limited usage',
+          'Community support'
         ],
-        cta: 'Get Started'
+        limits: {
+          api_calls: 1000,
+          storage_gb: 1,
+          seats: 1
+        }
       },
-      {
-        id: 'pro',
+      pro: {
         name: 'Pro',
-        price: 9.99,
-        period: 'month',
+        price: 29,
         features: [
           'All Free features',
-          'Unlimited workout plans',
-          'Unlimited workout logs',
           'Advanced analytics',
-          'Priority email support',
-          'Mobile app access'
+          'Priority support',
+          'Custom domains'
         ],
-        cta: 'Start Free Trial'
+        limits: {
+          api_calls: 10000,
+          storage_gb: 10,
+          seats: 5
+        }
       },
-      {
-        id: 'enterprise',
+      enterprise: {
         name: 'Enterprise',
-        price: 29.99,
-        period: 'month',
+        price: 99,
         features: [
           'All Pro features',
-          'Team collaboration',
-          'Custom workout templates',
-          'API access',
           'Dedicated account manager',
-          '24/7 phone support'
+          'SLA guarantees',
+          'Custom integrations'
         ],
-        cta: 'Contact Sales'
+        limits: {
+          api_calls: -1, // unlimited
+          storage_gb: -1, // unlimited
+          seats: -1 // unlimited
+        }
       }
-    ];
+    };
 
-    res.json(apiResponse(200, 'Pricing plans retrieved successfully', { plans }));
-  } catch (error: any) {
-    logger.error('Error retrieving pricing plans:', error);
-    res.status(500).json(apiResponse(500, error.message));
+    res.json({
+      success: true,
+      data: pricing
+    });
+  } catch (error) {
+    logger.error('Error getting pricing tiers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get pricing tiers'
+    });
   }
 };
 
-/**
- * Create Stripe Checkout Session for plan selection
- */
-export const createCheckoutSession = async (req: any, res: Response) => {
+// Create checkout session for subscription
+export const createCheckoutSession = async (req: Request, res: Response) => {
   try {
-    const { planId, trialPeriodDays = 7 } = req.body;
-    const userId = req.user.id;
-
-    // Validate plan ID
-    const validPlans = ['pro', 'enterprise'];
-    if (!validPlans.includes(planId)) {
-      return res.status(400).json(apiResponse(400, 'Invalid plan ID'));
-    }
-
-    // Find or create Stripe customer
-    let customer = await stripe.customers.list({ email: req.user.email });
-    let customerId: string;
-
-    if (customer.data.length > 0) {
-      customerId = customer.data[0].id;
-    } else {
-      const newCustomer = await stripe.customers.create({
-        email: req.user.email,
-        name: req.user.name,
-        metadata: { userId: userId }
+    const { plan, userId, successUrl, cancelUrl } = req.body;
+    
+    if (!plan || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Plan and userId are required'
       });
-      customerId = newCustomer.id;
     }
 
-    // Create Checkout Session
+    // Validate user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Map plan to Stripe price ID
+    const priceIds: Record<string, string> = {
+      'pro': config.STRIPE_PRICE_PRO,
+      'enterprise': config.STRIPE_PRICE_ENTERPRISE
+    };
+
+    const priceId = priceIds[plan];
+    if (!priceId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid plan'
+      });
+    }
+
+    // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
       payment_method_types: ['card'],
       mode: 'subscription',
       line_items: [
         {
-          price: planId === 'pro' ? process.env.STRIPE_PRO_PRICE_ID : process.env.STRIPE_ENTERPRISE_PRICE_ID,
+          price: priceId,
           quantity: 1,
         },
       ],
-      subscription_data: {
-        trial_period_days: trialPeriodDays,
-        metadata: {
-          userId: userId,
-          planId: planId
-        }
-      },
-      success_url: `${process.env.FRONTEND_URL}/pricing?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/pricing`,
+      success_url: successUrl || `${config.FRONTEND_URL}/billing?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || `${config.FRONTEND_URL}/pricing`,
+      customer_email: user.email,
+      metadata: {
+        user_id: userId,
+        plan: plan
+      }
     });
 
-    res.json(apiResponse(200, 'Checkout session created', { sessionId: session.id }));
+    res.json({
+      success: true,
+      data: {
+        sessionId: session.id
+      }
+    });
   } catch (error: any) {
     logger.error('Error creating checkout session:', error);
-    res.status(500).json(apiResponse(500, error.message));
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create checkout session'
+    });
   }
 };
 
-/**
- * Handle Stripe webhook events
- */
-export const webhookHandler = async (req: Request, res: Response) => {
-  const sig = req.headers['stripe-signature'] as string;
+// Handle Stripe webhook events
+export const handleWebhook = async (req: Request, res: Response) => {
+  const sig = req.headers['stripe-signature'];
   let event;
 
+  // Verify webhook signature
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig!,
+      config.STRIPE_WEBHOOK_SECRET
+    );
   } catch (err: any) {
-    logger.error('Webhook signature verification failed:', err.message);
+    logger.error(`Webhook signature verification failed: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Use idempotency key to prevent duplicate processing
-  if (processedEvents.has(event.id)) {
-    logger.info(`Webhook event already processed: ${event.id}`);
+  // Check for idempotency
+  if (event.id && isWebhookProcessed(event.id)) {
+    logger.info(`Webhook ${event.id} already processed`);
     return res.json({ received: true });
   }
 
-  // Add event ID to processed set with TTL (1 hour)
-  processedEvents.add(event.id);
-  setTimeout(() => processedEvents.delete(event.id), 3600000);
-
-  // Handle the event
   try {
     switch (event.type) {
       case 'invoice.paid':
@@ -170,440 +204,512 @@ export const webhookHandler = async (req: Request, res: Response) => {
         logger.info(`Unhandled event type ${event.type}`);
     }
 
-    // Return a 200 response to acknowledge receipt of the event
+    // Mark webhook as processed
+    if (event.id) {
+      markWebhookProcessed(event.id);
+    }
+
     res.json({ received: true });
   } catch (error) {
-    logger.error('Error processing webhook event:', error);
+    logger.error('Error processing webhook:', error);
     res.status(500).json({ error: 'Webhook processing failed' });
   }
 };
 
-/**
- * Handle invoice.paid event
- */
-async function handleInvoicePaid(invoice: Stripe.Invoice) {
-  const subscriptionId = invoice.subscription as string;
-  const customerId = invoice.customer as string;
-  
-  // Get customer metadata to find our user ID
-  const customer = await stripe.customers.retrieve(customerId);
-  const userId = (customer as any).metadata.userId;
-  
-  if (!userId) {
-    throw new Error('User ID not found in customer metadata');
-  }
+// Handle invoice.paid event
+const handleInvoicePaid = async (invoice: Stripe.Invoice) => {
+  try {
+    const subscriptionId = invoice.subscription as string;
+    const customerEmail = invoice.customer_email;
+    
+    // Find subscription
+    const subscription = await Subscription.findOne({ stripe_sub_id: subscriptionId });
+    if (!subscription) {
+      logger.warn(`Subscription not found for invoice: ${subscriptionId}`);
+      return;
+    }
 
-  // Create or update subscription in our database
-  let subscription = await Subscription.findOne({ stripe_sub_id: subscriptionId });
-  
-  if (!subscription) {
-    // New subscription
-    subscription = new Subscription({
-      user_id: userId,
-      stripe_sub_id: subscriptionId,
-      plan: invoice.lines.data[0].price.nickname?.toLowerCase() || 'pro',
-      status: 'active',
-      current_period_end: new Date(invoice.period_end * 1000)
+    // Create invoice record
+    const invoiceRecord = new Invoice({
+      user_id: subscription.user_id,
+      stripe_invoice_id: invoice.id,
+      amount: invoice.total / 100, // Convert from cents
+      status: 'paid',
+      pdf_url: invoice.invoice_pdf
     });
-  } else {
-    // Update existing subscription
+
+    await invoiceRecord.save();
+
+    // Update subscription status
     subscription.status = 'active';
     subscription.current_period_end = new Date(invoice.period_end * 1000);
+    await subscription.save();
+
+    logger.info(`Invoice paid processed for subscription: ${subscriptionId}`);
+  } catch (error) {
+    logger.error('Error handling invoice.paid:', error);
+    throw error;
   }
-  
-  await subscription.save();
+};
 
-  // Create invoice record
-  const invoiceRecord = new Invoice({
-    user_id: userId,
-    stripe_invoice_id: invoice.id,
-    amount: invoice.amount_paid / 100, // Convert cents to dollars
-    status: 'paid',
-    pdf_url: invoice.invoice_pdf
-  });
-  
-  await invoiceRecord.save();
+// Handle subscription.updated event
+const handleSubscriptionUpdated = async (subscription: Stripe.Subscription) => {
+  try {
+    // Find subscription
+    const dbSubscription = await Subscription.findOne({ stripe_sub_id: subscription.id });
+    if (!dbSubscription) {
+      logger.warn(`Subscription not found for update: ${subscription.id}`);
+      return;
+    }
 
-  // Update user role
-  await User.findByIdAndUpdate(userId, { 
-    role: subscription.plan === 'enterprise' ? 'enterprise' : 'pro' 
-  });
-}
-
-/**
- * Handle subscription.updated event
- */
-async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  const subscriptionId = subscription.id;
-  const customerId = subscription.customer as string;
-  
-  // Get customer metadata to find our user ID
-  const customer = await stripe.customers.retrieve(customerId);
-  const userId = (customer as any).metadata.userId;
-  
-  if (!userId) {
-    throw new Error('User ID not found in customer metadata');
-  }
-
-  // Update subscription in our database
-  const sub = await Subscription.findOne({ stripe_sub_id: subscriptionId });
-  
-  if (sub) {
-    sub.status = subscription.status;
-    sub.current_period_end = new Date(subscription.current_period_end * 1000);
+    // Update subscription status
+    dbSubscription.status = subscription.status;
+    dbSubscription.current_period_end = new Date(subscription.current_period_end * 1000);
     
     // Update plan if changed
-    if (subscription.items.data.length > 0) {
-      const priceId = subscription.items.data[0].price.id;
-      if (priceId === process.env.STRIPE_PRO_PRICE_ID) {
-        sub.plan = 'pro';
-      } else if (priceId === process.env.STRIPE_ENTERPRISE_PRICE_ID) {
-        sub.plan = 'enterprise';
-      }
+    if (subscription.items.data[0]?.price.id === config.STRIPE_PRICE_PRO) {
+      dbSubscription.plan = 'pro';
+    } else if (subscription.items.data[0]?.price.id === config.STRIPE_PRICE_ENTERPRISE) {
+      dbSubscription.plan = 'enterprise';
     }
-    
-    await sub.save();
-    
-    // Update user role
-    await User.findByIdAndUpdate(userId, { 
-      role: sub.plan === 'enterprise' ? 'enterprise' : 'pro' 
-    });
-  }
-}
 
-/**
- * Handle subscription.deleted event
- */
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  const subscriptionId = subscription.id;
-  const customerId = subscription.customer as string;
-  
-  // Get customer metadata to find our user ID
-  const customer = await stripe.customers.retrieve(customerId);
-  const userId = (customer as any).metadata.userId;
-  
-  if (!userId) {
-    throw new Error('User ID not found in customer metadata');
-  }
+    await dbSubscription.save();
 
-  // Update subscription status
-  const sub = await Subscription.findOne({ stripe_sub_id: subscriptionId });
-  
-  if (sub) {
-    sub.status = 'canceled';
-    await sub.save();
-    
-    // Downgrade user role to free
-    await User.findByIdAndUpdate(userId, { role: 'customer' });
+    logger.info(`Subscription updated: ${subscription.id}`);
+  } catch (error) {
+    logger.error('Error handling subscription.updated:', error);
+    throw error;
   }
-}
+};
 
-/**
- * Report usage to Stripe metered billing
- */
-export const reportUsage = async (req: any, res: Response) => {
+// Handle subscription.deleted event
+const handleSubscriptionDeleted = async (subscription: Stripe.Subscription) => {
   try {
-    const { eventType, quantity = 1 } = req.body;
-    const userId = req.user.id;
-
-    // Validate event type
-    const validEventTypes = ['workout_log', 'workout_plan', 'api_call'];
-    if (!validEventTypes.includes(eventType)) {
-      return res.status(400).json(apiResponse(400, 'Invalid event type'));
+    // Find subscription
+    const dbSubscription = await Subscription.findOne({ stripe_sub_id: subscription.id });
+    if (!dbSubscription) {
+      logger.warn(`Subscription not found for deletion: ${subscription.id}`);
+      return;
     }
 
-    // Find user's active subscription
-    const subscription = await Subscription.findOne({ 
-      user_id: userId, 
-      status: 'active' 
-    });
+    // Update subscription status
+    dbSubscription.status = 'canceled';
+    await dbSubscription.save();
+
+    logger.info(`Subscription deleted: ${subscription.id}`);
+  } catch (error) {
+    logger.error('Error handling subscription.deleted:', error);
+    throw error;
+  }
+};
+
+// Track usage event
+export const trackUsage = async (req: Request, res: Response) => {
+  try {
+    const { userId, eventType, quantity = 1 } = req.body;
     
-    if (!subscription) {
-      return res.status(400).json(apiResponse(400, 'No active subscription found'));
+    if (!userId || !eventType) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId and eventType are required'
+      });
     }
 
-    // Record usage event
+    // Validate user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Create usage event
     const usageEvent = new UsageEvent({
       user_id: userId,
       event_type: eventType,
       quantity: quantity,
       timestamp: new Date()
     });
-    
+
     await usageEvent.save();
 
     // Report to Stripe for metered billing
-    // Note: In a real implementation, you would call stripe.subscriptionItems.createUsageRecord
-    // For now, we'll just log that we would report it
-    logger.info(`Would report ${quantity} ${eventType} events to Stripe for user ${userId}`);
+    const subscription = await Subscription.findOne({ 
+      user_id: userId, 
+      status: 'active' 
+    });
 
-    res.json(apiResponse(200, 'Usage reported successfully'));
-  } catch (error: any) {
-    logger.error('Error reporting usage:', error);
-    res.status(500).json(apiResponse(500, error.message));
-  }
-};
-
-/**
- * Get usage dashboard for customer
- */
-export const getUsageDashboard = async (req: any, res: Response) => {
-  try {
-    const userId = req.user.id;
-    
-    // Get current month's usage
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    
-    const usageEvents = await UsageEvent.find({
-      user_id: userId,
-      timestamp: { $gte: startOfMonth }
-    }).sort({ timestamp: -1 });
-    
-    // Group by event type and sum quantities
-    const usageStats = usageEvents.reduce((acc, event) => {
-      if (!acc[event.event_type]) {
-        acc[event.event_type] = 0;
+    if (subscription) {
+      try {
+        await stripe.subscriptionItems.createUsageRecord(
+          subscription.stripe_sub_id,
+          {
+            quantity: quantity,
+            timestamp: Math.floor(Date.now() / 1000),
+            action: 'increment'
+          }
+        );
+      } catch (error) {
+        logger.error('Error reporting usage to Stripe:', error);
       }
-      acc[event.event_type] += event.quantity;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    // Get subscription info
-    const subscription = await Subscription.findOne({ user_id: userId });
-    
-    res.json(apiResponse(200, 'Usage dashboard retrieved', { 
-      usageStats, 
-      subscription 
-    }));
-  } catch (error: any) {
-    logger.error('Error retrieving usage dashboard:', error);
-    res.status(500).json(apiResponse(500, error.message));
+    }
+
+    res.json({
+      success: true,
+      data: usageEvent
+    });
+  } catch (error) {
+    logger.error('Error tracking usage:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to track usage'
+    });
   }
 };
 
-/**
- * Get current plan and usage stats
- */
-export const getCurrentPlan = async (req: any, res: Response) => {
+// Get usage stats for a user
+export const getUsageStats = async (req: Request, res: Response) => {
   try {
-    const userId = req.user.id;
+    const { userId, startDate, endDate } = req.query;
     
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId is required'
+      });
+    }
+
+    const query: any = { user_id: userId };
+    
+    if (startDate || endDate) {
+      query.timestamp = {};
+      if (startDate) query.timestamp.$gte = new Date(startDate as string);
+      if (endDate) query.timestamp.$lte = new Date(endDate as string);
+    }
+
+    const usageEvents = await UsageEvent.find(query)
+      .sort({ timestamp: -1 })
+      .limit(100);
+
+    // Calculate totals by event type
+    const totals: Record<string, number> = {};
+    usageEvents.forEach(event => {
+      if (!totals[event.event_type]) {
+        totals[event.event_type] = 0;
+      }
+      totals[event.event_type] += event.quantity;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        events: usageEvents,
+        totals: totals
+      }
+    });
+  } catch (error) {
+    logger.error('Error getting usage stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get usage stats'
+    });
+  }
+};
+
+// Get customer billing info
+export const getCustomerBillingInfo = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId is required'
+      });
+    }
+
     // Get user's subscription
     const subscription = await Subscription.findOne({ user_id: userId });
-    
-    if (!subscription) {
-      return res.json(apiResponse(200, 'No active subscription', { 
-        plan: 'free',
-        status: 'inactive',
-        current_period_end: null,
-        usage: {}
-      }));
-    }
     
     // Get usage stats
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+    const usageStats = await getUsageStatsForUser(userId);
     
-    const usageEvents = await UsageEvent.find({
-      user_id: userId,
-      timestamp: { $gte: startOfMonth }
-    });
-    
-    const usageStats = usageEvents.reduce((acc, event) => {
-      if (!acc[event.event_type]) {
-        acc[event.event_type] = 0;
-      }
-      acc[event.event_type] += event.quantity;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    res.json(apiResponse(200, 'Current plan retrieved', { 
-      plan: subscription.plan,
-      status: subscription.status,
-      current_period_end: subscription.current_period_end,
-      usage: usageStats
-    }));
-  } catch (error: any) {
-    logger.error('Error retrieving current plan:', error);
-    res.status(500).json(apiResponse(500, error.message));
-  }
-};
-
-/**
- * Upgrade or downgrade subscription
- */
-export const updateSubscription = async (req: any, res: Response) => {
-  try {
-    const { planId } = req.body;
-    const userId = req.user.id;
-    
-    // Validate plan ID
-    const validPlans = ['pro', 'enterprise'];
-    if (!validPlans.includes(planId)) {
-      return res.status(400).json(apiResponse(400, 'Invalid plan ID'));
-    }
-    
-    // Get user's subscription
-    const subscription = await Subscription.findOne({ user_id: userId });
-    
-    if (!subscription) {
-      return res.status(400).json(apiResponse(400, 'No active subscription found'));
-    }
-    
-    // Get Stripe subscription
-    const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripe_sub_id);
-    
-    // Get the price ID for the new plan
-    const priceId = planId === 'pro' ? process.env.STRIPE_PRO_PRICE_ID : process.env.STRIPE_ENTERPRISE_PRICE_ID;
-    
-    // Update subscription
-    await stripe.subscriptions.update(subscription.stripe_sub_id, {
-      items: [{
-        id: stripeSubscription.items.data[0].id,
-        price: priceId
-      }]
-    });
-    
-    // Update our database
-    subscription.plan = planId;
-    await subscription.save();
-    
-    // Update user role
-    await User.findByIdAndUpdate(userId, { 
-      role: planId === 'enterprise' ? 'enterprise' : 'pro' 
-    });
-    
-    res.json(apiResponse(200, 'Subscription updated successfully', { planId }));
-  } catch (error: any) {
-    logger.error('Error updating subscription:', error);
-    res.status(500).json(apiResponse(500, error.message));
-  }
-};
-
-/**
- * Cancel subscription with feedback
- */
-export const cancelSubscription = async (req: any, res: Response) => {
-  try {
-    const { feedback } = req.body;
-    const userId = req.user.id;
-    
-    // Get user's subscription
-    const subscription = await Subscription.findOne({ user_id: userId });
-    
-    if (!subscription) {
-      return res.status(400).json(apiResponse(400, 'No active subscription found'));
-    }
-    
-    // Cancel subscription in Stripe
-    await stripe.subscriptions.update(subscription.stripe_sub_id, {
-      cancel_at_period_end: true
-    });
-    
-    // Update our database
-    subscription.status = 'canceled';
-    await subscription.save();
-    
-    // Record feedback if provided
-    if (feedback) {
-      logger.info(`Cancellation feedback from user ${userId}: ${feedback}`);
-    }
-    
-    // Update user role to free
-    await User.findByIdAndUpdate(userId, { role: 'customer' });
-    
-    res.json(apiResponse(200, 'Subscription scheduled for cancellation'));
-  } catch (error: any) {
-    logger.error('Error canceling subscription:', error);
-    res.status(500).json(apiResponse(500, error.message));
-  }
-};
-
-/**
- * Get invoice history
- */
-export const getInvoiceHistory = async (req: any, res: Response) => {
-  try {
-    const userId = req.user.id;
-    
+    // Get invoice history
     const invoices = await Invoice.find({ user_id: userId })
-      .sort({ createdAt: -1 });
-    
-    res.json(apiResponse(200, 'Invoice history retrieved', { invoices }));
-  } catch (error: any) {
-    logger.error('Error retrieving invoice history:', error);
-    res.status(500).json(apiResponse(500, error.message));
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    res.json({
+      success: true,
+      data: {
+        subscription: subscription ? {
+          plan: subscription.plan,
+          status: subscription.status,
+          current_period_end: subscription.current_period_end,
+          stripe_sub_id: subscription.stripe_sub_id
+        } : null,
+        usage: usageStats,
+        invoices: invoices.map(invoice => ({
+          id: invoice._id,
+          stripe_invoice_id: invoice.stripe_invoice_id,
+          amount: invoice.amount,
+          status: invoice.status,
+          pdf_url: invoice.pdf_url,
+          createdAt: invoice.createdAt
+        }))
+      }
+    });
+  } catch (error) {
+    logger.error('Error getting customer billing info:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get billing info'
+    });
   }
 };
 
-/**
- * Update payment method via Stripe portal
- */
-export const createBillingPortalSession = async (req: any, res: Response) => {
+// Upgrade subscription
+export const upgradeSubscription = async (req: Request, res: Response) => {
   try {
-    const userId = req.user.id;
+    const { userId, newPlan } = req.body;
     
-    // Find user's Stripe customer
+    if (!userId || !newPlan) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId and newPlan are required'
+      });
+    }
+
+    // Validate user exists
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json(apiResponse(404, 'User not found'));
-    }
-    
-    let customer = await stripe.customers.list({ email: user.email });
-    let customerId: string;
-    
-    if (customer.data.length > 0) {
-      customerId = customer.data[0].id;
-    } else {
-      const newCustomer = await stripe.customers.create({
-        email: user.email,
-        name: user.name,
-        metadata: { userId: userId }
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
-      customerId = newCustomer.id;
     }
-    
-    // Create billing portal session
-    const session = await stripe.billingPortal.sessions.create({
-      customer: customerId,
-      return_url: `${process.env.FRONTEND_URL}/billing`,
+
+    // Get current subscription
+    const subscription = await Subscription.findOne({ user_id: userId });
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'No active subscription found'
+      });
+    }
+
+    // Map plan to Stripe price ID
+    const priceIds: Record<string, string> = {
+      'pro': config.STRIPE_PRICE_PRO,
+      'enterprise': config.STRIPE_PRICE_ENTERPRISE
+    };
+
+    const priceId = priceIds[newPlan];
+    if (!priceId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid plan'
+      });
+    }
+
+    // Update subscription in Stripe
+    const updatedSubscription = await stripe.subscriptions.update(
+      subscription.stripe_sub_id,
+      {
+        items: [
+          {
+            id: subscription.stripe_sub_id,
+            price: priceId,
+          },
+        ],
+      }
+    );
+
+    // Update subscription in database
+    subscription.plan = newPlan;
+    subscription.status = updatedSubscription.status;
+    subscription.current_period_end = new Date(updatedSubscription.current_period_end * 1000);
+    await subscription.save();
+
+    res.json({
+      success: true,
+      data: {
+        subscription: {
+          plan: subscription.plan,
+          status: subscription.status,
+          current_period_end: subscription.current_period_end
+        }
+      }
     });
-    
-    res.json(apiResponse(200, 'Billing portal session created', { url: session.url }));
   } catch (error: any) {
-    logger.error('Error creating billing portal session:', error);
-    res.status(500).json(apiResponse(500, error.message));
+    logger.error('Error upgrading subscription:', error);
+    
+    // Handle specific Stripe errors
+    if (error.type === 'StripeCardError') {
+      res.status(400).json({
+        success: false,
+        message: 'Payment failed: ' + error.message
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to upgrade subscription'
+      });
+    }
   }
 };
 
-/**
- * Handle trial expiry
- */
-export const handleTrialExpiry = async (req: any, res: Response) => {
+// Cancel subscription
+export const cancelSubscription = async (req: Request, res: Response) => {
   try {
-    const userId = req.user.id;
+    const { userId, feedback } = req.body;
     
-    // Find user's subscription
-    const subscription = await Subscription.findOne({ user_id: userId });
-    
-    if (!subscription || subscription.status !== 'trialing') {
-      return res.status(400).json(apiResponse(400, 'No active trial found'));
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId is required'
+      });
     }
+
+    // Validate user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Get current subscription
+    const subscription = await Subscription.findOne({ user_id: userId });
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'No active subscription found'
+      });
+    }
+
+    // Cancel subscription in Stripe
+    await stripe.subscriptions.update(
+      subscription.stripe_sub_id,
+      {
+        cancel_at_period_end: true,
+      }
+    );
+
+    // Update subscription in database
+    subscription.status = 'canceled';
+    await subscription.save();
+
+    // Log feedback if provided
+    if (feedback) {
+      logger.info(`Subscription cancellation feedback from user ${userId}: ${feedback}`);
+    }
+
+    res.json({
+      success: true,
+      message: 'Subscription will be canceled at the end of the billing period'
+    });
+  } catch (error) {
+    logger.error('Error canceling subscription:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to cancel subscription'
+    });
+  }
+};
+
+// Resume subscription
+export const resumeSubscription = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.body;
     
-    // In a real implementation, this would be triggered by a Stripe webhook
-    // For now, we'll just update the subscription status
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId is required'
+      });
+    }
+
+    // Validate user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Get current subscription
+    const subscription = await Subscription.findOne({ user_id: userId });
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'No subscription found'
+      });
+    }
+
+    // Check if subscription is canceled
+    if (subscription.status !== 'canceled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Subscription is not canceled'
+      });
+    }
+
+    // Resume subscription in Stripe
+    await stripe.subscriptions.update(
+      subscription.stripe_sub_id,
+      {
+        cancel_at_period_end: false,
+      }
+    );
+
+    // Update subscription in database
     subscription.status = 'active';
     await subscription.save();
-    
-    res.json(apiResponse(200, 'Trial extended successfully'));
-  } catch (error: any) {
-    logger.error('Error handling trial expiry:', error);
-    res.status(500).json(apiResponse(500, error.message));
+
+    res.json({
+      success: true,
+      message: 'Subscription has been resumed'
+    });
+  } catch (error) {
+    logger.error('Error resuming subscription:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to resume subscription'
+    });
   }
 };
-```
 
-```typescript
+// Get invoice PDF
+export const getInvoicePdf = async (req: Request, res: Response) => {
+  try {
+    const { invoiceId } = req.params;
+    
+    // Find invoice
+    const invoice = await Invoice.findOne({ _id: invoiceId, user_id: req.user.id });
+    if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found'
+      });
+    }
+
+    // Redirect to Stripe invoice PDF
+    if (invoice.pdf_url) {
+      return res.redirect(invoice.pdf_url);
+    } else {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice PDF not available'
+      });
+    }
+  } catch (error) {
+    logger.error('Error getting invoice PDF:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get invoice PDF'
+    });
+  }

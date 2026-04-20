@@ -1,1 +1,1 @@
--- No seed data for PostgreSQL — seeding handled via MongoDB script in `db/seed.ts` using Mongoose models.
+-- No seed data for PostgreSQL — MongoDB seed script will be provided in db/seed.ts

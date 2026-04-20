@@ -1,4 +1,16 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://shopsphere.app_d8d4.com/sitemap.xml
+# Disallow admin and internal pages
+Disallow: /admin/
+Disallow: /server/
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://shopsphere.com/sitemap.xml
+
+# Crawl-delay for slower servers
+Crawl-delay: 10
+
+# Host for legacy search engines
+Host: https://shopsphere.com
