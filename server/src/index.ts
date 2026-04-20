@@ -1,66 +1,82 @@
-```ts
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
-import { config } from './config/env';
+import dotenv from 'dotenv';
+import connectDB from './config/db';
+import authRoutes from './routes/auth';
+import userRoutes from './routes/user';
+import productRoutes from './routes/product';
+import cartRoutes from './routes/cart';
+import wishlistRoutes from './routes/wishlist';
+import orderRoutes from './routes/order';
+import reviewRoutes from './routes/review';
+import searchRoutes from './routes/search';
+import sellerRoutes from './routes/seller';
+import adminRoutes from './routes/admin';
+import stripeRoutes from './routes/stripe';
+import emailRoutes from './routes/email';
+import analyticsRoutes from './routes/analytics';
+import healthRoutes from './routes/health';
+import { errorHandler } from './middleware/errorHandler';
+import { rateLimit } from './middleware/rateLimit';
 import { securityHeaders } from './middleware/securityHeaders';
-import { genericLimiter } from './middleware/rateLimit';
+import { requestLogger, correlationId } from './middleware/logging';
+import Sentry from './config/sentry';
 
-// Validate environment at startup
-console.log('🔍 Validating environment configuration...');
-// The config import will throw if validation fails
-import './config/env';
-console.log('✅ Environment validated successfully');
+// Load environment variables
+dotenv.config();
 
-import { authRoutes } from './routes/authRoutes';
-import { userRoutes } from './routes/userRoutes';
-import { productRoutes } from './routes/productRoutes';
-import { cartRoutes } from './routes/cartRoutes';
-import { orderRoutes } from './routes/orderRoutes';
-import { stripeRoutes } from './routes/stripeRoutes';
+// Validate required environment variables
+const requiredEnvVars = [
+  'MONGODB_URI',
+  'JWT_SECRET',
+  'REFRESH_TOKEN_SECRET',
+  'STRIPE_SECRET_KEY',
+  'STRIPE_WEBHOOK_SECRET',
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+  'AWS_S3_BUCKET',
+  'AWS_REGION',
+  'NODE_ENV',
+  'SENTRY_DSN'
+];
+
+requiredEnvVars.forEach(varName => {
+  if (!process.env[varName]) {
+    throw new Error(`${varName} is required`);
+  }
+});
 
 const app = express();
+const PORT = process.env.PORT || 3001;
 
-// Security middleware
-app.use(helmet({ contentSecurityPolicy: false })); // We'll use our own CSP
+// Initialize Sentry Express integration
+Sentry.Handlers.requestHandler();
+Sentry.Handlers.tracingHandler();
+
+// Middleware
+app.use(correlationId);
+app.use(requestLogger);
+app.use(Sentry.Handlers.requestHandler());
+app.use(Sentry.Handlers.tracingHandler());
 app.use(securityHeaders);
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://shopsphere.com'] 
-    : ['http://localhost:5173', 'http://localhost:3000'],
-  credentials: true,
-}));
-
-// Rate limiting
-app.use(genericLimiter);
-
-// Body parsing
+app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// API routes
+// Rate limiting for analytics and auth endpoints
+app.use('/api/analytics', rateLimit);
+app.use('/api/auth', rateLimit);
+
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/seller', sellerRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/stripe', stripeRoutes);
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    environment: config.NODE_ENV,
-    timestamp: new Date().toISOString()
-  });
-});
-
-const port = config.PORT;
-app.listen(port, () => {
-  console.log(`✅ Server running in ${config.NODE_ENV} mode`);
-  console.log(`🚀 Server listening on port ${port}`);
-  console.log(`🔐 Secure environment validation enabled`);
-});
-
-export default app;
-```
+app.use('/api

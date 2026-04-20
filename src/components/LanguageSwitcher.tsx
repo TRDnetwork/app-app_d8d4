@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
 export function LanguageSwitcher() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   
   const languages = [
     { code: 'en', label: 'EN', name: 'English' },
@@ -19,8 +19,8 @@ export function LanguageSwitcher() {
           onClick={() => i18n.changeLanguage(lang.code)}
           className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
             i18n.language === lang.code 
-              ? 'bg-accent text-black' 
-              : 'bg-surface/50 text-text-dim hover:bg-surface/80'
+              ? 'bg-accent text-background' 
+              : 'text-text-dim hover:text-text'
           }`}
           aria-label={`Switch to ${lang.name}`}
         >

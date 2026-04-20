@@ -1,18 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.shopsphere.com/sitemap.xml
-
-# Disallow crawling of admin and API routes
-Disallow: /admin/
-Disallow: /api/
-
-# Allow major search engines
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: DuckDuckBot
-Allow: /
+Sitemap: https://shopsphere.app_d8d4.com/sitemap.xml

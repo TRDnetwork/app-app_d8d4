@@ -3,141 +3,107 @@
     "home": "Accueil",
     "products": "Produits",
     "wishlist": "Liste de souhaits",
-    "cart": "Panier",
+    "seller": "Vendeur",
+    "admin": "Administrateur",
     "profile": "Profil",
-    "login": "Connexion",
-    "logout": "Déconnexion"
+    "orderHistory": "Historique des commandes",
+    "login": "Se connecter",
+    "logout": "Se déconnecter"
   },
   "header": {
-    "search": "Rechercher des produits..."
+    "searchPlaceholder": "Rechercher des produits...",
+    "cart": "Panier"
+  },
+  "product": {
+    "outOfStock": "Rupture de stock",
+    "addToCart": "Ajouter au panier",
+    "saveForLater": "Sauvegarder pour plus tard",
+    "quantity": "Quantité",
+    "reviews": "Avis",
+    "questions": "Questions et réponses",
+    "frequentlyBoughtTogether": "Souvent achetés ensemble",
+    "customersAlsoViewed": "Les clients ont aussi consulté"
+  },
+  "cart": {
+    "title": "Panier d'achat",
+    "empty": "Votre panier est vide",
+    "continueShopping": "Continuer vos achats",
+    "subtotal": "Sous-total",
+    "delivery": "Livraison",
+    "free": "Gratuit",
+    "total": "Total",
+    "proceedToCheckout": "Passer à la caisse",
+    "remove": "Supprimer",
+    "updateQuantity": "Mettre à jour la quantité"
+  },
+  "checkout": {
+    "title": "Paiement",
+    "address": "Adresse",
+    "delivery": "Livraison",
+    "payment": "Paiement",
+    "review": "Révision",
+    "back": "Retour",
+    "continue": "Continuer",
+    "placeOrder": "Passer la commande",
+    "orderSummary": "Résumé de la commande",
+    "estimatedDelivery": "Livraison estimée"
+  },
+  "order": {
+    "confirmation": "Merci pour votre commande !",
+    "orderNumber": "Numéro de commande",
+    "viewOrderStatus": "Voir le statut de la commande",
+    "continueShopping": "Continuer vos achats",
+    "status": {
+      "placed": "Passée",
+      "confirmed": "Confirmée",
+      "shipped": "Expédiée",
+      "outForDelivery": "En cours de livraison",
+      "delivered": "Livré",
+      "cancelled": "Annulée",
+      "returned": "Retourné"
+    }
   },
   "auth": {
     "login": {
-      "title": "Connectez-vous à votre compte",
+      "title": "Connectez-vous à ShopSphere",
       "email": "Adresse e-mail",
       "password": "Mot de passe",
-      "remember": "Se souvenir de moi",
       "submit": "Se connecter",
-      "or_continue": "Ou continuer avec",
-      "no_account": "Vous n'avez pas de compte ?",
-      "sign_up": "S'inscrire"
+      "forgotPassword": "Mot de passe oublié ?",
+      "noAccount": "Vous n'avez pas de compte ?",
+      "createAccount": "S'inscrire"
     },
     "register": {
-      "title": "Créer un nouveau compte",
+      "title": "Créer un compte",
       "name": "Nom complet",
       "email": "Adresse e-mail",
       "password": "Mot de passe",
-      "confirm_password": "Confirmer le mot de passe",
-      "submit": "Créer un compte",
-      "have_account": "Vous avez déjà un compte ?",
-      "login": "Connexion"
+      "confirmPassword": "Confirmer le mot de passe",
+      "submit": "S'inscrire",
+      "hasAccount": "Vous avez déjà un compte ?",
+      "signIn": "Se connecter"
     },
-    "forgot_password": {
+    "forgotPassword": {
       "title": "Mot de passe oublié ?",
       "description": "Entrez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
       "email": "Adresse e-mail",
       "submit": "Envoyer le lien de réinitialisation",
-      "back_to_login": "Retour à la connexion"
+      "success": "Si un compte existe avec cet e-mail, un lien de réinitialisation a été envoyé"
     },
-    "reset_password": {
-      "title": "Réinitialisez votre mot de passe",
-      "new_password": "Nouveau mot de passe",
-      "confirm_password": "Confirmer le nouveau mot de passe",
+    "resetPassword": {
+      "title": "Réinitialiser le mot de passe",
+      "newPassword": "Nouveau mot de passe",
+      "confirmPassword": "Confirmer le nouveau mot de passe",
       "submit": "Réinitialiser le mot de passe"
     }
   },
-  "product": {
-    "price": "Prix",
-    "original_price": "Prix d'origine",
-    "discount": "Vous économisez",
-    "rating": "Note",
-    "reviews": "avis",
-    "in_stock": "En stock",
-    "low_stock": "Peu de stock",
-    "out_of_stock": "Rupture de stock",
-    "select_variant": "Sélectionner la variante",
-    "quantity": "Quantité",
-    "add_to_cart": "Ajouter au panier",
-    "description": "Description",
-    "reviews": "Avis",
-    "qa": "Questions"
-  },
-  "cart": {
-    "title": "Votre panier",
-    "empty": "Votre panier est vide",
-    "continue_shopping": "Continuer vos achats",
-    "subtotal": "Sous-total",
-    "delivery": "Livraison",
-    "total": "Total",
-    "proceed_to_checkout": "Passer à la caisse"
-  },
-  "checkout": {
-    "title": "Paiement",
-    "step_address": "1. Adresse",
-    "step_delivery": "2. Livraison",
-    "step_payment": "3. Paiement",
-    "step_review": "4. Révision",
-    "address": {
-      "title": "Adresse de livraison",
-      "street": "Adresse",
-      "city": "Ville",
-      "state": "État",
-      "zip": "Code postal",
-      "country": "Pays",
-      "phone": "Numéro de téléphone",
-      "save_continue": "Enregistrer et continuer"
-    },
-    "delivery": {
-      "title": "Méthode de livraison",
-      "standard": "Livraison standard",
-      "standard_desc": "3-5 jours ouvrables",
-      "express": "Livraison express",
-      "express_desc": "1-2 jours ouvrables",
-      "same_day": "Livraison le jour même",
-      "same_day_desc": "Livraison aujourd'hui"
-    },
-    "payment": {
-      "title": "Méthode de paiement",
-      "card": "Carte de crédit/débit",
-      "upi": "UPI",
-      "cod": "Paiement à la livraison",
-      "name_on_card": "Nom sur la carte",
-      "card_number": "Numéro de carte",
-      "expiry": "Date d'expiration",
-      "cvv": "CVV",
-      "upi_id": "ID UPI",
-      "pay_now": "Payer maintenant",
-      "continue": "Continuer"
-    },
-    "review": {
-      "title": "Vérifier la commande",
-      "place_order": "Passer la commande"
-    }
-  },
-  "order": {
-    "confirmation": {
-      "title": "Merci pour votre commande !",
-      "description": "Votre commande a été confirmée et sera traitée sous peu.",
-      "order_number": "Numéro de commande",
-      "order_date": "Date de la commande",
-      "total_amount": "Montant total",
-      "view_status": "Voir l'état de la commande",
-      "continue_shopping": "Continuer vos achats",
-      "email_sent": "Un e-mail de confirmation a été envoyé à votre adresse e-mail enregistrée."
-    }
-  },
   "common": {
-    "back": "Retour",
-    "continue": "Continuer",
     "save": "Enregistrer",
+    "cancel": "Annuler",
+    "close": "Fermer",
     "edit": "Modifier",
     "delete": "Supprimer",
-    "cancel": "Annuler",
     "yes": "Oui",
-    "no": "Non",
-    "close": "Fermer",
-    "loading": "Chargement...",
-    "error": "Erreur",
-    "success": "Succès"
+    "no": "Non"
   }
 }

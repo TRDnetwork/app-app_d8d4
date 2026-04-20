@@ -3,141 +3,107 @@
     "home": "Home",
     "products": "Products",
     "wishlist": "Wishlist",
-    "cart": "Cart",
+    "seller": "Seller",
+    "admin": "Admin",
     "profile": "Profile",
+    "orderHistory": "Order History",
     "login": "Login",
     "logout": "Logout"
   },
   "header": {
-    "search": "Search products..."
-  },
-  "auth": {
-    "login": {
-      "title": "Login to Your Account",
-      "email": "Email Address",
-      "password": "Password",
-      "remember": "Remember me",
-      "submit": "Login",
-      "or_continue": "Or continue with",
-      "no_account": "Don't have an account?",
-      "sign_up": "Sign up"
-    },
-    "register": {
-      "title": "Create New Account",
-      "name": "Full Name",
-      "email": "Email Address",
-      "password": "Password",
-      "confirm_password": "Confirm Password",
-      "submit": "Create Account",
-      "have_account": "Already have an account?",
-      "login": "Login"
-    },
-    "forgot_password": {
-      "title": "Forgot Password?",
-      "description": "Enter your email address and we'll send you a link to reset your password.",
-      "email": "Email Address",
-      "submit": "Send Reset Link",
-      "back_to_login": "Back to Login"
-    },
-    "reset_password": {
-      "title": "Reset Your Password",
-      "new_password": "New Password",
-      "confirm_password": "Confirm New Password",
-      "submit": "Reset Password"
-    }
+    "searchPlaceholder": "Search products...",
+    "cart": "Cart"
   },
   "product": {
-    "price": "Price",
-    "original_price": "Original Price",
-    "discount": "You save",
-    "rating": "Rating",
-    "reviews": "reviews",
-    "in_stock": "In Stock",
-    "low_stock": "Low Stock",
-    "out_of_stock": "Out of Stock",
-    "select_variant": "Select Variant",
+    "outOfStock": "Out of Stock",
+    "addToCart": "Add to Cart",
+    "saveForLater": "Save for Later",
     "quantity": "Quantity",
-    "add_to_cart": "Add to Cart",
-    "description": "Description",
     "reviews": "Reviews",
-    "qa": "Q&A"
+    "questions": "Questions & Answers",
+    "frequentlyBoughtTogether": "Frequently Bought Together",
+    "customersAlsoViewed": "Customers Also Viewed"
   },
   "cart": {
-    "title": "Your Cart",
+    "title": "Shopping Cart",
     "empty": "Your cart is empty",
-    "continue_shopping": "Continue Shopping",
+    "continueShopping": "Continue Shopping",
     "subtotal": "Subtotal",
     "delivery": "Delivery",
+    "free": "Free",
     "total": "Total",
-    "proceed_to_checkout": "Proceed to Checkout"
+    "proceedToCheckout": "Proceed to Checkout",
+    "remove": "Remove",
+    "updateQuantity": "Update Quantity"
   },
   "checkout": {
     "title": "Checkout",
-    "step_address": "1. Address",
-    "step_delivery": "2. Delivery",
-    "step_payment": "3. Payment",
-    "step_review": "4. Review",
-    "address": {
-      "title": "Shipping Address",
-      "street": "Street Address",
-      "city": "City",
-      "state": "State",
-      "zip": "ZIP Code",
-      "country": "Country",
-      "phone": "Phone Number",
-      "save_continue": "Save & Continue"
-    },
-    "delivery": {
-      "title": "Delivery Method",
-      "standard": "Standard Delivery",
-      "standard_desc": "3-5 business days",
-      "express": "Express Delivery",
-      "express_desc": "1-2 business days",
-      "same_day": "Same Day Delivery",
-      "same_day_desc": "Delivery today"
-    },
-    "payment": {
-      "title": "Payment Method",
-      "card": "Credit/Debit Card",
-      "upi": "UPI",
-      "cod": "Cash on Delivery",
-      "name_on_card": "Name on Card",
-      "card_number": "Card Number",
-      "expiry": "Expiry Date",
-      "cvv": "CVV",
-      "upi_id": "UPI ID",
-      "pay_now": "Pay Now",
-      "continue": "Continue"
-    },
-    "review": {
-      "title": "Review Order",
-      "place_order": "Place Order"
-    }
+    "address": "Address",
+    "delivery": "Delivery",
+    "payment": "Payment",
+    "review": "Review",
+    "back": "Back",
+    "continue": "Continue",
+    "placeOrder": "Place Order",
+    "orderSummary": "Order Summary",
+    "estimatedDelivery": "Estimated Delivery"
   },
   "order": {
-    "confirmation": {
-      "title": "Thank you for your order!",
-      "description": "Your order has been confirmed and will be processed shortly.",
-      "order_number": "Order Number",
-      "order_date": "Order Date",
-      "total_amount": "Total Amount",
-      "view_status": "View Order Status",
-      "continue_shopping": "Continue Shopping",
-      "email_sent": "A confirmation email has been sent to your registered email address."
+    "confirmation": "Thank you for your order!",
+    "orderNumber": "Order Number",
+    "viewOrderStatus": "View Order Status",
+    "continueShopping": "Continue Shopping",
+    "status": {
+      "placed": "Placed",
+      "confirmed": "Confirmed",
+      "shipped": "Shipped",
+      "outForDelivery": "Out for Delivery",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled",
+      "returned": "Returned"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in to ShopSphere",
+      "email": "Email address",
+      "password": "Password",
+      "submit": "Login",
+      "forgotPassword": "Forgot password?",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Sign up"
+    },
+    "register": {
+      "title": "Create an account",
+      "name": "Full name",
+      "email": "Email address",
+      "password": "Password",
+      "confirmPassword": "Confirm password",
+      "submit": "Register",
+      "hasAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Forgot password?",
+      "description": "Enter your email address and we'll send you a link to reset your password.",
+      "email": "Email address",
+      "submit": "Send reset link",
+      "success": "If an account with this email exists, a password reset link has been sent"
+    },
+    "resetPassword": {
+      "title": "Reset password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "submit": "Reset password"
     }
   },
   "common": {
-    "back": "Back",
-    "continue": "Continue",
     "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
     "edit": "Edit",
     "delete": "Delete",
-    "cancel": "Cancel",
     "yes": "Yes",
-    "no": "No",
-    "close": "Close",
-    "loading": "Loading...",
-    "error": "Error",
-    "success": "Success"
+    "no": "No"
   }
 }

@@ -3,141 +3,107 @@
     "home": "ホーム",
     "products": "商品",
     "wishlist": "ウィッシュリスト",
-    "cart": "カート",
+    "seller": "販売者",
+    "admin": "管理者",
     "profile": "プロフィール",
+    "orderHistory": "注文履歴",
     "login": "ログイン",
     "logout": "ログアウト"
   },
   "header": {
-    "search": "商品を検索..."
+    "searchPlaceholder": "商品を検索...",
+    "cart": "カート"
+  },
+  "product": {
+    "outOfStock": "在庫切れ",
+    "addToCart": "カートに追加",
+    "saveForLater": "あとで見る",
+    "quantity": "数量",
+    "reviews": "レビュー",
+    "questions": "質問と回答",
+    "frequentlyBoughtTogether": "一緒に購入される商品",
+    "customersAlsoViewed": "お客様も閲覧しています"
+  },
+  "cart": {
+    "title": "ショッピングカート",
+    "empty": "カートは空です",
+    "continueShopping": "買い物を続ける",
+    "subtotal": "小計",
+    "delivery": "配達",
+    "free": "無料",
+    "total": "合計",
+    "proceedToCheckout": "レジに進む",
+    "remove": "削除",
+    "updateQuantity": "数量を更新"
+  },
+  "checkout": {
+    "title": "お会計",
+    "address": "住所",
+    "delivery": "配達",
+    "payment": "支払い",
+    "review": "確認",
+    "back": "戻る",
+    "continue": "続ける",
+    "placeOrder": "注文する",
+    "orderSummary": "注文内容",
+    "estimatedDelivery": "配達予定日"
+  },
+  "order": {
+    "confirmation": "ご注文ありがとうございました！",
+    "orderNumber": "注文番号",
+    "viewOrderStatus": "注文状況を確認",
+    "continueShopping": "買い物を続ける",
+    "status": {
+      "placed": "注文済み",
+      "confirmed": "確認済み",
+      "shipped": "発送済み",
+      "outForDelivery": "配達中",
+      "delivered": "配達済み",
+      "cancelled": "キャンセル済み",
+      "returned": "返品済み"
+    }
   },
   "auth": {
     "login": {
-      "title": "アカウントにログイン",
+      "title": "ShopSphereにログイン",
       "email": "メールアドレス",
       "password": "パスワード",
-      "remember": "ログイン状態を保持",
       "submit": "ログイン",
-      "or_continue": "または以下で続ける",
-      "no_account": "アカウントをお持ちでないですか？",
-      "sign_up": "サインアップ"
+      "forgotPassword": "パスワードをお忘れですか？",
+      "noAccount": "アカウントをお持ちでないですか？",
+      "createAccount": "サインアップ"
     },
     "register": {
-      "title": "新規アカウント作成",
+      "title": "アカウントを作成",
       "name": "氏名",
       "email": "メールアドレス",
       "password": "パスワード",
-      "confirm_password": "パスワード確認",
-      "submit": "アカウント作成",
-      "have_account": "すでにアカウントをお持ちですか？",
-      "login": "ログイン"
+      "confirmPassword": "パスワードの確認",
+      "submit": "登録",
+      "hasAccount": "すでにアカウントをお持ちですか？",
+      "signIn": "ログイン"
     },
-    "forgot_password": {
+    "forgotPassword": {
       "title": "パスワードをお忘れですか？",
-      "description": "メールアドレスを入力してください。パスワードをリセットするためのリンクをお送りします。",
+      "description": "メールアドレスを入力してください。パスワードリセットのリンクをお送りします。",
       "email": "メールアドレス",
       "submit": "リセットリンクを送信",
-      "back_to_login": "ログインに戻る"
+      "success": "このメールアドレスに該当するアカウントが存在する場合、パスワードリセットのリンクを送信しました"
     },
-    "reset_password": {
+    "resetPassword": {
       "title": "パスワードをリセット",
-      "new_password": "新しいパスワード",
-      "confirm_password": "新しいパスワードを確認",
+      "newPassword": "新しいパスワード",
+      "confirmPassword": "新しいパスワードの確認",
       "submit": "パスワードをリセット"
     }
   },
-  "product": {
-    "price": "価格",
-    "original_price": "通常価格",
-    "discount": "お買い得",
-    "rating": "評価",
-    "reviews": "件のレビュー",
-    "in_stock": "在庫あり",
-    "low_stock": "在庫わずか",
-    "out_of_stock": "在庫切れ",
-    "select_variant": "バリエーションを選択",
-    "quantity": "数量",
-    "add_to_cart": "カートに追加",
-    "description": "説明",
-    "reviews": "レビュー",
-    "qa": "質問"
-  },
-  "cart": {
-    "title": "カート",
-    "empty": "カートは空です",
-    "continue_shopping": "買い物を続ける",
-    "subtotal": "小計",
-    "delivery": "配送料",
-    "total": "合計",
-    "proceed_to_checkout": "購入手続きに進む"
-  },
-  "checkout": {
-    "title": "購入手続き",
-    "step_address": "1. 住所",
-    "step_delivery": "2. 配送",
-    "step_payment": "3. 支払い",
-    "step_review": "4. 確認",
-    "address": {
-      "title": "配送先住所",
-      "street": "住所",
-      "city": "市区町村",
-      "state": "都道府県",
-      "zip": "郵便番号",
-      "country": "国",
-      "phone": "電話番号",
-      "save_continue": "保存して次へ"
-    },
-    "delivery": {
-      "title": "配送方法",
-      "standard": "通常配送",
-      "standard_desc": "3-5営業日",
-      "express": "速達配送",
-      "express_desc": "1-2営業日",
-      "same_day": "当日配送",
-      "same_day_desc": "当日配送"
-    },
-    "payment": {
-      "title": "支払い方法",
-      "card": "クレジット/デビットカード",
-      "upi": "UPI",
-      "cod": "代金引換",
-      "name_on_card": "カード名義人",
-      "card_number": "カード番号",
-      "expiry": "有効期限",
-      "cvv": "セキュリティコード",
-      "upi_id": "UPI ID",
-      "pay_now": "今すぐ支払う",
-      "continue": "続ける"
-    },
-    "review": {
-      "title": "注文内容の確認",
-      "place_order": "注文する"
-    }
-  },
-  "order": {
-    "confirmation": {
-      "title": "ご注文ありがとうございます！",
-      "description": "ご注文が確定し、まもなく処理されます。",
-      "order_number": "注文番号",
-      "order_date": "注文日",
-      "total_amount": "合計金額",
-      "view_status": "注文状況を確認",
-      "continue_shopping": "買い物を続ける",
-      "email_sent": "確認メールを登録済みのメールアドレスに送信しました。"
-    }
-  },
   "common": {
-    "back": "戻る",
-    "continue": "続ける",
     "save": "保存",
+    "cancel": "キャンセル",
+    "close": "閉じる",
     "edit": "編集",
     "delete": "削除",
-    "cancel": "キャンセル",
     "yes": "はい",
-    "no": "いいえ",
-    "close": "閉じる",
-    "loading": "読み込み中...",
-    "error": "エラー",
-    "success": "成功"
+    "no": "いいえ"
   }
 }

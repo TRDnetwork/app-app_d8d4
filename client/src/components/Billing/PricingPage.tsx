@@ -1,156 +1,138 @@
-'use client';
+import React from 'react';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../lib/auth';
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check } from 'lucide-react';
+const PricingPage: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
-const plans = [
-  {
-    name: 'Free',
-    price: 0,
-    description: 'Perfect for trying out our platform',
-    features: [
-      '10 API calls per day',
-      '50MB storage',
-      'Basic support',
-      'Community access',
-    ],
-    popular: false,
-  },
-  {
-    name: 'Pro',
-    price: 29,
-    description: 'For professionals and growing businesses',
-    features: [
-      '10,000 API calls per day',
-      '10GB storage',
-      'Priority support',
-      'Advanced analytics',
-      'Custom domains',
-      'Team collaboration',
-    ],
-    popular: true,
-  },
-  {
-    name: 'Enterprise',
-    price: 99,
-    description: 'For large organizations with high demands',
-    features: [
-      'Unlimited API calls',
-      '100GB storage',
-      '24/7 dedicated support',
-      'Custom integrations',
-      'SLA guarantee',
-      'Advanced security',
-      'Custom reporting',
-      'Dedicated account manager',
-    ],
-    popular: false,
-  },
-];
+  const plans = [
+    {
+      id: 'free',
+      name: 'Free',
+      price: 0,
+      period: 'month',
+      features: [
+        'Basic workout tracking',
+        '1 workout plan',
+        '5 workout logs per month',
+        'Email support'
+      ],
+      cta: 'Get Started'
+    },
+    {
+      id: 'pro',
+      name: 'Pro',
+      price: 9.99,
+      period: 'month',
+      features: [
+        'All Free features',
+        'Unlimited workout plans',
+        'Unlimited workout logs',
+        'Advanced analytics',
+        'Priority email support',
+        'Mobile app access'
+      ],
+      cta: 'Start Free Trial'
+    },
+    {
+      id: 'enterprise',
+      name: 'Enterprise',
+      price: 29.99,
+      period: 'month',
+      features: [
+        'All Pro features',
+        'Team collaboration',
+        'Custom workout templates',
+        'API access',
+        'Dedicated account manager',
+        '24/7 phone support'
+      ],
+      cta: 'Contact Sales'
+    }
+  ];
 
-export default function PricingPage() {
-  const [loading, setLoading] = useState<string | null>(null);
+  const handlePlanSelect = async (planId: string) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
 
-  const handleSubscribe = async (plan: string) => {
-    setLoading(plan);
-    
     try {
-      // In a real application, this would call your API to create a checkout session
-      const response = await fetch('/api/billing/checkout-session', {
+      // In a real app, this would call the API to create a checkout session
+      const response = await fetch('/api/billing/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          plan,
-          successUrl: `${window.location.origin}/dashboard`,
-          cancelUrl: `${window.location.origin}/pricing`,
-        }),
+        body: JSON.stringify({ planId }),
       });
-      
+
       const data = await response.json();
       
-      if (data.id) {
+      if (data.success) {
         // Redirect to Stripe Checkout
-        window.location.href = `/api/checkout-session/${data.id}`;
-      } else {
-        throw new Error(data.error || 'Failed to create checkout session');
+        window.location.href = `https://checkout.stripe.com/c/pay/${data.sessionId}`;
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      // Handle error (show toast, etc.)
-    } finally {
-      setLoading(null);
     }
   };
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="text-center mb-16">
-        <h1 className="text-4xl font-bold mb-4">Simple, transparent pricing</h1>
-        <p className="text-xl text-text_dim max-w-3xl mx-auto">
-          Choose the plan that's right for you. All plans include a 14-day free trial.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+      <h1 className="text-4xl font-bold text-center mb-4">Simple, Transparent Pricing</h1>
+      <p className="text-xl text-center text-text-dim mb-12">Choose the plan that's right for you</p>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
         {plans.map((plan) => (
           <Card 
-            key={plan.name} 
-            className={`flex flex-col ${plan.popular ? 'border-accent shadow-lg' : ''}`}
+            key={plan.id} 
+            className={plan.id === 'pro' ? 'border-accent shadow-lg' : ''}
           >
-            {plan.popular && (
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-accent text-white text-xs font-bold px-3 py-1 rounded-full">
-                  Most Popular
-                </span>
-              </div>
-            )}
-            <CardHeader className="pb-2">
+            <CardHeader className="text-center">
               <CardTitle className="text-2xl">{plan.name}</CardTitle>
-              <CardDescription>{plan.description}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <div className="mb-6">
+              <div className="mt-4">
                 <span className="text-4xl font-bold">${plan.price}</span>
-                <span className="text-text_dim">/month</span>
-                {plan.price === 0 && <span className="text-text_dim ml-2">forever</span>}
+                <span className="text-text-dim">/{plan.period}</span>
               </div>
+            </CardHeader>
+            <CardContent>
               <ul className="space-y-3">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center">
-                    <Check className="h-5 w-5 text-accent mr-2 flex-shrink-0" />
-                    <span>{feature}</span>
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="flex items-center">
+                    <svg className="h-5 w-5 text-accent mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {feature}
                   </li>
                 ))}
               </ul>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex justify-center">
               <Button 
-                className="w-full" 
-                onClick={() => handleSubscribe(plan.name.toLowerCase())}
-                disabled={loading === plan.name.toLowerCase()}
+                onClick={() => handlePlanSelect(plan.id)}
+                className={plan.id === 'pro' ? 'bg-accent hover:bg-orange-600' : ''}
               >
-                {loading === plan.name.toLowerCase() ? 'Processing...' : plan.price === 0 ? 'Get Started' : 'Start Free Trial'}
+                {plan.cta}
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
-
-      <div className="text-center mt-16">
-        <p className="text-text_dim">
-          Need a custom plan?{' '}
-          <a href="/contact" className="text-accent hover:underline">
-            Contact sales
-          </a>
+      
+      <div className="mt-12 text-center">
+        <p className="text-text-dim">
+          All plans include a 7-day free trial. Cancel anytime.
         </p>
       </div>
     </div>
   );
-}
+};
+
+export default PricingPage;
 ```
 
 ```typescript

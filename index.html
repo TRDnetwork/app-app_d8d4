@@ -3,51 +3,82 @@
   <head><script>window.__SUPABASE_URL__="https://wmxnwapnfurwoalvkkwh.supabase.co";window.__SUPABASE_ANON_KEY__="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteG53YXBuZnVyd29hbHZra3doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDgwODEsImV4cCI6MjA5MTQ4NDA4MX0.BNgF4LD35_Ooxtkv5Pok8ldrBeHPOCDauv-ZYG1v7_Q";</script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="ShopSphere - Premium e-commerce platform with AI recommendations, fast checkout, and real-time tracking." />
+    <meta name="description" content="ShopSphere – Premium e-commerce platform with curated products, fast delivery, and secure payments. Shop electronics, fashion, home goods and more." />
+    <meta name="keywords" content="e-commerce, online shopping, electronics, fashion, home goods, online store, ShopSphere" />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="ShopSphere" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shopsphere.app_d8d4.com/" />
+    <meta property="og:title" content="ShopSphere - Premium Online Shopping Experience" />
+    <meta property="og:description" content="ShopSphere offers a premium e-commerce experience with curated products, fast delivery, and secure payments. Discover electronics, fashion, home goods and more." />
+    <meta property="og:image" content="https://shopsphere.app_d8d4.com/images/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shopsphere.app_d8d4.com/" />
+    <meta property="twitter:title" content="ShopSphere - Premium Online Shopping Experience" />
+    <meta property="twitter:description" content="ShopSphere offers a premium e-commerce experience with curated products, fast delivery, and secure payments. Discover electronics, fashion, home goods and more." />
+    <meta property="twitter:image" content="https://shopsphere.app_d8d4.com/images/og-image.jpg" />
+    
+    <title>ShopSphere - Premium Online Shopping Experience</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
-    <title>ShopSphere</title>
-    <script type="module" src="/src/main.tsx"></script>
-    <style>
-      body {
-        margin: 0;
-        font-family: 'Source Sans Pro', sans-serif;
-        background-color: #0F172A;
-        color: #F8FAFC;
-      }
-      #root {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-      }
-      @keyframes pulse {
-        0% { opacity: 0.6; }
-        50% { opacity: 0.2; }
-        100% { opacity: 0.6; }
-      }
-    </style>
     
-    <!-- GA4 Analytics Script - respects DNT and loads asynchronously -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=/* ANALYTICS_KEY */"></script>
-    <script>
-      // Check for Do Not Track
-      const isDNT = navigator.doNotTrack === "1" || 
-                   window.doNotTrack === "1" || 
-                   navigator.msDoNotTrack === "1";
-      
-      if (!isDNT) {
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', '/* ANALYTICS_KEY */', {
-          page_path: window.location.pathname,
-          anonymize_ip: true
-        });
+    <!-- Schema.org structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "ShopSphere",
+      "url": "https://shopsphere.app_d8d4.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://shopsphere.app_d8d4.com/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
       }
+    }
+    </script>
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "ShopSphere",
+      "url": "https://shopsphere.app_d8d4.com",
+      "logo": "https://shopsphere.app_d8d4.com/images/logo.png",
+      "foundingDate": "2024",
+      "founders": [
+        {
+          "@type": "Person",
+          "name": "Jane Doe"
+        },
+        {
+          "@type": "Person",
+          "name": "John Smith"
+        }
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+1-555-123-4567",
+        "contactType": "customer service",
+        "areaServed": "US",
+        "availableLanguage": ["en"]
+      },
+      "sameAs": [
+        "https://www.facebook.com/shopsphere",
+        "https://www.twitter.com/shopsphere",
+        "https://www.instagram.com/shopsphere"
+      ]
+    }
     </script>
   </head>
-  <body>
+  <body class="bg-bg text-text antialiased">
     <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

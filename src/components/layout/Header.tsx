@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingCart, User, Menu, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { authStore } from '../../stores/authStore';
 import { cartStore } from '../../stores/cartStore';
 import { trackCTAClick, trackSearch } from '../../lib/analytics';
+import { LanguageSwitcher } from '../LanguageSwitcher';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { t } = useTranslation();
   const { user, logout } = authStore();
   const { getTotalItems } = cartStore();
   const navigate = useNavigate();
@@ -44,21 +47,21 @@ const Header: React.FC = () => {
                 className="text-text hover:text-accent transition-colors"
                 onClick={() => trackCTAClick('home', 'header')}
               >
-                Home
+                {t('nav.home')}
               </Link>
               <Link 
                 to="/products" 
                 className="text-text hover:text-accent transition-colors"
                 onClick={() => trackCTAClick('products', 'header')}
               >
-                Products
+                {t('nav.products')}
               </Link>
               <Link 
                 to="/wishlist" 
                 className="text-text hover:text-accent transition-colors"
                 onClick={() => trackCTAClick('wishlist', 'header')}
               >
-                Wishlist
+                {t('nav.wishlist')}
               </Link>
               {user?.role === 'seller' && (
                 <Link 
@@ -66,7 +69,7 @@ const Header: React.FC = () => {
                   className="text-text hover:text-accent transition-colors"
                   onClick={() => trackCTAClick('seller', 'header')}
                 >
-                  Seller
+                  {t('nav.seller')}
                 </Link>
               )}
               {user?.role === 'admin' && (
@@ -75,7 +78,7 @@ const Header: React.FC = () => {
                   className="text-text hover:text-accent transition-colors"
                   onClick={() => trackCTAClick('admin', 'header')}
                 >
-                  Admin
+                  {t('nav.admin')}
                 </Link>
               )}
             </nav>
@@ -85,7 +88,7 @@ const Header: React.FC = () => {
             <form onSubmit={handleSearch} className="relative">
               <input
                 type="text"
-                placeholder="Search products..."
+                placeholder={t('header.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full py-2 pl-10 pr-4 rounded-full bg-muted text-text placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent"
@@ -123,20 +126,20 @@ const Header: React.FC = () => {
                     className="block px-4 py-2 text-text hover:bg-muted hover:text-accent"
                     onClick={() => trackCTAClick('profile', 'user_menu')}
                   >
-                    My Profile
+                    {t('nav.profile')}
                   </Link>
                   <Link
                     to="/orders"
                     className="block px-4 py-2 text-text hover:bg-muted hover:text-accent"
                     onClick={() => trackCTAClick('order_history', 'user_menu')}
                   >
-                    Order History
+                    {t('nav.orderHistory')}
                   </Link>
                   <button
                     onClick={handleLogout}
                     className="w-full text-left px-4 py-2 text-text hover:bg-muted hover:text-accent"
                   >
-                    Logout
+                    {t('nav.logout')}
                   </button>
                 </div>
               </div>
@@ -147,10 +150,12 @@ const Header: React.FC = () => {
                 onClick={() => trackCTAClick('login', 'header')}
               >
                 <User size={20} />
-                <span>Login</span>
+                <span>{t('nav.login')}</span>
               </Link>
             )}
 
+            <LanguageSwitcher />
+            
             <button
               className="md:hidden"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -168,7 +173,7 @@ const Header: React.FC = () => {
                 <form onSubmit={handleSearch} className="relative">
                   <input
                     type="text"
-                    placeholder="Search products..."
+                    placeholder={t('header.searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full py-2 pl-10 pr-4 rounded-full bg-muted text-text placeholder-text-dim focus:outline-none"
@@ -184,7 +189,7 @@ const Header: React.FC = () => {
                   setIsMenuOpen(false);
                 }}
               >
-                Home
+                {t('nav.home')}
               </Link>
               <Link
                 to="/products"
@@ -194,7 +199,7 @@ const Header: React.FC = () => {
                   setIsMenuOpen(false);
                 }}
               >
-                Products
+                {t('nav.products')}
               </Link>
               <Link
                 to="/wishlist"
@@ -204,7 +209,7 @@ const Header: React.FC = () => {
                   setIsMenuOpen(false);
                 }}
               >
-                Wishlist
+                {t('nav.wishlist')}
               </Link>
               {user?.role === 'seller' && (
                 <Link
@@ -215,7 +220,7 @@ const Header: React.FC = () => {
                     setIsMenuOpen(false);
                   }}
                 >
-                  Seller
+                  {t('nav.seller')}
                 </Link>
               )}
               {user?.role === 'admin' && (
@@ -227,7 +232,7 @@ const Header: React.FC = () => {
                     setIsMenuOpen(false);
                   }}
                 >
-                  Admin
+                  {t('nav.admin')}
                 </Link>
               )}
               {user && (
@@ -240,7 +245,7 @@ const Header: React.FC = () => {
                       setIsMenuOpen(false);
                     }}
                   >
-                    My Profile
+                    {t('nav.profile')}
                   </Link>
                   <Link
                     to="/orders"
@@ -250,7 +255,7 @@ const Header: React.FC = () => {
                       setIsMenuOpen(false);
                     }}
                   >
-                    Order History
+                    {t('nav.orderHistory')}
                   </Link>
                   <button
                     onClick={() => {
@@ -259,7 +264,7 @@ const Header: React.FC = () => {
                     }}
                     className="w-full text-left px-3 py-2 text-text hover:text-accent text-left"
                   >
-                    Logout
+                    {t('nav.logout')}
                   </button>
                 </>
               )}

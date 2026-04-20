@@ -1,88 +1,23 @@
-```ts
-import { config } from '../../server/src/config/env';
+import { authStore } from '../stores/authStore';
 
-// Client-side API configuration
-// Note: Only public keys should be exposed here
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
-const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+const API_BASE = '/api';
 
-// Validate required client environment variables
-if (!STRIPE_PUBLIC_KEY?.startsWith('pk_')) {
-  console.error('❌ Missing or invalid VITE_STRIPE_PUBLIC_KEY. Check your .env file.');
-}
+const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  const token = authStore.getState().user?.token;
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+    ...options.headers,
+  };
 
-if (!API_BASE_URL) {
-  console.error('❌ Missing VITE_API_URL. Check your .env file.');
-}
+  const res = await fetch(`${API_BASE}${url}`, { ...options, headers });
 
-// Use httpOnly cookies for authentication instead of localStorage
-// This prevents XSS attacks from stealing tokens
-// Server should set: Set-Cookie: token=...; HttpOnly; Secure; SameSite=Strict
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || 'Something went wrong');
+  }
 
-const api = {
-  get: async <T>(endpoint: string): Promise<T> => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      credentials: 'include', // Include cookies for authentication
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || 'Request failed');
-    }
-    
-    return response.json();
-  },
-
-  post: async <T>(endpoint: string, data: any): Promise<T> => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(data),
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || 'Request failed');
-    }
-    
-    return response.json();
-  },
-
-  put: async <T>(endpoint: string, data: any): Promise<T> => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(data),
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || 'Request failed');
-    }
-    
-    return response.json();
-  },
-
-  delete: async <T>(endpoint: string): Promise<T> => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || 'Request failed');
-    }
-    
-    return response.json();
-  },
+  return res.json();
 };
 
-export { api, API_BASE_URL, STRIPE_PUBLIC_KEY };
-```
+export default fetchWithAuth;

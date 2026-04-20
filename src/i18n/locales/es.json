@@ -3,141 +3,107 @@
     "home": "Inicio",
     "products": "Productos",
     "wishlist": "Lista de deseos",
-    "cart": "Carrito",
+    "seller": "Vendedor",
+    "admin": "Administrador",
     "profile": "Perfil",
+    "orderHistory": "Historial de pedidos",
     "login": "Iniciar sesión",
     "logout": "Cerrar sesión"
   },
   "header": {
-    "search": "Buscar productos..."
-  },
-  "auth": {
-    "login": {
-      "title": "Iniciar sesión en su cuenta",
-      "email": "Dirección de correo electrónico",
-      "password": "Contraseña",
-      "remember": "Recordarme",
-      "submit": "Iniciar sesión",
-      "or_continue": "O continuar con",
-      "no_account": "¿No tiene una cuenta?",
-      "sign_up": "Registrarse"
-    },
-    "register": {
-      "title": "Crear nueva cuenta",
-      "name": "Nombre completo",
-      "email": "Dirección de correo electrónico",
-      "password": "Contraseña",
-      "confirm_password": "Confirmar contraseña",
-      "submit": "Crear cuenta",
-      "have_account": "¿Ya tiene una cuenta?",
-      "login": "Iniciar sesión"
-    },
-    "forgot_password": {
-      "title": "¿Olvidó su contraseña?",
-      "description": "Ingrese su dirección de correo electrónico y le enviaremos un enlace para restablecer su contraseña.",
-      "email": "Dirección de correo electrónico",
-      "submit": "Enviar enlace de restablecimiento",
-      "back_to_login": "Volver al inicio de sesión"
-    },
-    "reset_password": {
-      "title": "Restablezca su contraseña",
-      "new_password": "Nueva contraseña",
-      "confirm_password": "Confirmar nueva contraseña",
-      "submit": "Restablecer contraseña"
-    }
+    "searchPlaceholder": "Buscar productos...",
+    "cart": "Carrito"
   },
   "product": {
-    "price": "Precio",
-    "original_price": "Precio original",
-    "discount": "Ahorra",
-    "rating": "Calificación",
-    "reviews": "reseñas",
-    "in_stock": "En stock",
-    "low_stock": "Poco stock",
-    "out_of_stock": "Agotado",
-    "select_variant": "Seleccionar variante",
+    "outOfStock": "Agotado",
+    "addToCart": "Añadir al carrito",
+    "saveForLater": "Guardar para más tarde",
     "quantity": "Cantidad",
-    "add_to_cart": "Añadir al carrito",
-    "description": "Descripción",
     "reviews": "Reseñas",
-    "qa": "Preguntas"
+    "questions": "Preguntas y respuestas",
+    "frequentlyBoughtTogether": "Comprados frecuentemente juntos",
+    "customersAlsoViewed": "Los clientes también vieron"
   },
   "cart": {
-    "title": "Su carrito",
-    "empty": "Su carrito está vacío",
-    "continue_shopping": "Seguir comprando",
+    "title": "Carrito de compras",
+    "empty": "Tu carrito está vacío",
+    "continueShopping": "Continuar comprando",
     "subtotal": "Subtotal",
     "delivery": "Entrega",
+    "free": "Gratis",
     "total": "Total",
-    "proceed_to_checkout": "Proceder al pago"
+    "proceedToCheckout": "Proceder al pago",
+    "remove": "Eliminar",
+    "updateQuantity": "Actualizar cantidad"
   },
   "checkout": {
     "title": "Pagar",
-    "step_address": "1. Dirección",
-    "step_delivery": "2. Entrega",
-    "step_payment": "3. Pago",
-    "step_review": "4. Revisar",
-    "address": {
-      "title": "Dirección de envío",
-      "street": "Dirección",
-      "city": "Ciudad",
-      "state": "Estado",
-      "zip": "Código postal",
-      "country": "País",
-      "phone": "Número de teléfono",
-      "save_continue": "Guardar y continuar"
-    },
-    "delivery": {
-      "title": "Método de entrega",
-      "standard": "Entrega estándar",
-      "standard_desc": "3-5 días hábiles",
-      "express": "Entrega exprés",
-      "express_desc": "1-2 días hábiles",
-      "same_day": "Entrega el mismo día",
-      "same_day_desc": "Entrega hoy"
-    },
-    "payment": {
-      "title": "Método de pago",
-      "card": "Tarjeta de crédito/débito",
-      "upi": "UPI",
-      "cod": "Pago contra reembolso",
-      "name_on_card": "Nombre en la tarjeta",
-      "card_number": "Número de tarjeta",
-      "expiry": "Fecha de vencimiento",
-      "cvv": "CVV",
-      "upi_id": "ID UPI",
-      "pay_now": "Pagar ahora",
-      "continue": "Continuar"
-    },
-    "review": {
-      "title": "Revisar pedido",
-      "place_order": "Realizar pedido"
-    }
+    "address": "Dirección",
+    "delivery": "Entrega",
+    "payment": "Pago",
+    "review": "Revisar",
+    "back": "Atrás",
+    "continue": "Continuar",
+    "placeOrder": "Realizar pedido",
+    "orderSummary": "Resumen del pedido",
+    "estimatedDelivery": "Entrega estimada"
   },
   "order": {
-    "confirmation": {
-      "title": "¡Gracias por su pedido!",
-      "description": "Su pedido ha sido confirmado y será procesado en breve.",
-      "order_number": "Número de pedido",
-      "order_date": "Fecha del pedido",
-      "total_amount": "Importe total",
-      "view_status": "Ver estado del pedido",
-      "continue_shopping": "Seguir comprando",
-      "email_sent": "Se ha enviado un correo de confirmación a su dirección de correo registrada."
+    "confirmation": "¡Gracias por tu pedido!",
+    "orderNumber": "Número de pedido",
+    "viewOrderStatus": "Ver estado del pedido",
+    "continueShopping": "Continuar comprando",
+    "status": {
+      "placed": "Realizado",
+      "confirmed": "Confirmado",
+      "shipped": "Enviado",
+      "outForDelivery": "En camino",
+      "delivered": "Entregado",
+      "cancelled": "Cancelado",
+      "returned": "Devuelto"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Inicia sesión en ShopSphere",
+      "email": "Dirección de correo",
+      "password": "Contraseña",
+      "submit": "Iniciar sesión",
+      "forgotPassword": "¿Olvidaste tu contraseña?",
+      "noAccount": "¿No tienes una cuenta?",
+      "createAccount": "Regístrate"
+    },
+    "register": {
+      "title": "Crear una cuenta",
+      "name": "Nombre completo",
+      "email": "Dirección de correo",
+      "password": "Contraseña",
+      "confirmPassword": "Confirmar contraseña",
+      "submit": "Registrarse",
+      "hasAccount": "¿Ya tienes una cuenta?",
+      "signIn": "Iniciar sesión"
+    },
+    "forgotPassword": {
+      "title": "¿Olvidaste tu contraseña?",
+      "description": "Ingresa tu dirección de correo y te enviaremos un enlace para restablecer tu contraseña.",
+      "email": "Dirección de correo",
+      "submit": "Enviar enlace de restablecimiento",
+      "success": "Si existe una cuenta con este correo, se ha enviado un enlace para restablecer la contraseña"
+    },
+    "resetPassword": {
+      "title": "Restablecer contraseña",
+      "newPassword": "Nueva contraseña",
+      "confirmPassword": "Confirmar nueva contraseña",
+      "submit": "Restablecer contraseña"
     }
   },
   "common": {
-    "back": "Atrás",
-    "continue": "Continuar",
     "save": "Guardar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
     "edit": "Editar",
     "delete": "Eliminar",
-    "cancel": "Cancelar",
     "yes": "Sí",
-    "no": "No",
-    "close": "Cerrar",
-    "loading": "Cargando...",
-    "error": "Error",
-    "success": "Éxito"
+    "no": "No"
   }
 }
