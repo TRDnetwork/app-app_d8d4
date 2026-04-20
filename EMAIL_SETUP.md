@@ -1,31 +1,41 @@
-# ShopSphere Email Setup Guide
+# 📨 ShopSphere Email Setup Guide
+
+This guide explains how to configure transactional emails for ShopSphere using Resend.
 
 ## 1. Get Your Resend API Key
-1. Go to [resend.com](https://resend.com) and create an account
-2. Verify your domain in the Resend dashboard
-3. Navigate to API Keys and create a new key
-4. Copy the API key (it starts with `re_`)
 
-## 2. Configure Environment Variables
-Add the following to your environment variables:
+1. Go to [resend.com](https://resend.com) and sign up or log in.
+2. Navigate to **API Keys** and create a new API key.
+3. Copy the key (it starts with `re_...`).
 
-**For Vercel:**
-```bash
-RESEND_API_KEY=re_XXXXXXXXXXXXXXXXXXXXXX
-```
+> 🔐 **Never commit this key to version control.**
 
-**In your `.env.local` file:**
-```bash
-RESEND_API_KEY=re_XXXXXXXXXXXXXXXXXXXXXX
-```
+## 2. Set Environment Variable on Vercel
 
-> ⚠️ **Security Note**: Never use `NEXT_PUBLIC_` prefix for the API key. This would expose it to the client-side.
+1. Go to your Vercel project dashboard.
+2. Navigate to **Settings > Environment Variables**.
+3. Add a new variable:
+   - **Key**: `RESEND_API_KEY`
+   - **Value**: Paste your Resend API key
+   - **Environment**: Add to Production, Preview, and Development
+4. Redeploy your application.
 
-## 3. Frontend Integration
-The frontend calls the email API route using `fetch`:
+> ❌ Do NOT use `VITE_RESEND_API_KEY` — this would expose the key to the browser.
 
-```typescript
-// Example: Sending order confirmation
+## 3. Verify Your Sending Domain
+
+1. In Resend dashboard, go to **Domains**.
+2. Click **Add Domain** and enter your domain (e.g., `shopsphere.com`).
+3. Add the required DNS records (TXT and CNAME) to your domain provider.
+4. Wait for verification (usually a few minutes).
+
+Once verified, you can send from `hello@shopsphere.com` or any subdomain.
+
+## 4. Frontend Integration
+
+The frontend sends email requests via `fetch` to the serverless function:
+
+```ts
 await fetch('/api/send-email', {
   method: 'POST',
   headers: {
@@ -33,27 +43,29 @@ await fetch('/api/send-email', {
   },
   body: JSON.stringify({
     to: 'customer@example.com',
-    subject: 'Your ShopSphere Order #12345',
-    html: '<html>...</html>', // Rendered from EmailVerification component
+    subject: 'Order Confirmed #12345',
+    html: '<strong>Hello</strong> world',
   }),
 });
 ```
 
-## 4. Domain Verification
-1. In the Resend dashboard, add and verify your sending domain
-2. Add the required DNS records (TXT and CNAME) to your domain registrar
-3. Wait for verification (usually a few minutes)
+> ✅ The API key stays server-side — never exposed to the client.
 
-## 5. Testing
-1. Use the Resend dashboard to monitor email activity
-2. Test all email flows:
-   - Email verification
-   - Password reset
-   - Order confirmation
-3. Check spam folder if emails aren't arriving
+## 5. Available Email Templates
 
-## 6. Production Best Practices
-- Use a custom from address (e.g., `orders@shopsphere.com`) after domain verification
-- Monitor bounce rates and spam complaints in the Resend dashboard
-- Implement proper error handling in your API routes
-- Never log email content or API keys
+- `OrderConfirmationEmail` — sent after successful purchase
+- `PasswordResetEmail` — sent when user requests password reset
+- `SellerApplicationReceivedEmail` — notifies admin of new seller application
+
+## 6. Testing Emails
+
+1. Use `delivered@resend.dev` as the recipient during development.
+2. View sent emails in [Resend Dashboard > Activity](https://resend.com/activity).
+3. For production, update `TO_EMAIL` in `api/send-email.ts` to your official address.
+
+## 7. Best Practices
+
+- Always include an unsubscribe link in marketing emails.
+- Monitor bounce rates and spam complaints in Resend dashboard.
+- Use meaningful `reply_to` addresses (e.g., `support@shopsphere.com`).
+- Log email errors (but never log API keys or full email content).
