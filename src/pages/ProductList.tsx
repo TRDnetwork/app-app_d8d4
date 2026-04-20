@@ -1,45 +1,47 @@
 import React, { useState } from 'react';
-import { ProductCard } from '../components/product/ProductCard';
+import { ProductGrid } from '../components/product/ProductGrid';
 import { ProductFilters } from '../components/product/ProductFilters';
 import { ProductSort } from '../components/product/ProductSort';
-import { ProductGrid } from '../components/product/ProductGrid';
-import { fetchWithAuth } from '../lib/api';
 
-const ProductList = () => {
-  const [products, setProducts] = useState<any[]>([]);
-  const [filters, setFilters] = useState({});
-  const [sort, setSort] = useState('newest');
-  const [loading, setLoading] = useState(true);
+const ProductList: React.FC = () => {
+  const [filters, setFilters] = useState({
+    priceRange: [0, 1000],
+    brand: '',
+    rating: 0,
+    category: '',
+  });
+  const [sort, setSort] = useState('featured');
 
-  const loadProducts = async () => {
-    setLoading(true);
-    try {
-      const res = await fetchWithAuth(`/products?${new URLSearchParams({ ...filters, sort })}`);
-      setProducts(res.data || []);
-    } catch (err) {
-      console.error('Failed to load products');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    loadProducts();
-  }, [filters, sort]);
+  const mockProducts = Array(12).fill(null).map((_, i) => ({
+    _id: `p${i}`,
+    title: `Product ${i + 1}`,
+    price: 99.99 + i * 10,
+    original_price: 149.99 + i * 10,
+    images: [`https://via.placeholder.com/300?text=Product${i+1}`],
+    rating: 4 + Math.random(),
+    reviews: Math.floor(Math.random() * 200),
+  }));
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold">Products</h1>
-      <div className="flex flex-col gap-8 md:flex-row">
-        <aside className="md:w-64">
-          <ProductFilters onFilter={setFilters} />
+      <h1 className="text-3xl font-bold text-text mb-8">Products</h1>
+
+      <div className="flex flex-col md:flex-row gap-8">
+        {/* Filters Sidebar */}
+        <aside className="md:w-64 flex-shrink-0">
+          <ProductFilters filters={filters} setFilters={setFilters} />
         </aside>
+
+        {/* Main Content */}
         <main className="flex-1">
-          <div className="mb-6 flex items-center justify-between">
-            <span>{products.length} products</span>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <p className="text-text-dim">
+              Showing <strong>1-12</strong> of <strong>147</strong> products
+            </p>
             <ProductSort value={sort} onChange={setSort} />
           </div>
-          <ProductGrid products={products} loading={loading} />
+
+          <ProductGrid products={mockProducts} />
         </main>
       </div>
     </div>
