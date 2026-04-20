@@ -1,395 +1,344 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
-import { generateAccessToken, generateRefreshToken } from '../utils/token';
 import { sendEmail } from '../utils/sendEmail';
-import { logger } from '../middleware/logging';
+import { generateToken, generateRefreshToken, verifyToken } from '../utils/generateToken';
 import { config } from '../config/env';
+import { logger } from '../utils/logger';
 import { apiResponse } from '../utils/apiResponse';
 
-/**
- * User registration
- * Creates new user with hashed password and sends verification email
- */
+// Rate limiting for auth endpoints
+const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
+
+// Helper function to check rate limiting
+const isRateLimited = (ip: string): boolean => {
+  const windowMs = 15 * 60 * 1000; // 15 minutes
+  const maxAttempts = 5;
+  
+  const record = loginAttempts.get(ip);
+  const now = Date.now();
+  
+  if (!record) {
+    loginAttempts.set(ip, { count: 1, lastAttempt: now });
+    return false;
+  }
+  
+  const { count, lastAttempt } = record;
+  
+  if (now - lastAttempt > windowMs) {
+    // Reset counter if window has passed
+    loginAttempts.set(ip, { count: 1, lastAttempt: now });
+    return false;
+  }
+  
+  if (count >= maxAttempts) {
+    return true; // Rate limited
+  }
+  
+  // Increment counter
+  loginAttempts.set(ip, { count: count + 1, lastAttempt: now });
+  return false;
+};
+
+// Helper function to clear expired rate limit records
+const clearExpiredRecords = () => {
+  const windowMs = 15 * 60 * 1000; // 15 minutes
+  const now = Date.now();
+  
+  for (const [ip, record] of loginAttempts.entries()) {
+    if (now - record.lastAttempt > windowMs) {
+      loginAttempts.delete(ip);
+    }
+  }
+};
+
+// Clear expired records every 5 minutes
+setInterval(clearExpiredRecords, 5 * 60 * 1000);
+
+// Register user
 export const register = async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
-
-    // Validate input
+    
+    // Input validation
     if (!name || !email || !password) {
       return res.status(400).json(apiResponse(400, 'Name, email, and password are required'));
     }
-
+    
+    if (name.length < 2) {
+      return res.status(400).json(apiResponse(400, 'Name must be at least 2 characters'));
+    }
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json(apiResponse(400, 'Invalid email format'));
+    }
+    
+    if (password.length < 8) {
+      return res.status(400).json(apiResponse(400, 'Password must be at least 8 characters'));
+    }
+    
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json(apiResponse(409, 'User with this email already exists'));
     }
-
+    
     // Hash password
-    const salt = await bcrypt.genSalt(12);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Generate verification token
-    const verificationToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+    
     // Create user
     const user = new User({
       name,
       email,
-      password: hashedPassword,
-      emailVerificationToken: verificationToken,
+      password_hash: passwordHash,
       role: 'customer',
+      email_verified: false,
+      email_verification_token: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      created_at: new Date(),
+      updated_at: new Date()
     });
-
+    
     await user.save();
-
+    
     // Send verification email
-    await sendEmail({
-      email: user.email,
-      subject: 'Verify your email address',
-      message: `Please verify your email by clicking this link: ${config.CLIENT_URL}/verify-email?token=${verificationToken}`,
-    });
-
-    logger.info({
-      type: 'user_registration',
-      message: 'User registered successfully',
-      userId: user._id,
-      email: user.email,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
-
-    res.status(201).json(
-      apiResponse(201, 'User registered successfully. Please check your email to verify your account.', {
-        user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          emailVerified: user.emailVerified,
-        },
-      })
-    );
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Verify your email address',
+        message: `Click the link to verify your email: ${config.CLIENT_URL}/verify-email?token=${user.email_verification_token}`
+      });
+    } catch (error) {
+      logger.error('Failed to send verification email:', error);
+      // Don't fail registration if email fails
+    }
+    
+    // Generate tokens
+    const payload = { id: user._id, role: user.role };
+    const accessToken = generateToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+    
+    // Remove password hash from response
+    const userResponse = user.toObject();
+    delete userResponse.password_hash;
+    
+    res.status(201).json(apiResponse(201, 'User registered successfully. Please check your email to verify your account.', {
+      user: userResponse,
+      tokens: { accessToken, refreshToken }
+    }));
   } catch (error: any) {
-    logger.error({
-      type: 'registration_error',
-      message: 'Registration failed',
-      error: error.message,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
-    res.status(500).json(apiResponse(500, 'Registration failed'));
+    logger.error('Registration error:', error);
+    res.status(500).json(apiResponse(500, 'Failed to register user'));
   }
 };
 
-/**
- * User login
- * Verifies credentials and returns JWT tokens
- */
+// Login user
 export const login = async (req: Request, res: Response) => {
+  const ip = req.ip || req.socket.remoteAddress || '';
+  
   try {
     const { email, password } = req.body;
-
-    // Validate input
+    
+    // Input validation
     if (!email || !password) {
       return res.status(400).json(apiResponse(400, 'Email and password are required'));
     }
-
+    
+    // Check rate limiting
+    if (isRateLimited(ip)) {
+      return res.status(429).json(apiResponse(429, 'Too many login attempts. Please try again later.'));
+    }
+    
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json(apiResponse(401, 'Invalid credentials'));
     }
-
+    
     // Check if email is verified
-    if (!user.emailVerified) {
-      return res.status(401).json(apiResponse(401, 'Please verify your email before logging in'));
+    if (!user.email_verified) {
+      return res.status(401).json(apiResponse(401, 'Please verify your email address'));
     }
-
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+    // Check password
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
       return res.status(401).json(apiResponse(401, 'Invalid credentials'));
     }
-
+    
     // Generate tokens
-    const accessToken = generateAccessToken({
-      userId: user._id.toString(),
-      role: user.role,
-    });
-
-    const refreshToken = generateRefreshToken({
-      userId: user._id.toString(),
-      role: user.role,
-    });
-
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
-
-    logger.info({
-      type: 'user_login',
-      message: 'User logged in successfully',
-      userId: user._id,
-      email: user.email,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
-
-    res.json(
-      apiResponse(200, 'Login successful', {
-        user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          profilePictureUrl: user.profilePictureUrl,
-          emailVerified: user.emailVerified,
-        },
-        tokens: {
-          accessToken,
-          refreshToken,
-        },
-      })
-    );
+    const payload = { id: user._id, role: user.role };
+    const accessToken = generateToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+    
+    // Remove password hash from response
+    const userResponse = user.toObject();
+    delete userResponse.password_hash;
+    
+    res.json(apiResponse(200, 'Login successful', {
+      user: userResponse,
+      tokens: { accessToken, refreshToken }
+    }));
   } catch (error: any) {
-    logger.error({
-      type: 'login_error',
-      message: 'Login failed',
-      error: error.message,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
-    res.status(500).json(apiResponse(500, 'Login failed'));
+    logger.error('Login error:', error);
+    res.status(500).json(apiResponse(500, 'Failed to login'));
   }
 };
 
-/**
- * Refresh access token
- * Uses refresh token to generate new access token
- */
+// Refresh access token
 export const refresh = async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body;
-
+    
     if (!refreshToken) {
       return res.status(401).json(apiResponse(401, 'Refresh token required'));
     }
-
-    const payload = verifyRefreshToken(refreshToken);
-    if (!payload) {
+    
+    // Verify refresh token
+    const decoded = verifyToken(refreshToken, config.JWT_REFRESH_SECRET);
+    if (!decoded) {
       return res.status(403).json(apiResponse(403, 'Invalid or expired refresh token'));
     }
-
-    // Verify user still exists and is active
-    const user = await User.findById(payload.userId);
+    
+    // Find user
+    const user = await User.findById(decoded.id).select('-password_hash');
     if (!user) {
-      return res.status(403).json(apiResponse(403, 'User not found'));
+      return res.status(404).json(apiResponse(404, 'User not found'));
     }
-
+    
     // Generate new access token
-    const newAccessToken = generateAccessToken({
-      userId: user._id.toString(),
-      role: user.role,
-    });
-
-    logger.info({
-      type: 'token_refresh',
-      message: 'Access token refreshed',
-      userId: user._id,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
-
-    res.json(
-      apiResponse(200, 'Token refreshed successfully', {
-        accessToken: newAccessToken,
-      })
-    );
+    const payload = { id: user._id, role: user.role };
+    const accessToken = generateToken(payload);
+    
+    res.json(apiResponse(200, 'Token refreshed', { accessToken }));
   } catch (error: any) {
-    logger.error({
-      type: 'refresh_error',
-      message: 'Token refresh failed',
-      error: error.message,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
-    res.status(500).json(apiResponse(500, 'Token refresh failed'));
+    logger.error('Refresh token error:', error);
+    res.status(500).json(apiResponse(500, 'Failed to refresh token'));
   }
 };
 
-/**
- * Logout user
- * Currently just invalidates the token on client side
- */
+// Logout user
 export const logout = async (req: Request, res: Response) => {
-  // In a stateless JWT system, we can't invalidate the token server-side
+  // In JWT-based auth, we can't invalidate the token on the server
   // The client should remove the token from storage
-  logger.info({
-    type: 'user_logout',
-    message: 'User logged out',
-    userId: req.user?.id,
-    ip: req.ip,
-    userAgent: req.get('User-Agent'),
-  });
-
   res.json(apiResponse(200, 'Logged out successfully'));
 };
 
-/**
- * Verify email address
- * Validates email verification token
- */
+// Verify email
 export const verifyEmail = async (req: Request, res: Response) => {
   try {
     const { token } = req.body;
-
+    
     if (!token) {
       return res.status(400).json(apiResponse(400, 'Verification token required'));
     }
-
-    // Find user with this verification token
-    const user = await User.findOne({ emailVerificationToken: token });
+    
+    // Find user with verification token
+    const user = await User.findOne({ email_verification_token: token });
     if (!user) {
       return res.status(400).json(apiResponse(400, 'Invalid or expired verification token'));
     }
-
+    
     // Update user
-    user.emailVerified = true;
-    user.emailVerificationToken = undefined;
+    user.email_verified = true;
+    user.email_verification_token = undefined;
+    user.updated_at = new Date();
+    
     await user.save();
-
-    logger.info({
-      type: 'email_verification',
-      message: 'Email verified successfully',
-      userId: user._id,
-      email: user.email,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
-
+    
     res.json(apiResponse(200, 'Email verified successfully'));
   } catch (error: any) {
-    logger.error({
-      type: 'email_verification_error',
-      message: 'Email verification failed',
-      error: error.message,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
-    res.status(500).json(apiResponse(500, 'Email verification failed'));
+    logger.error('Email verification error:', error);
+    res.status(500).json(apiResponse(500, 'Failed to verify email'));
   }
 };
 
-/**
- * Request password reset
- * Sends password reset email with token
- */
+// Forgot password
 export const forgotPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
-
+    
     if (!email) {
-      return res.status(400).json(apiResponse(400, 'Email is required'));
+      return res.status(400).json(apiResponse(400, 'Email required'));
     }
-
+    
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
-      // Don't reveal if email exists for security
+      // Don't reveal if email exists
       return res.json(apiResponse(200, 'If an account with this email exists, a password reset link has been sent'));
     }
-
+    
     // Generate reset token
     const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    const resetTokenExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
+    const resetExpires = new Date(Date.now() + 3600000); // 1 hour
+    
     // Update user
-    user.passwordResetToken = resetToken;
-    user.passwordResetExpires = resetTokenExpiry;
+    user.password_reset_token = resetToken;
+    user.password_reset_expires = resetExpires;
+    user.updated_at = new Date();
+    
     await user.save();
-
+    
     // Send reset email
-    await sendEmail({
-      email: user.email,
-      subject: 'Password Reset Request',
-      message: `You requested a password reset. Click this link to reset your password: ${config.CLIENT_URL}/reset-password?token=${resetToken}`,
-    });
-
-    logger.info({
-      type: 'password_reset_request',
-      message: 'Password reset requested',
-      userId: user._id,
-      email: user.email,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
-
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Password Reset Request',
+        message: `Click the link to reset your password: ${config.CLIENT_URL}/reset-password?token=${resetToken}`
+      });
+    } catch (error) {
+      logger.error('Failed to send password reset email:', error);
+      // Don't fail the request if email fails
+    }
+    
     res.json(apiResponse(200, 'If an account with this email exists, a password reset link has been sent'));
   } catch (error: any) {
-    logger.error({
-      type: 'forgot_password_error',
-      message: 'Forgot password failed',
-      error: error.message,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
-    res.status(500).json(apiResponse(500, 'Forgot password failed'));
+    logger.error('Forgot password error:', error);
+    res.status(500).json(apiResponse(500, 'Failed to process password reset request'));
   }
 };
 
-/**
- * Reset password
- * Validates reset token and updates password
- */
+// Reset password
 export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { token, newPassword } = req.body;
-
+    
     if (!token || !newPassword) {
-      return res.status(400).json(apiResponse(400, 'Token and new password are required'));
+      return res.status(400).json(apiResponse(400, 'Token and new password required'));
     }
-
-    // Find user with this reset token
-    const user = await User.findOne({
-      passwordResetToken: token,
-      passwordResetExpires: { $gt: new Date() },
+    
+    if (newPassword.length < 8) {
+      return res.status(400).json(apiResponse(400, 'Password must be at least 8 characters'));
+    }
+    
+    // Find user with reset token
+    const user = await User.findOne({ 
+      password_reset_token: token,
+      password_reset_expires: { $gt: new Date() }
     });
-
+    
     if (!user) {
       return res.status(400).json(apiResponse(400, 'Invalid or expired reset token'));
     }
-
+    
     // Hash new password
-    const salt = await bcrypt.genSalt(12);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+    
     // Update user
-    user.password = hashedPassword;
-    user.passwordResetToken = undefined;
-    user.passwordResetExpires = undefined;
+    user.password_hash = passwordHash;
+    user.password_reset_token = undefined;
+    user.password_reset_expires = undefined;
+    user.updated_at = new Date();
+    
     await user.save();
-
-    logger.info({
-      type: 'password_reset',
-      message: 'Password reset successfully',
-      userId: user._id,
-      email: user.email,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
-
+    
     res.json(apiResponse(200, 'Password reset successfully'));
   } catch (error: any) {
-    logger.error({
-      type: 'reset_password_error',
-      message: 'Password reset failed',
-      error: error.message,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
-    res.status(500).json(apiResponse(500, 'Password reset failed'));
+    logger.error('Reset password error:', error);
+    res.status(500).json(apiResponse(500, 'Failed to reset password'));
   }
 };
 ```

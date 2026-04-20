@@ -2,45 +2,43 @@
 
 ## Deploy to Vercel
 
-1. Push your code to a GitHub repository
-2. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-3. Click "New Project" and import your GitHub repository
-4. Configure the project:
-   - Framework: Vite (auto-detected)
-   - Root Directory: `/client`
-   - Build Command: `npm run build`
-   - Output Directory: `dist` (or `build` if using CRA)
-   - Install Command: `npm install`
-5. Click "Deploy"
+1. Fork or push this repository to your GitHub account
+2. Go to [vercel.com](https://vercel.com) and sign in with GitHub
+3. Click "New Project" and import the ShopSphere repository
+4. Vercel will auto-detect the Vite/React frontend in the root
+5. Set environment variables (from `.env.example`)
+6. Click "Deploy"
 
 ## Environment Variables
 
-Add these environment variables in Vercel project settings:
+Required variables:
+- `CLIENT_URL` - Client base URL (e.g., https://shopsphere.vercel.app)
+- `API_BASE_URL` - Backend API URL (e.g., https://shopsphere-api.onrender.com)
+- `RESEND_API_KEY` - For transactional emails
+- `STRIPE_SECRET_KEY` - Stripe secret key
+- `STRIPE_PUBLIC_KEY` - Stripe publishable key
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret
+- `JWT_SECRET` - JWT signing secret
+- `JWT_REFRESH_SECRET` - JWT refresh token secret
+- `GOOGLE_CLIENT_ID` - Google OAuth client ID
+- `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
+- `FACEBOOK_APP_ID` - Facebook OAuth app ID
+- `FACEBOOK_APP_SECRET` - Facebook OAuth app secret
+- `AWS_ACCESS_KEY_ID` - AWS access key
+- `AWS_SECRET_ACCESS_KEY` - AWS secret key
+- `AWS_REGION` - AWS region
+- `S3_BUCKET_NAME` - S3 bucket name
 
-| Key | Value |
-|-----|-------|
-| `API_BASE_URL` | Your backend API URL (e.g., `https://shopsphere-server.onrender.com`) |
-| `STRIPE_PUBLISHABLE_KEY` | Your Stripe publishable key |
-| `GOOGLE_CLIENT_ID` | Your Google OAuth client ID |
-| `FACEBOOK_APP_ID` | Your Facebook App ID |
+## First-time setup
 
-## First-time Setup
-
-1. Deploy the backend first to Railway/Render:
-   ```bash
-   git push railway main
-   ```
-2. Run database migrations and seed data:
-   ```bash
-   # Connect to your MongoDB and run:
-   node server/src/db/seed.js
-   ```
-3. Enable MongoDB Atlas search if using Atlas Search
-4. Configure Stripe webhooks:
-   - Go to [Stripe Webhooks](https://dashboard.stripe.com/webhooks)
-   - Add endpoint: `https://shopsphere-server.onrender.com/api/stripe/webhook`
-   - Use API version: `2023-10-16`
-   - Copy the webhook secret to `STRIPE_WEBHOOK_SECRET`
-5. Set up OAuth providers:
-   - Google: Add `https://your-app.vercel.app/api/auth/oauth/google/callback` to authorized redirect URIs
-   - Facebook: Add `https://your-app.vercel.app/api/auth/oauth/facebook/callback` to valid OAuth redirect URIs
+1. Deploy backend to Render/Railway with all environment variables
+2. Run database migrations: `npm run migrate`
+3. Seed database: `npm run seed`
+4. Configure Stripe:
+   - Set webhook endpoint to `https://your-api.com/api/stripe/webhook`
+   - Copy webhook signing secret to `STRIPE_WEBHOOK_SECRET`
+5. Configure OAuth:
+   - Add redirect URIs in Google/Facebook developer consoles:
+     - Google: `https://your-client.com/api/auth/oauth/google/callback`
+     - Facebook: `https://your-client.com/api/auth/oauth/facebook/callback`
+6. Update `API_BASE_URL` in client environment to point to deployed backend

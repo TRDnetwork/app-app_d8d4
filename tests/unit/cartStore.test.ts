@@ -2,161 +2,141 @@ import { describe, it, expect } from 'vitest';
 import { cartStore } from '../../src/stores/cartStore';
 
 describe('cartStore', () => {
-  beforeEach(() => {
-    // Reset store state before each test
-    cartStore.setState({
-      items: [],
-      couponCode: null,
-      discount: 0,
-    });
-  });
+  const mockProduct = {
+    _id: '123',
+    title: 'Test Product',
+    price: 99.99,
+    image: 'test.jpg',
+  };
 
-  it('initializes with empty cart', () => {
-    const state = cartStore.getState();
-    expect(state.items).toHaveLength(0);
-    expect(state.getTotalItems()).toBe(0);
-    expect(state.getSubtotal()).toBe(0);
+  beforeEach(() => {
+    cartStore.getState().clearCart();
   });
 
   it('adds item to empty cart', () => {
     cartStore.getState().addItem({
-      product_id: 'product123',
+      product_id: '123',
+      quantity: 1,
+      price: 99.99,
       title: 'Test Product',
       image: 'test.jpg',
-      price: 99.99,
-      quantity: 1,
     });
 
     const state = cartStore.getState();
     expect(state.items).toHaveLength(1);
-    expect(state.items[0].product_id).toBe('product123');
-    expect(state.items[0].price_snapshot).toBe(99.99);
-    expect(state.getTotalItems()).toBe(1);
-    expect(state.getSubtotal()).toBe(99.99);
+    expect(state.items[0].product_id).toBe('123');
+    expect(state.items[0].quantity).toBe(1);
   });
 
-  it('adds multiple quantities of same product', () => {
+  it('increases quantity when adding existing item', () => {
     cartStore.getState().addItem({
-      product_id: 'product123',
+      product_id: '123',
+      quantity: 1,
+      price: 99.99,
       title: 'Test Product',
       image: 'test.jpg',
-      price: 99.99,
-      quantity: 1,
     });
 
     cartStore.getState().addItem({
-      product_id: 'product123',
+      product_id: '123',
+      quantity: 2,
+      price: 99.99,
       title: 'Test Product',
       image: 'test.jpg',
-      price: 99.99,
-      quantity: 2,
     });
 
     const state = cartStore.getState();
     expect(state.items).toHaveLength(1);
     expect(state.items[0].quantity).toBe(3);
-    expect(state.getTotalItems()).toBe(3);
-    expect(state.getSubtotal()).toBe(299.97);
-  });
-
-  it('adds different products to cart', () => {
-    cartStore.getState().addItem({
-      product_id: 'product123',
-      title: 'Test Product 1',
-      image: 'test1.jpg',
-      price: 99.99,
-      quantity: 1,
-    });
-
-    cartStore.getState().addItem({
-      product_id: 'product456',
-      title: 'Test Product 2',
-      image: 'test2.jpg',
-      price: 49.99,
-      quantity: 1,
-    });
-
-    const state = cartStore.getState();
-    expect(state.items).toHaveLength(2);
-    expect(state.getTotalItems()).toBe(2);
-    expect(state.getSubtotal()).toBe(149.98);
   });
 
   it('updates quantity of existing item', () => {
     cartStore.getState().addItem({
-      product_id: 'product123',
+      product_id: '123',
+      quantity: 1,
+      price: 99.99,
       title: 'Test Product',
       image: 'test.jpg',
-      price: 99.99,
-      quantity: 1,
     });
 
-    cartStore.getState().updateQuantity('product123', 3);
-
+    cartStore.getState().updateQuantity('123', 5);
     const state = cartStore.getState();
-    expect(state.items[0].quantity).toBe(3);
-    expect(state.getTotalItems()).toBe(3);
-    expect(state.getSubtotal()).toBe(299.97);
+    expect(state.items[0].quantity).toBe(5);
   });
 
   it('removes item from cart', () => {
     cartStore.getState().addItem({
-      product_id: 'product123',
+      product_id: '123',
+      quantity: 1,
+      price: 99.99,
       title: 'Test Product',
       image: 'test.jpg',
-      price: 99.99,
-      quantity: 1,
     });
 
-    cartStore.getState().removeItem('product123');
-
+    cartStore.getState().removeItem('123');
     const state = cartStore.getState();
     expect(state.items).toHaveLength(0);
-    expect(state.getTotalItems()).toBe(0);
-    expect(state.getSubtotal()).toBe(0);
   });
 
   it('clears entire cart', () => {
     cartStore.getState().addItem({
-      product_id: 'product123',
-      title: 'Test Product 1',
-      image: 'test1.jpg',
-      price: 99.99,
+      product_id: '123',
       quantity: 1,
+      price: 99.99,
+      title: 'Test Product',
+      image: 'test.jpg',
     });
 
     cartStore.getState().addItem({
-      product_id: 'product456',
-      title: 'Test Product 2',
-      image: 'test2.jpg',
+      product_id: '456',
+      quantity: 2,
       price: 49.99,
-      quantity: 1,
+      title: 'Another Product',
+      image: 'another.jpg',
     });
 
     cartStore.getState().clearCart();
-
     const state = cartStore.getState();
     expect(state.items).toHaveLength(0);
-    expect(state.getTotalItems()).toBe(0);
-    expect(state.getSubtotal()).toBe(0);
-    expect(state.couponCode).toBeNull();
-    expect(state.discount).toBe(0);
+    expect(state.subtotal).toBe(0);
+    expect(state.total).toBe(0);
   });
 
-  it('applies coupon correctly', () => {
-    cartStore.getState().applyCoupon('SAVE10', 10);
+  it('calculates subtotal correctly', () => {
+    cartStore.getState().addItem({
+      product_id: '123',
+      quantity: 2,
+      price: 50,
+      title: 'Test Product',
+      image: 'test.jpg',
+    });
+
+    cartStore.getState().addItem({
+      product_id: '456',
+      quantity: 1,
+      price: 25,
+      title: 'Another Product',
+      image: 'another.jpg',
+    });
 
     const state = cartStore.getState();
+    expect(state.subtotal()).toBe(125);
+  });
+
+  it('applies coupon discount', () => {
+    cartStore.getState().addItem({
+      product_id: '123',
+      quantity: 2,
+      price: 50,
+      title: 'Test Product',
+      image: 'test.jpg',
+    });
+
+    cartStore.getState().applyCoupon('SAVE10');
+    const state = cartStore.getState();
+    
     expect(state.couponCode).toBe('SAVE10');
     expect(state.discount).toBe(10);
-  });
-
-  it('removes coupon correctly', () => {
-    cartStore.getState().applyCoupon('SAVE10', 10);
-    cartStore.getState().removeCoupon();
-
-    const state = cartStore.getState();
-    expect(state.couponCode).toBeNull();
-    expect(state.discount).toBe(0);
+    expect(state.total()).toBe(90);
   });
 });

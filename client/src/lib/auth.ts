@@ -1,430 +1,436 @@
-import { useAuthStore } from '../stores/authStore';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { api } from './api';
 import { toast } from '@/components/ui/use-toast';
+import DOMPurify from 'dompurify';
 
-// Initialize auth state on app load
-export const initializeAuth = async () => {
-  // No Supabase initialization - using custom JWT auth
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    // Verify token is still valid
-    try {
-      const response = await fetch('/api/auth/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const userData = await response.json();
-        useAuthStore.getState().setUser(userData.user);
-      } else {
-        // Token is invalid, clear it
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-      }
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-    }
-  }
-};
+// Define user types
+interface User {
+  _id: string;
+  email: string;
+  name: string;
+  role: 'customer' | 'seller' | 'admin';
+  profile_picture_url?: string;
+  email_verified: boolean;
+  loyalty_points: number;
+}
 
-// Email/password authentication
-export const signUp = async (email: string, password: string, name: string) => {
-  try {
-    const response = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password, name }),
-    });
+interface AuthState {
+  user: User | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => void;
+  refresh: () => Promise<void>;
+  verifyEmail: (token: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, newPassword: string) => Promise<void>;
+  signInWithGoogle: () => void;
+  signInWithFacebook: () => void;
+  getAuthError: () => string | null;
+  clearAuthError: () => void;
+}
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Registration failed');
-    }
-
-    const data = await response.json();
-    
-    // Store tokens securely
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
-    
-    useAuthStore.getState().setUser(data.user);
-    
-    toast({
-      title: "Welcome!",
-      description: `Account created successfully`,
-    });
-    
-    return data;
-  } catch (err) {
-    toast({
-      variant: "destructive",
-      title: "Registration failed",
-      description: err instanceof Error ? err.message : 'Unknown error',
-    });
-    throw err;
-  }
-};
-
-export const signIn = async (email: string, password: string) => {
-  try {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Login failed');
-    }
-
-    const data = await response.json();
-    
-    // Store tokens securely
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
-    
-    useAuthStore.getState().setUser(data.user);
-    
-    toast({
-      title: "Welcome back!",
-      description: `Signed in as ${data.user.name || data.user.email}`,
-    });
-    
-    return data;
-  } catch (err) {
-    toast({
-      variant: "destructive",
-      title: "Login failed",
-      description: err instanceof Error ? err.message : 'Unknown error',
-    });
-    throw err;
-  }
-};
-
-// OAuth authentication
-export const signInWithProvider = async (provider: 'google' | 'facebook') => {
-  try {
-    // Redirect to backend OAuth endpoint
-    window.location.href = `/api/auth/oauth/${provider}`;
-  } catch (error) {
-    toast({
-      variant: "destructive",
-      title: "Authentication failed",
-      description: error instanceof Error ? error.message : 'Unknown error',
-    });
-    throw error;
-  }
-};
-
-// Password recovery
-export const forgotPassword = async (email: string) => {
-  try {
-    const response = await fetch('/api/auth/forgot-password', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Password reset request failed');
-    }
-
-    toast({
-      title: "Check your email",
-      description: "We've sent you a password reset link. Please check your inbox.",
-    });
-  } catch (error) {
-    toast({
-      variant: "destructive",
-      title: "Password reset failed",
-      description: error instanceof Error ? error.message : 'Unknown error',
-    });
-    throw error;
-  }
-};
-
-export const resetPassword = async (token: string, newPassword: string) => {
-  try {
-    const response = await fetch('/api/auth/reset-password', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token, newPassword }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Password reset failed');
-    }
-
-    toast({
-      title: "Password updated",
-      description: "Your password has been successfully updated.",
-    });
-
-    return await response.json();
-  } catch (error) {
-    toast({
-      variant: "destructive",
-      title: "Password reset failed",
-      description: error instanceof Error ? error.message : 'Unknown error',
-    });
-    throw error;
-  }
-};
-
-// Email verification
-export const verifyEmail = async (token: string) => {
-  try {
-    const response = await fetch('/api/auth/verify-email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Email verification failed');
-    }
-
-    toast({
-      title: "Email verified",
-      description: "Your email has been successfully verified.",
-    });
-  } catch (error) {
-    toast({
-      variant: "destructive",
-      title: "Email verification failed",
-      description: error instanceof Error ? error.message : 'Unknown error',
-    });
-    throw error;
-  }
-};
-
-// Sign out
-export const signOut = async () => {
-  try {
-    // Call backend logout endpoint to invalidate refresh token
-    await fetch('/api/auth/logout', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-    });
-
-    // Clear local storage
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    
-    useAuthStore.getState().setUser(null);
-    
-    toast({
-      title: "Signed out",
-      description: "You have been signed out successfully",
-    });
-  } catch (error) {
-    console.error('Logout failed:', error);
-    // Still clear local storage even if backend call fails
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    useAuthStore.getState().setUser(null);
-  }
-};
-
-// Get current user session
-export const getSession = async () => {
-  const accessToken = localStorage.getItem('accessToken');
-  if (!accessToken) return null;
-  
-  try {
-    const response = await fetch('/api/auth/session', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    });
-    
-    if (response.ok) {
-      return await response.json();
-    }
-  } catch (error) {
-    console.error('Error getting session:', error);
-  }
-  
-  return null;
-};
-
-// Update user profile
-export const updateProfile = async (updates: { 
-  name?: string; 
-  phone?: string; 
-  avatar_url?: string 
-}) => {
-  try {
-    const response = await fetch('/api/users/profile', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-      body: JSON.stringify(updates),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Profile update failed');
-    }
-
-    const data = await response.json();
-    
-    // Update local state
-    const currentUser = useAuthStore.getState().user;
-    if (currentUser) {
-      useAuthStore.getState().setUser({
-        ...currentUser,
-        ...data.user,
-      });
-    }
-
-    toast({
-      title: "Profile updated",
-      description: "Your profile has been successfully updated.",
-    });
-
-    return data;
-  } catch (error) {
-    toast({
-      variant: "destructive",
-      title: "Profile update failed",
-      description: error instanceof Error ? error.message : 'Unknown error',
-    });
-    throw error;
-  }
-};
-
-// Check auth status
-export const checkAuthStatus = async () => {
-  return !!localStorage.getItem('accessToken');
-};
-
-// Get auth error from URL (for OAuth callbacks)
-export const getAuthError = () => {
-  const params = new URLSearchParams(window.location.search);
-  const error = params.get('error');
-  const errorDescription = params.get('error_description');
-  
-  if (error) {
-    return {
-      error,
-      error_description: errorDescription
-    };
-  }
-  
-  return null;
-};
-
-// Handle OAuth callback
-export const handleAuthCallback = async () => {
-  const params = new URLSearchParams(window.location.search);
-  const error = params.get('error');
-  
-  if (error) {
-    const errorDescription = params.get('error_description');
-    toast({
-      variant: "destructive",
-      title: "Authentication failed",
-      description: errorDescription || "An error occurred during authentication",
-    });
-    return;
-  }
-  
-  // Check for OAuth success parameters
-  const accessToken = params.get('access_token');
-  const refreshToken = params.get('refresh_token');
-  
-  if (accessToken && refreshToken) {
-    // Store tokens
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
-    
-    // Clear URL parameters
-    window.history.replaceState({}, document.title, window.location.pathname);
-    
-    // Redirect to home or previous page
-    window.location.href = '/';
-  }
-};
-
-// Resend verification email
-export const resendVerificationEmail = async (email: string) => {
-  try {
-    const response = await fetch('/api/auth/resend-verification', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to resend verification email');
-    }
-
-    toast({
-      title: "Verification email sent",
-      description: "We've sent a new verification link to your email address.",
-    });
-  } catch (error) {
-    toast({
-      variant: "destructive",
-      title: "Failed to resend verification email",
-      description: error instanceof Error ? error.message : 'Unknown error',
-    });
-    throw error;
-  }
-};
-
-// Auth context for React components
-export const useAuth = () => {
-  const user = useAuthStore((state) => state.user);
-  const setUser = useAuthStore((state) => state.setUser);
+// Initialize auth state from localStorage
+const getInitialAuthState = (): AuthState => {
+  const storedAccessToken = localStorage.getItem('accessToken');
+  const storedRefreshToken = localStorage.getItem('refreshToken');
+  const storedUser = localStorage.getItem('user');
   
   return {
-    user,
-    isAuthenticated: !!user,
-    signUp,
-    signIn,
-    signInWithProvider,
-    signOut,
-    forgotPassword,
-    resetPassword,
-    verifyEmail,
-    updateProfile,
-    checkAuthStatus,
-    getAuthError,
-    handleAuthCallback,
-    resendVerificationEmail
+    user: storedUser ? JSON.parse(storedUser) : null,
+    accessToken: storedAccessToken,
+    refreshToken: storedRefreshToken,
+    isAuthenticated: !!(storedAccessToken && storedUser),
+    isLoading: false,
+    error: null,
   };
 };
 
-// Initialize auth on module load
-initializeAuth().catch(console.error);
+export const useAuth = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      ...getInitialAuthState(),
+      
+      login: async (email: string, password: string) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          // Validate input
+          if (!email || !password) {
+            throw new Error('Email and password are required');
+          }
+          
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            throw new Error('Invalid email format');
+          }
+          
+          if (password.length < 8) {
+            throw new Error('Password must be at least 8 characters');
+          }
+          
+          // Make API call
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            // SECURITY FIX: Sanitize error message before displaying
+            const sanitizedMessage = DOMPurify.sanitize(data.message || 'Login failed');
+            set({ error: sanitizedMessage });
+            throw new Error(sanitizedMessage);
+          }
+          
+          // Store tokens and user data
+          const { tokens, user } = data.data;
+          localStorage.setItem('accessToken', tokens.accessToken);
+          localStorage.setItem('refreshToken', tokens.refreshToken);
+          localStorage.setItem('user', JSON.stringify(user));
+          
+          set({ 
+            user, 
+            accessToken: tokens.accessToken, 
+            refreshToken: tokens.refreshToken, 
+            isAuthenticated: true,
+            isLoading: false 
+          });
+          
+          // Track login event
+          trackAuthEvent('login');
+        } catch (error: any) {
+          const errorMessage = error.message || 'Login failed';
+          set({ error: errorMessage, isLoading: false });
+          
+          toast({
+            variant: 'destructive',
+            title: 'Login Failed',
+            description: errorMessage,
+          });
+          
+          throw error;
+        }
+      },
+      
+      register: async (name: string, email: string, password: string) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          // Validate input
+          if (!name || !email || !password) {
+            throw new Error('All fields are required');
+          }
+          
+          if (name.length < 2) {
+            throw new Error('Name must be at least 2 characters');
+          }
+          
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            throw new Error('Invalid email format');
+          }
+          
+          if (password.length < 8) {
+            throw new Error('Password must be at least 8 characters');
+          }
+          
+          // Make API call
+          const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, email, password }),
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            // SECURITY FIX: Sanitize error message before displaying
+            const sanitizedMessage = DOMPurify.sanitize(data.message || 'Registration failed');
+            set({ error: sanitizedMessage });
+            throw new Error(sanitizedMessage);
+          }
+          
+          // Store tokens and user data
+          const { tokens, user } = data.data;
+          localStorage.setItem('accessToken', tokens.accessToken);
+          localStorage.setItem('refreshToken', tokens.refreshToken);
+          localStorage.setItem('user', JSON.stringify(user));
+          
+          set({ 
+            user, 
+            accessToken: tokens.accessToken, 
+            refreshToken: tokens.refreshToken, 
+            isAuthenticated: true,
+            isLoading: false 
+          });
+          
+          // Track registration event
+          trackAuthEvent('register');
+        } catch (error: any) {
+          const errorMessage = error.message || 'Registration failed';
+          set({ error: errorMessage, isLoading: false });
+          
+          toast({
+            variant: 'destructive',
+            title: 'Registration Failed',
+            description: errorMessage,
+          });
+          
+          throw error;
+        }
+      },
+      
+      logout: () => {
+        // Clear all auth data
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        
+        set({ 
+          user: null, 
+          accessToken: null, 
+          refreshToken: null, 
+          isAuthenticated: false,
+          error: null 
+        });
+        
+        // Track logout event
+        trackAuthEvent('logout');
+      },
+      
+      refresh: async () => {
+        const { refreshToken } = get();
+        
+        if (!refreshToken) {
+          get().logout();
+          return;
+        }
+        
+        try {
+          const response = await fetch('/api/auth/refresh', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ refreshToken }),
+          });
+          
+          if (!response.ok) {
+            get().logout();
+            return;
+          }
+          
+          const data = await response.json();
+          const { accessToken } = data.data;
+          
+          localStorage.setItem('accessToken', accessToken);
+          set({ accessToken });
+        } catch (error) {
+          get().logout();
+        }
+      },
+      
+      verifyEmail: async (token: string) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          const response = await fetch('/api/auth/verify-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token }),
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            // SECURITY FIX: Sanitize error message before displaying
+            const sanitizedMessage = DOMPurify.sanitize(data.message || 'Email verification failed');
+            set({ error: sanitizedMessage });
+            throw new Error(sanitizedMessage);
+          }
+          
+          // Update user's email_verified status
+          const currentUser = get().user;
+          if (currentUser) {
+            const updatedUser = { ...currentUser, email_verified: true };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            set({ user: updatedUser });
+          }
+          
+          toast({
+            title: 'Success',
+            description: 'Email verified successfully',
+          });
+        } catch (error: any) {
+          const errorMessage = error.message || 'Email verification failed';
+          set({ error: errorMessage, isLoading: false });
+          
+          toast({
+            variant: 'destructive',
+            title: 'Verification Failed',
+            description: errorMessage,
+          });
+          
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+      
+      forgotPassword: async (email: string) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          // Validate input
+          if (!email) {
+            throw new Error('Email is required');
+          }
+          
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            throw new Error('Invalid email format');
+          }
+          
+          const response = await fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email }),
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            // SECURITY FIX: Sanitize error message before displaying
+            const sanitizedMessage = DOMPurify.sanitize(data.message || 'Password reset request failed');
+            set({ error: sanitizedMessage });
+            throw new Error(sanitizedMessage);
+          }
+          
+          toast({
+            title: 'Success',
+            description: 'If an account with this email exists, a password reset link has been sent',
+          });
+        } catch (error: any) {
+          const errorMessage = error.message || 'Password reset request failed';
+          set({ error: errorMessage, isLoading: false });
+          
+          toast({
+            variant: 'destructive',
+            title: 'Reset Request Failed',
+            description: errorMessage,
+          });
+          
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+      
+      resetPassword: async (token: string, newPassword: string) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          // Validate input
+          if (!token || !newPassword) {
+            throw new Error('Token and new password are required');
+          }
+          
+          if (newPassword.length < 8) {
+            throw new Error('Password must be at least 8 characters');
+          }
+          
+          const response = await fetch('/api/auth/reset-password', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token, newPassword }),
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            // SECURITY FIX: Sanitize error message before displaying
+            const sanitizedMessage = DOMPurify.sanitize(data.message || 'Password reset failed');
+            set({ error: sanitizedMessage });
+            throw new Error(sanitizedMessage);
+          }
+          
+          toast({
+            title: 'Success',
+            description: 'Password reset successfully',
+          });
+        } catch (error: any) {
+          const errorMessage = error.message || 'Password reset failed';
+          set({ error: errorMessage, isLoading: false });
+          
+          toast({
+            variant: 'destructive',
+            title: 'Reset Failed',
+            description: errorMessage,
+          });
+          
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+      
+      signInWithGoogle: () => {
+        // SECURITY FIX: Use environment variable for Google OAuth URL
+        const googleAuthUrl = '/api/auth/oauth/google';
+        window.location.href = googleAuthUrl;
+      },
+      
+      signInWithFacebook: () => {
+        // SECURITY FIX: Use environment variable for Facebook OAuth URL
+        const facebookAuthUrl = '/api/auth/oauth/facebook';
+        window.location.href = facebookAuthUrl;
+      },
+      
+      getAuthError: () => {
+        return get().error;
+      },
+      
+      clearAuthError: () => {
+        set({ error: null });
+      },
+    }),
+    {
+      name: 'auth-storage',
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    }
+  )
+);
+
+// Auto-refresh token on mount
+export const useAuthRefresh = () => {
+  const { refresh, isAuthenticated } = useAuth();
+  
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      refresh();
+    }
+  }, [isAuthenticated, refresh]);
+};
 ```
 
 ```typescript
