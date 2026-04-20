@@ -1,25 +1,23 @@
-export default function OrderConfirmationEmail({ orderNumber, customerName, total }) {
+export default function OrderConfirmationEmail({ userName, orderNumber, total, estimatedDelivery }) {
   return `
-    <div style="font-family: 'Source Sans Pro', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0F172A; color: #F8FAFC;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #FF9900; font-size: 2.5rem; margin: 0;">ShopSphere</h1>
-        <p style="color: #94A3B8;">Your order is confirmed!</p>
-      </div>
-      <div style="background-color: #1E293B; padding: 20px; border-radius: 8px; border: 1px solid #334155;">
-        <h2 style="color: #FF9900; margin-top: 0;">Order #${orderNumber}</h2>
-        <p>Thank you for your purchase, <strong>${customerName}</strong>! Your order has been confirmed and is being processed.</p>
-        <p><strong>Total: ${total}</strong></p>
-        <p>We'll send another email when your order ships.</p>
-        <hr style="border: 1px solid #334155; margin: 20px 0;" />
-        <p style="font-size: 0.9rem; color: #94A3B8;">
-          Need help? Visit our <a href="https://shopsphere.com/help" style="color: #FF9900;">Help Center</a> or reply to this email.
-        </p>
-      </div>
-      <div style="text-align: center; margin-top: 20px; font-size: 0.8rem; color: #94A3B8;">
-        &copy; ${new Date().getFullYear()} ShopSphere. All rights reserved.
-        <br />
-        <a href="https://shopsphere.com/unsubscribe" style="color: #EF4444;">Unsubscribe</a>
-      </div>
-    </div>
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; font-family: 'Source Sans Pro', sans-serif; color: #F8FAFC; background-color: #1E293B; border-radius: 8px; overflow: hidden;">
+      <tr>
+        <td style="padding: 24px; background-color: #1E40AF; text-align: center;">
+          <h1 style="margin: 0; font-size: 2rem; color: #fff;">ShopSphere</h1>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 24px;">
+          <h2 style="color: #FF9900; margin-top: 0;">Order Confirmed!</h2>
+          <p>Hi ${userName},</p>
+          <p>Thank you for your order. Your order <strong>#${orderNumber}</strong> has been confirmed and will be processed shortly.</p>
+          <p><strong>Total: $${total}</strong></p>
+          <p>Estimated delivery: <strong>${estimatedDelivery}</strong></p>
+          <p>You can track your order at any time in your <a href="https://shopsphere.com/orders" style="color: #FF9900;">order history</a>.</p>
+          <hr style="border: 1px solid #334155; margin: 24px 0;" />
+          <p style="font-size: 0.9rem; color: #94A3B8;">This is an automated message. Please do not reply directly to this email.</p>
+        </td>
+      </tr>
+    </table>
   `;
 }

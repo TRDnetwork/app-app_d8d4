@@ -1,69 +1,78 @@
 # ShopSphere Email Setup Guide
 
 ## 1. Get Your Resend API Key
-1. Go to [resend.com](https://resend.com) and create an account
-2. Navigate to the Dashboard → API Keys
-3. Create a new API key with full access
-4. Copy the API key (it starts with `re_`)
+1. Go to [resend.com](https://resend.com) and sign up for an account
+2. Verify your email address
+3. Navigate to the API section and copy your API key
 
 ## 2. Configure Environment Variables
-Add the following to your Vercel project environment variables (NOT in `.env` file):
+Add your Resend API key to your Vercel project environment variables:
 
+```bash
+# In Vercel Dashboard → Project Settings → Environment Variables
+RESEND_API_KEY=your_api_key_here
 ```
-RESEND_API_KEY=re_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-```
 
-**Important Security Notes:**
-- Never use `VITE_RESEND_API_KEY` or any `VITE_*` prefix — this would expose your API key to the client
-- The API key is only used server-side in `api/send-email.ts`
-- Use `process.env.RESEND_API_KEY` only in serverless functions
+**Important**: Do NOT use `VITE_RESEND_API_KEY` or any `VITE_` prefix. This is a server-side secret and must not be exposed to the client.
 
-## 3. Verify Your Sending Domain
-1. In Resend Dashboard, go to Domains
+## 3. Verify Your Sending Domain (Recommended)
+For better deliverability:
+1. In Resend dashboard, go to Domains
 2. Add your domain (e.g., `shopsphere.com`)
-3. Add the required DNS records (TXT and CNAME) to your domain registrar
+3. Add the required DNS records (TXT and CNAME) to your domain provider
 4. Wait for verification (usually a few minutes)
 
-For development, emails will send from `onboarding@resend.dev`. In production, they'll send from your verified domain (e.g., `hello@shopsphere.com`).
-
 ## 4. Frontend Integration
-The frontend calls the email service via:
+The frontend sends email requests to the serverless function. Never import Resend SDK on the client.
 
+Example usage:
 ```javascript
-fetch('/api/send-email', {
+// To send an order confirmation
+await fetch('/api/send-email', {
   method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
+    to: 'customer@example.com',
     type: 'order_confirmation',
-    data: { /* email-specific data */ }
+    data: {
+      userName: 'John Doe',
+      orderNumber: 'ORD-7X8K2M9N',
+      total: 259.97,
+      estimatedDelivery: 'Oct 20, 2023'
+    }
   })
-})
+});
+
+// To send a password reset
+await fetch('/api/send-email', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    to: 'user@example.com',
+    type: 'password_reset',
+    data: { resetLink: 'https://shopsphere.com/reset-password?token=abc123' }
+  })
+});
 ```
 
-**Never import or use Resend SDK on the client side.** All email sending happens through the serverless function.
-
-## 5. Test Email Delivery
-Use Resend's test recipient for development:
-- Email: `delivered@resend.dev`
-- This email will always "deliver" and can be viewed at [resend.com/email-testing](https://resend.com/email-testing)
-
-## 6. Monitor Email Performance
-- Check the Resend Dashboard for delivery rates, opens, and clicks
-- Set up alerts for failed deliveries
-- Monitor spam complaint rates
-
-## Supported Email Types
+## 5. Available Email Templates
 - `order_confirmation`: Sent when an order is placed
 - `password_reset`: Sent when user requests password reset
-- `welcome`: Sent when a new user registers
-- `seller_application_received`: Sent when a seller applies to join
+- `welcome`: Sent to new users after registration
+- `seller_application_received`: Sent when seller applies
+
+## 6. Testing
+Use `delivered@resend.dev` as a test recipient to verify emails are sent correctly without spamming real users.
+
+## 7. Monitoring
+Check the Resend dashboard for:
+- Delivery rates
+- Open rates
+- Bounce reports
+- Complaints
 
 ## Troubleshooting
-- **Emails not sending**: Check Vercel logs for `api/send-email` function
-- **API key errors**: Verify the key is set in Vercel environment variables
-- **Delivery issues**: Ensure your domain is verified in Resend
-- **Template problems**: Test with `delivered@resend.dev` and inspect the HTML
-
-For further assistance, refer to the [Resend Documentation](https://resend.com/docs).
+- **Emails not sending**: Check Vercel logs for the `/api/send-email` function
+- **API key errors**: Verify `RESEND_API_KEY` is set in Vercel environment variables
+- **Template issues**: Ensure all required data fields are provided in the request
+- **Deliverability problems**: Verify your domain in Resend dashboard

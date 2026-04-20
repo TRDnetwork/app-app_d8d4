@@ -1,23 +1,23 @@
 export default function PasswordResetEmail({ resetLink }) {
   return `
-    <div style="font-family: 'Source Sans Pro', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0F172A; color: #F8FAFC;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #FF9900; font-size: 2.5rem; margin: 0;">ShopSphere</h1>
-        <p style="color: #94A3B8;">Secure password reset</p>
-      </div>
-      <div style="background-color: #1E293B; padding: 20px; border-radius: 8px; border: 1px solid #334155;">
-        <h2 style="color: #FF9900; margin-top: 0;">Reset Your Password</h2>
-        <p>Hello,</p>
-        <p>We received a request to reset your password. Click the button below to choose a new one.</p>
-        <p style="text-align: center; margin: 30px 0;">
-          <a href="${resetLink}" style="background-color: #FF9900; color: #0F172A; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Reset Password</a>
-        </p>
-        <p>This link will expire in 1 hour.</p>
-        <p>If you didn’t request this, you can safely ignore this email.</p>
-      </div>
-      <div style="text-align: center; margin-top: 20px; font-size: 0.8rem; color: #94A3B8;">
-        &copy; ${new Date().getFullYear()} ShopSphere. All rights reserved.
-      </div>
-    </div>
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; font-family: 'Source Sans Pro', sans-serif; color: #F8FAFC; background-color: #1E293B; border-radius: 8px; overflow: hidden;">
+      <tr>
+        <td style="padding: 24px; background-color: #1E40AF; text-align: center;">
+          <h1 style="margin: 0; font-size: 2rem; color: #fff;">ShopSphere</h1>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 24px;">
+          <h2 style="color: #FF9900; margin-top: 0;">Reset Your Password</h2>
+          <p>Hi there,</p>
+          <p>We received a request to reset your password. Click the button below to choose a new one.</p>
+          <p><a href="${resetLink}" style="display: inline-block; padding: 12px 24px; background-color: #FF9900; color: #0F172A; text-decoration: none; border-radius: 6px; font-weight: bold;">Reset Password</a></p>
+          <p>This link will expire in 1 hour.</p>
+          <p>If you didn't request this, you can safely ignore this email.</p>
+          <hr style="border: 1px solid #334155; margin: 24px 0;" />
+          <p style="font-size: 0.9rem; color: #94A3B8;">This is an automated message. Please do not reply directly to this email.</p>
+        </td>
+      </tr>
+    </table>
   `;
 }
