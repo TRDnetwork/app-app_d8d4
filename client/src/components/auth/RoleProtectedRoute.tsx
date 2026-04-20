@@ -2,12 +2,12 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../lib/auth';
 
-interface ProtectedRouteProps {
+interface RoleProtectedRouteProps {
   children: React.ReactNode;
-  requireVerified?: boolean;
+  allowedRoles: string[];
 }
 
-export function ProtectedRoute({ children, requireVerified = false }: ProtectedRouteProps) {
+export function RoleProtectedRoute({ children, allowedRoles }: RoleProtectedRouteProps) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -22,8 +22,11 @@ export function ProtectedRoute({ children, requireVerified = false }: ProtectedR
     return <Navigate to="/login" replace />;
   }
 
-  if (requireVerified && !user.email_confirmed_at) {
-    return <Navigate to="/verify-email" replace />;
+  // In Supabase, user metadata contains custom claims
+  const userRole = user.user_metadata?.role || 'customer';
+  
+  if (!allowedRoles.includes(userRole)) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

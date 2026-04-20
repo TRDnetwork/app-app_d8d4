@@ -527,7 +527,6 @@ export const useAuth = () => {
     refreshSession
   };
 };
-// SECURITY FIX: Removed Supabase dependency and implemented direct API calls to Express backend
 ```
 
 ```typescript
