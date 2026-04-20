@@ -6,7 +6,7 @@ import { importQueue } from '../jobs/queue';
 import { logger } from '../utils/logger';
 import multer from 'multer';
 import path from 'path';
-import { sanitizeFilename } from '../utils/sanitize-filename';
+import { sanitizeFilename, validateFileExtension } from '../utils/sanitize-filename';
 import { ObjectId } from 'mongodb';
 import { config } from '../config/env';
 
@@ -15,7 +15,7 @@ const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
       // SECURITY FIX: Use secure temporary directory with proper permissions
-      const uploadDir = '/tmp/shopsphere-imports';
+      const uploadDir = config.UPLOAD_DIR || '/tmp/shopsphere-imports';
       // Ensure directory exists with proper permissions
       require('fs').mkdirSync(uploadDir, { recursive: true, mode: 0o700 });
       cb(null, uploadDir);
@@ -181,7 +181,7 @@ export const previewImport = async (req: Request, res: Response) => {
     if (mimeType === 'text/csv') {
       parsedData = await CSVParser.parse(content);
     } else if (mimeType === 'application/json') {
-      parsedData = JSONValidator.validate(content);
+      parsedData = JSONValidator.validateAndParse(content);
     } else {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,

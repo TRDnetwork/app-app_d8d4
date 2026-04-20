@@ -1,7 +1,6 @@
-```ts
 import pino from 'pino';
 
-// Create logger instance
+// Create logger with JSON formatting and appropriate level
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
   transport: {
@@ -14,10 +13,12 @@ const logger = pino({
   },
 });
 
-// Add correlation ID to log messages
-export const loggerWithId = (reqId: string) => {
-  return logger.child({ correlationId: reqId });
+// Add request ID to logs if available
+export const createLogger = (req?: any) => {
+  return req?.id ? logger.child({ reqId: req.id }) : logger;
 };
 
-export { logger };
+export default logger;
 ```
+
+```typescript

@@ -4,6 +4,8 @@ import { exportQueue } from '../jobs/queue';
 import { logger } from '../utils/logger';
 import { ObjectId } from 'mongodb';
 import { config } from '../config/env';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Export data to CSV/JSON
 export const exportData = async (req: Request, res: Response) => {
@@ -227,93 +229,4 @@ export const downloadExport = async (req: Request, res: Response) => {
       });
     }
 
-    // SECURITY FIX: Validate file URL is from trusted domain
-    const fileUrl = new URL(job.data.fileUrl);
-    if (fileUrl.hostname !== config.SERVER_URL) {
-      return res.status(StatusCodes.FORBIDDEN).json({
-        success: false,
-        message: 'Invalid file URL'
-      });
-    }
-
-    // Redirect to file URL
-    res.redirect(job.data.fileUrl);
-  } catch (error: any) {
-    logger.error('Error downloading export file:', error);
-    
-    // SECURITY FIX: Don't expose internal error details
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      message: 'Failed to download export file'
-    });
-  }
-};
-
-// Cancel export job
-export const cancelExport = async (req: Request, res: Response) => {
-  try {
-    // SECURITY FIX: Validate user authentication
-    if (!req.user) {
-      return res.status(StatusCodes.UNAUTHORIZED).json({
-        success: false,
-        message: 'Authentication required'
-      });
-    }
-
-    // SECURITY FIX: Validate job ID format
-    if (!req.params.jobId || !/^[0-9a-fA-F]{24}$/.test(req.params.jobId)) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        success: false,
-        message: 'Invalid job ID format'
-      });
-    }
-
-    // SECURITY FIX: Verify job belongs to user or user has admin role
-    const job = await exportQueue.getJob(req.params.jobId);
-    if (!job) {
-      return res.status(StatusCodes.NOT_FOUND).json({
-        success: false,
-        message: 'Export job not found'
-      });
-    }
-
-    if (job.data.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(StatusCodes.FORBIDDEN).json({
-        success: false,
-        message: 'Insufficient permissions'
-      });
-    }
-
-    // SECURITY FIX: Only allow cancellation of pending jobs
-    if (job.data.status !== 'pending') {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        success: false,
-        message: 'Cannot cancel job that is not pending'
-      });
-    }
-
-    // Remove job from queue
-    await job.remove();
-
-    logger.info('Export job cancelled', { 
-      jobId: req.params.jobId, 
-      userId: req.user._id 
-    });
-
-    res.status(StatusCodes.OK).json({
-      success: true,
-      message: 'Export job cancelled successfully'
-    });
-  } catch (error: any) {
-    logger.error('Error cancelling export job:', error);
-    
-    // SECURITY FIX: Don't expose internal error details
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      message: 'Failed to cancel export job'
-    });
-  }
-};
-```
-
-```typescript
+    // SECURITY FIX

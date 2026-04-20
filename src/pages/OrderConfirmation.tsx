@@ -1,25 +1,17 @@
 import React from 'react';
-import { OrderTimeline } from '../components/order/OrderTimeline';
-import { InvoiceDownload } from '../components/order/InvoiceDownload';
 import { Button } from '../components/ui/button';
-import { Link } from 'react-router-dom';
 
 const OrderConfirmation = () => {
   return (
     <div className="container mx-auto px-4 py-8 text-center">
-      <div className="card mx-auto max-w-2xl p-8">
-        <h1 className="mb-4 text-3xl font-bold">Thank you for your order!</h1>
-        <p className="mb-6 text-text_dim">Your order has been confirmed and is being processed.</p>
-        <p className="mb-8 text-lg">
-          Order ID: <span className="font-mono font-bold">ORD-12345678</span>
+      <div className="max-w-2xl mx-auto">
+        <div className="text-success text-6xl mb-4">✓</div>
+        <h1 className="text-display text-4xl font-bold mb-4">Thank You for Your Order!</h1>
+        <p className="text-text-dim mb-6">Your order has been confirmed and will be processed shortly.</p>
+        <p className="mb-8">
+          <span className="font-bold">Order ID:</span> ORD-7X8K2M9N
         </p>
-        <OrderTimeline status="confirmed" />
-        <div className="mt-8">
-          <InvoiceDownload orderId="123" />
-        </div>
-        <Button asChild className="mt-6">
-          <Link to="/orders">View Order History</Link>
-        </Button>
+        <Button className="btn-primary">Continue Shopping</Button>
       </div>
     </div>
   );

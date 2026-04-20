@@ -1,468 +1,238 @@
-import * as fs from 'fs';
-import { pipeline } from 'stream/promises';
-import { Transform } from 'stream';
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
 
 /**
- * JSON Validator utility for import operations
- * Handles JSON file parsing with validation and column mapping
+ * JSON Validator utility for validating JSON data against schemas
+ * Uses Ajv for JSON Schema validation with additional formats
  */
 export class JSONValidator {
-  private readonly MAX_DOCUMENTS = 100000; // Maximum documents to process
-  private readonly BATCH_SIZE = 1000; // Documents to process in each batch
+  private static ajv: Ajv;
 
-  /**
-   * Parse JSON file and return first N documents for preview
-   */
-  async parseJSON(filePath: string, maxDocs: number = 5): Promise<any[]> {
-    const results: any[] = [];
-    let docCount = 0;
-
-    try {
-      await pipeline(
-        fs.createReadStream(filePath),
-        this.createJSONParser(),
-        async function* (source) {
-          for await (const chunk of source) {
-            if (docCount >= maxDocs) {
-              return;
-            }
-            
-            // Validate and clean document
-            const validatedDoc = this.validateDocument(chunk);
-            if (validatedDoc) {
-              results.push(validatedDoc);
-              docCount++;
-            }
-          }
-        }.bind(this)
-      );
-
-      return results;
-    } catch (error) {
-      throw new Error(`Failed to parse JSON file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  // Initialize Ajv instance with formats
+  private static getAjv(): Ajv {
+    if (!this.ajv) {
+      this.ajv = new Ajv({ allErrors: true });
+      addFormats(this.ajv);
     }
+    return this.ajv;
   }
 
   /**
-   * Process JSON file in batches for import
+   * Validate JSON data against a schema
+   * @param data - JSON data to validate
+   * @param schema - JSON Schema to validate against
+   * @returns boolean - Whether data is valid
    */
-  async processJSON(filePath: string, columnMapping: Record<string, string>, batchSize: number = this.BATCH_SIZE): Promise<AsyncGenerator<any[]>> {
-    return this.createBatchGenerator(filePath, columnMapping, batchSize);
-  }
-
-  /**
-   * Create async generator for batch processing
-   */
-  private async *createBatchGenerator(filePath: string, columnMapping: Record<string, string>, batchSize: number) {
-    let batch: any[] = [];
-    let docCount = 0;
-
-    try {
-      await pipeline(
-        fs.createReadStream(filePath),
-        this.createJSONParser(),
-        async function* (source) {
-          for await (const chunk of source) {
-            if (docCount >= this.MAX_DOCUMENTS) {
-              throw new Error(`Maximum document limit of ${this.MAX_DOCUMENTS} exceeded`);
-            }
-
-            // Map and validate document
-            const mappedDoc = this.mapDocument(chunk, columnMapping);
-            if (mappedDoc) {
-              batch.push(mappedDoc);
-              docCount++;
-
-              // Yield batch when full
-              if (batch.length >= batchSize) {
-                yield batch;
-                batch = [];
-              }
-            }
-          }
-
-          // Yield remaining documents
-          if (batch.length > 0) {
-            yield batch;
-          }
-        }.bind(this)
-      );
-    } catch (error) {
-      throw new Error(`Failed to process JSON file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  /**
-   * Create JSON parser stream
-   * Handles both JSON array and line-delimited JSON
-   */
-  private createJSONParser(): Transform {
-    let buffer = '';
-    let isArray = false;
-    let isFirstChunk = true;
-
-    return new Transform({
-      transform(chunk, encoding, callback) {
-        buffer += chunk.toString();
-
-        // Detect JSON format from first chunk
-        if (isFirstChunk) {
-          isFirstChunk = false;
-          isArray = buffer.trim().startsWith('[');
-        }
-
-        try {
-          let parsed: any[] = [];
-
-          if (isArray) {
-            // Handle JSON array
-            const jsonMatch = buffer.match(/\[([\s\S]*)\]/);
-            if (jsonMatch) {
-              const jsonArray = JSON.parse(jsonMatch[0]);
-              parsed = jsonArray;
-              buffer = buffer.substring(jsonMatch[0].length);
-            }
-          } else {
-            // Handle line-delimited JSON (JSONL)
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || ''; // Keep incomplete line in buffer
-            
-            for (const line of lines) {
-              const trimmedLine = line.trim();
-              if (trimmedLine) {
-                parsed.push(JSON.parse(trimmedLine));
-              }
-            }
-          }
-
-          // Push parsed documents
-          for (const doc of parsed) {
-            this.push(doc);
-          }
-
-          callback();
-        } catch (error) {
-          // Incomplete JSON, wait for more data
-          callback();
-        }
-      },
-
-      flush(callback) {
-        // Process any remaining data
-        if (buffer.trim()) {
-          try {
-            if (isArray) {
-              const jsonArray = JSON.parse(buffer);
-              for (const doc of jsonArray) {
-                this.push(doc);
-              }
-            } else {
-              const lines = buffer.split('\n');
-              for (const line of lines) {
-                const trimmedLine = line.trim();
-                if (trimmedLine) {
-                  this.push(JSON.parse(trimmedLine));
-                }
-              }
-            }
-          } catch (error) {
-            // Invalid JSON, ignore
-          }
-        }
-        callback();
-      }
-    });
-  }
-
-  /**
-   * Validate document structure
-   */
-  private validateDocument(doc: any): any | null {
-    if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
-      return null;
-    }
-
-    const cleaned: any = {};
-
-    // Clean and validate properties
-    for (const [key, value] of Object.entries(doc)) {
-      if (value === null || value === undefined) {
-        continue;
-      }
-
-      const cleanedKey = this.cleanKey(key);
-      if (!cleanedKey) {
-        continue;
-      }
-
-      // Validate value type
-      const validatedValue = this.validateValue(value, cleanedKey);
-      if (validatedValue !== undefined) {
-        cleaned[cleanedKey] = validatedValue;
-      }
-    }
-
-    return Object.keys(cleaned).length > 0 ? cleaned : null;
-  }
-
-  /**
-   * Validate value based on key
-   */
-  private validateValue(value: any, key: string): any | undefined {
-    // Skip empty values
-    if (value === '' || value === null || value === undefined) {
-      return undefined;
-    }
-
-    // Handle specific key types
-    switch (key) {
-      case 'email':
-        return this.isValidEmail(value) ? value : undefined;
-      
-      case 'price':
-      case 'original_price':
-      case 'subtotal':
-      case 'total':
-      case 'delivery_charge':
-        return typeof value === 'number' && value >= 0 ? value : undefined;
-      
-      case 'stock_quantity':
-      case 'quantity':
-        return Number.isInteger(value) && value >= 0 ? value : undefined;
-      
-      case 'images':
-      case 'tags':
-        return Array.isArray(value) && value.every(item => typeof item === 'string') ? value : undefined;
-      
-      case 'emailVerified':
-      case 'is_default':
-      case 'is_featured':
-      case 'is_sponsored':
-        return typeof value === 'boolean' ? value : undefined;
-      
-      case 'created_at':
-      case 'updated_at':
-      case 'order_date':
-        return this.isValidDate(value) ? new Date(value) : undefined;
-      
-      case 'role':
-        return ['customer', 'seller', 'admin'].includes(value) ? value : undefined;
-      
-      case 'status':
-        return ['active', 'inactive', 'out_of_stock'].includes(value) ? value : undefined;
-      
-      case 'delivery_speed':
-        return ['standard', 'express', 'same_day'].includes(value) ? value : undefined;
-      
-      default:
-        // For string values, ensure they're not empty after trimming
-        if (typeof value === 'string') {
-          const trimmed = value.trim();
-          return trimmed ? trimmed : undefined;
-        }
-        
-        // For other types, accept as-is
-        return value;
-    }
-  }
-
-  /**
-   * Map document according to column mapping
-   */
-  private mapDocument(doc: any, columnMapping: Record<string, string>): any | null {
-    const mapped: any = {};
-    let hasData = false;
-
-    const validatedDoc = this.validateDocument(doc);
-
-    if (!validatedDoc) {
-      return null;
-    }
-
-    for (const [fileColumn, entityColumn] of Object.entries(columnMapping)) {
-      if (validatedDoc[fileColumn] !== undefined) {
-        mapped[entityColumn] = validatedDoc[fileColumn];
-        hasData = true;
-      }
-    }
-
-    return hasData ? mapped : null;
-  }
-
-  /**
-   * Suggest column mapping based on document analysis
-   */
-  suggestColumnMapping(doc: any, entityType: string): Record<string, string> {
-    const suggestions: Record<string, string> = {};
-    const mappingConfig = COLUMN_MAPPINGS[entityType];
-
-    if (!mappingConfig) {
-      return suggestions;
-    }
-
-    const docKeys = Object.keys(doc);
-
-    for (const key of docKeys) {
-      // Find best match from mapping configuration
-      const bestMatch = this.findBestColumnMatch(key, mappingConfig.mapping);
-      if (bestMatch) {
-        suggestions[key] = bestMatch;
-      }
-    }
-
-    return suggestions;
-  }
-
-  /**
-   * Find best column match using fuzzy matching
-   */
-  private findBestColumnMatch(key: string, mapping: Record<string, string>): string | null {
-    const keyLower = key.toLowerCase();
+  static validate(data: any, schema: any): boolean {
+    const ajv = this.getAjv();
+    const validate = ajv.compile(schema);
+    const valid = validate(data);
     
-    // Exact match
-    for (const [fileCol, entityCol] of Object.entries(mapping)) {
-      if (fileCol.toLowerCase() === keyLower) {
-        return entityCol;
-      }
+    if (!valid && validate.errors) {
+      console.error('JSON validation errors:', validate.errors);
+    }
+    
+    return valid;
+  }
+
+  /**
+   * Validate and parse JSON string
+   * @param jsonString - JSON string to validate and parse
+   * @returns any - Parsed JSON data
+   * @throws Error if JSON is invalid
+   */
+  static validateAndParse(jsonString: string): any {
+    // First, check if it's valid JSON
+    let data: any;
+    try {
+      data = JSON.parse(jsonString);
+    } catch (error) {
+      throw new Error(`Invalid JSON: ${(error as Error).message}`);
     }
 
-    // Partial match
-    for (const [fileCol, entityCol] of Object.entries(mapping)) {
-      const fileColLower = fileCol.toLowerCase();
-      if (keyLower.includes(fileColLower) || fileColLower.includes(keyLower)) {
-        return entityCol;
-      }
-    }
-
-    // Keyword match
-    const keywords: Record<string, string[]> = {
-      'title': ['title', 'name', 'product'],
-      'price': ['price', 'cost', 'amount'],
-      'description': ['description', 'desc', 'details'],
-      'category': ['category', 'type', 'group'],
-      'brand': ['brand', 'manufacturer', 'maker'],
-      'sku': ['sku', 'code', 'id'],
-      'stock': ['stock', 'quantity', 'count', 'available'],
-      'email': ['email', 'mail', 'address'],
-      'name': ['name', 'full', 'first', 'last'],
-      'phone': ['phone', 'mobile', 'contact'],
-      'role': ['role', 'type', 'access']
-    };
-
-    for (const [entityCol, words] of Object.entries(keywords)) {
-      if (mapping[entityCol]) {
-        for (const word of words) {
-          if (keyLower.includes(word)) {
-            return mapping[entityCol];
-          }
+    // Then validate against appropriate schema based on data structure
+    if (Array.isArray(data)) {
+      // Validate array of objects
+      const itemSchema = this.getSchemaForData(data[0]);
+      if (itemSchema) {
+        const ajv = this.getAjv();
+        const validate = ajv.compile({
+          type: 'array',
+          items: itemSchema
+        });
+        
+        const valid = validate(data);
+        if (!valid && validate.errors) {
+          throw new Error(`JSON validation failed: ${JSON.stringify(validate.errors)}`);
         }
       }
+    } else if (typeof data === 'object' && data !== null) {
+      // Validate single object
+      const schema = this.getSchemaForData(data);
+      if (schema) {
+        const valid = this.validate(data, schema);
+        if (!valid) {
+          throw new Error('JSON validation failed');
+        }
+      }
+    }
+
+    return data;
+  }
+
+  /**
+   * Get appropriate JSON schema based on data structure
+   * @param data - Data to generate schema for
+   * @returns any - JSON Schema
+   */
+  private static getSchemaForData(data: any): any {
+    if (!data || typeof data !== 'object') {
+      return null;
+    }
+
+    // Determine entity type based on data structure
+    if ('title' in data && 'price' in data && 'description' in data) {
+      // Product schema
+      return {
+        type: 'object',
+        properties: {
+          title: { type: 'string', minLength: 1 },
+          slug: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' },
+          description: { type: 'string', minLength: 1 },
+          price: { type: 'number', minimum: 0 },
+          original_price: { type: 'number', minimum: 0 },
+          discount_percent: { type: 'number', minimum: 0, maximum: 100 },
+          sku: { type: 'string' },
+          stock_quantity: { type: 'number', minimum: 0 },
+          brand: { type: 'string' },
+          category_id: { type: 'string' },
+          seller_id: { type: 'string' },
+          status: { type: 'string', enum: ['active', 'inactive', 'out_of_stock'] },
+          is_featured: { type: 'boolean' },
+          is_sponsored: { type: 'boolean' },
+          images: { 
+            type: 'array', 
+            items: { type: 'string', format: 'uri' },
+            minItems: 1
+          },
+          variants: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                values: { 
+                  type: 'array', 
+                  items: { type: 'string' },
+                  minItems: 1
+                },
+                price_modifier: { type: 'number' }
+              },
+              required: ['name', 'values']
+            }
+          },
+          tags: { type: 'array', items: { type: 'string' } }
+        },
+        required: ['title', 'description', 'price', 'category_id', 'seller_id']
+      };
+    } else if ('email' in data && 'name' in data && 'role' in data) {
+      // User schema
+      return {
+        type: 'object',
+        properties: {
+          email: { type: 'string', format: 'email' },
+          name: { type: 'string', minLength: 1 },
+          phone: { type: 'string' },
+          role: { type: 'string', enum: ['customer', 'seller', 'admin'] },
+          profile_picture_url: { type: 'string', format: 'uri' },
+          email_verified: { type: 'boolean' },
+          loyalty_points: { type: 'number', minimum: 0 }
+        },
+        required: ['email', 'name', 'role']
+      };
+    } else if ('user_id' in data && 'order_number' in data && 'items' in data) {
+      // Order schema
+      return {
+        type: 'object',
+        properties: {
+          user_id: { type: 'string' },
+          order_number: { type: 'string' },
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                product_id: { type: 'string' },
+                seller_id: { type: 'string' },
+                variant: { type: 'string' },
+                quantity: { type: 'number', minimum: 1 },
+                price: { type: 'number', minimum: 0 },
+                status: { type: 'string' }
+              },
+              required: ['product_id', 'quantity', 'price']
+            }
+          },
+          address: { type: 'object' },
+          delivery_speed: { type: 'string', enum: ['standard', 'express', 'same_day'] },
+          payment_method: { type: 'string', enum: ['stripe', 'upi', 'cod'] },
+          subtotal: { type: 'number', minimum: 0 },
+          discount: { type: 'number', minimum: 0 },
+          delivery_charge: { type: 'number', minimum: 0 },
+          total: { type: 'number', minimum: 0 },
+          status: { 
+            type: 'string', 
+            enum: ['placed', 'confirmed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'] 
+          },
+          tracking_number: { type: 'string' },
+          estimated_delivery: { type: 'string', format: 'date-time' }
+        },
+        required: ['user_id', 'order_number', 'items', 'address', 'total']
+      };
+    } else if ('name' in data && 'slug' in data && 'parent_id' in data) {
+      // Category schema
+      return {
+        type: 'object',
+        properties: {
+          name: { type: 'string', minLength: 1 },
+          slug: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' },
+          parent_id: { type: 'string', nullable: true },
+          image_url: { type: 'string', format: 'uri', nullable: true },
+          order: { type: 'number', minimum: 0 }
+        },
+        required: ['name', 'slug']
+      };
     }
 
     return null;
   }
 
   /**
-   * Clean key name - remove special characters, normalize
+   * Validate JSON file
+   * @param filePath - Path to the JSON file
+   * @returns Promise<any> - Parsed and validated JSON data
    */
-  private cleanKey(key: string): string {
-    if (!key) return '';
-
-    return key
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-zA-Z0-9_]/g, '_')  // Replace special chars with underscore
-      .replace(/_{2,}/g, '_')          // Replace multiple underscores
-      .replace(/^_+|_+$/g, '');        // Remove leading/trailing underscores
-  }
-
-  /**
-   * Validate email format
-   */
-  private isValidEmail(email: any): boolean {
-    if (typeof email !== 'string') {
-      return false;
-    }
+  static async validateFile(filePath: string): Promise<any> {
+    // SECURITY FIX: Validate file path is within allowed directory
+    const allowedDir = process.env.UPLOAD_DIR || '/tmp/shopsphere-imports';
+    const resolvedPath = path.resolve(filePath);
+    const resolvedDir = path.resolve(allowedDir);
     
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
+    if (!resolvedPath.startsWith(resolvedDir)) {
+      throw new Error('Invalid file path');
+    }
 
-  /**
-   * Validate date string or object
-   */
-  private isValidDate(date: any): boolean {
-    if (date instanceof Date) {
-      return !isNaN(date.getTime());
+    // SECURITY FIX: Validate file exists
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error('File not found');
     }
+
+    // Read file
+    const content = fs.readFileSync(filePath, 'utf8');
     
-    if (typeof date === 'string') {
-      const parsedDate = new Date(date);
-      return !isNaN(parsedDate.getTime());
-    }
-    
-    return false;
+    // Validate and parse
+    return this.validateAndParse(content);
   }
 }
-
-// Column mappings for different entity types
-const COLUMN_MAPPINGS = {
-  products: {
-    mapping: {
-      'title': 'title',
-      'name': 'title',
-      'price': 'price',
-      'cost': 'price',
-      'original_price': 'original_price',
-      'discount_percent': 'discount_percent',
-      'description': 'description',
-      'desc': 'description',
-      'category': 'category',
-      'category_id': 'category_id',
-      'brand': 'brand',
-      'sku': 'sku',
-      'stock': 'stock_quantity',
-      'stock_quantity': 'stock_quantity',
-      'images': 'images',
-      'image_urls': 'images',
-      'status': 'status'
-    }
-  },
-  users: {
-    mapping: {
-      'email': 'email',
-      'name': 'name',
-      'full_name': 'name',
-      'first_name': 'name',
-      'phone': 'phone',
-      'mobile': 'phone',
-      'role': 'role',
-      'user_role': 'role'
-    }
-  },
-  orders: {
-    mapping: {
-      'user_id': 'user_id',
-      'customer_id': 'user_id',
-      'total': 'total',
-      'subtotal': 'subtotal',
-      'delivery_charge': 'delivery_charge',
-      'items': 'items',
-      'order_items': 'items',
-      'status': 'status',
-      'delivery_speed': 'delivery_speed'
-    }
-  },
-  categories: {
-    mapping: {
-      'name': 'name',
-      'slug': 'slug',
-      'description': 'description',
-      'parent_id': 'parent_id',
-      'parent_category': 'parent_id'
-    }
-  }
-};
 ```
 
 ```typescript

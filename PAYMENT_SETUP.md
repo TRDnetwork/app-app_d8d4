@@ -1,56 +1,69 @@
-# ShopSphere Payment Integration Setup
+# Stripe Payment Integration Setup
 
-## Stripe Configuration
+## Environment Variables
 
-### 1. Environment Variables
-Add these to your `.env` file:
+Add these variables to your environment configuration:
 
+### Frontend (.env)
 ```env
-# Stripe API Keys
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-
-# Frontend URL for redirects
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 FRONTEND_URL=http://localhost:5173
 ```
 
-### 2. Webhook Setup
-1. Install Stripe CLI: `npm install -g stripe`
-2. Login: `stripe login`
-3. Start webhook forwarding:
-```bash
-stripe listen --forward-to localhost:3000/api/stripe/webhook
+### Backend (.env)
+```env
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+FRONTEND_URL=http://localhost:5173
 ```
-4. Copy the webhook signing secret and add to `.env`
-5. In [Stripe Dashboard](https://dashboard.stripe.com/webhooks), add your production endpoint:
-   - URL: `https://your-api-domain.com/api/stripe/webhook`
-   - Events: `checkout.session.completed`, `payment_intent.succeeded`, `payment_intent.payment_failed`
 
-### 3. Payment Flow
-1. User selects address, delivery speed, and payment method in checkout
-2. Frontend calls `/api/stripe/create-checkout-session` with order details
-3. Backend creates pending order in MongoDB and Stripe Checkout Session
-4. User redirected to Stripe Checkout
-5. On payment success, Stripe sends webhook to `/api/stripe/webhook`
-6. Webhook updates order status and reduces product inventory
+## Setup Instructions
 
-### 4. Testing
-Use Stripe test cards:
-- Successful payment: `4242 4242 4242 4242`
-- Requires authentication: `4000 0025 0000 3155`
-- Declined: `4000 0000 0000 0002`
+### 1. Create Stripe Account
+- Go to [Stripe Dashboard](https://dashboard.stripe.com/)
+- Sign up for an account
+- Verify your business information
+- Get your API keys from Developers > API Keys
 
-### 5. Security
-- Webhook signatures are verified
-- Idempotency: Orders are checked for duplicate processing
-- JWT authentication on checkout session creation
-- No sensitive data stored client-side
+### 2. Configure Webhooks
+- Go to Developers > Webhooks
+- Add endpoint: `https://your-domain.com/api/stripe/webhook`
+- Select events to listen to:
+  - `checkout.session.completed`
+  - `payment_intent.payment_failed`
+  - `payment_intent.succeeded`
+- Copy the webhook signing secret and add to backend .env
 
-### 6. Production Checklist
-- [ ] Replace test keys with live keys
-- [ ] Update FRONTEND_URL to production domain
-- [ ] Enable Stripe Radar for fraud protection
-- [ ] Set up payout schedule in Stripe Dashboard
-- [ ] Monitor webhook delivery in Stripe Dashboard
-- [ ] Implement alerting for failed webhooks
+### 3. Configure Webhook Endpoint
+The webhook endpoint is already implemented at:
+- `POST /api/stripe/webhook` - Handles Stripe events
+
+### 4. Test Payment Flow
+Use these test card numbers:
+
+| Card | Number | Description |
+|------|--------|-------------|
+| Visa | `4242 4242 4242 4242` | Succeeds |
+| Visa (Auth) | `4000 0025 0000 3155` | Requires authentication |
+| Declined | `4000 0000 0000 0002` | Always declines |
+
+### 5. Production Checklist
+- [ ] Replace test API keys with live keys
+- [ ] Set up proper domain in Stripe Dashboard
+- [ ] Enable Radar for fraud protection
+- [ ] Configure payout settings
+- [ ] Set up webhook event monitoring
+- [ ] Implement proper logging and alerting
+
+## Security Considerations
+- Never expose `STRIPE_SECRET_KEY` in frontend code
+- Always verify webhook signatures
+- Use HTTPS in production
+- Implement idempotency for critical operations
+- Store sensitive data securely
+
+## Troubleshooting
+- **Webhook signature verification failed**: Ensure `STRIPE_WEBHOOK_SECRET` matches exactly
+- **Invalid API key**: Verify keys are correct and not expired
+- **Payment not updating order status**: Check webhook endpoint is accessible and logs for errors
+- **Session creation fails**: Verify required fields are provided and user is authenticated

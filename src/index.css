@@ -33,29 +33,29 @@
   }
   body {
     @apply bg-bg text-text;
-    font-family: 'Source Sans Pro', sans-serif;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    @apply text-text;
-    font-family: 'Playfair Display', serif;
-    letter-spacing: -0.5px;
   }
 }
 
 @layer components {
+  .text-display {
+    @apply font-display text-base leading-none tracking-tight;
+  }
+  .text-body {
+    @apply font-body text-sm leading-normal;
+  }
   .btn {
     @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
   }
   .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90 px-4 py-2;
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90;
   }
   .card {
-    @apply bg-card text-card-foreground p-6 border rounded-lg shadow;
+    @apply rounded-lg border bg-card p-6 shadow-sm;
   }
   .skeleton {
-    @apply animate-pulse bg-muted rounded;
+    @apply animate-pulse rounded bg-muted;
   }
 }

@@ -1,105 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Shop the best products with fast delivery and trusted reviews" />
-  <meta name="robots" content="index, follow" />
-  <meta name="title" content="ShopSphere - Premium E-Commerce Marketplace" />
-  
-  <!-- Open Graph / Social Media Meta Tags -->
-  <meta property="og:title" content="ShopSphere - Premium E-Commerce Marketplace" />
-  <meta property="og:description" content="Shop the best products with fast delivery and trusted reviews" />
-  <meta property="og:image" content="https://shopsphere.com/og-image.jpg" />
-  <meta property="og:url" content="https://shopsphere.com" />
-  <meta property="og:type" content="website" />
-  
-  <!-- Twitter Card Meta Tags -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="ShopSphere - Premium E-Commerce Marketplace" />
-  <meta name="twitter:description" content="Shop the best products with fast delivery and trusted reviews" />
-  <meta name="twitter:image" content="https://shopsphere.com/og-image.jpg" />
-  
-  <title>ShopSphere - Premium E-Commerce Marketplace</title>
-  
-  <!-- Schema.org Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "ShopSphere",
-    "url": "https://shopsphere.com",
-    "logo": "https://shopsphere.com/logo.png",
-    "foundingDate": "2024",
-    "founders": [
-      {
-        "@type": "Person",
-        "name": "Alex Morgan"
-      },
-      {
-        "@type": "Person",
-        "name": "Taylor Reed"
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ShopSphere – A premium e-commerce platform with Amazon-like features, dark theme, and warm accents." />
+    <title>ShopSphere</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <!-- ANALYTICS: GA4 tracking script - loaded async, respects DNT -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=/* ANALYTICS_KEY */"></script>
+    <script>
+      // Respect Do Not Track
+      if (!navigator.doNotTrack || navigator.doNotTrack !== "1") {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '/* ANALYTICS_KEY */', {
+          page_title: document.title,
+          page_location: window.location.href,
+          page_path: window.location.pathname,
+          send_page_view: true
+        });
       }
-    ],
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "contactType": "customer service",
-      "email": "support@shopsphere.com",
-      "url": "https://shopsphere.com/contact"
-    },
-    "sameAs": [
-      "https://twitter.com/shopsphere",
-      "https://facebook.com/shopsphere",
-      "https://instagram.com/shopsphere"
-    ]
-  }
-  </script>
-  
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "ShopSphere",
-    "url": "https://shopsphere.com",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://shopsphere.com/search?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    },
-    "breadcrumb": {
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Home",
-          "item": "https://shopsphere.com"
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": "Products",
-          "item": "https://shopsphere.com/products"
-        }
-      ]
-    }
-  </script>
-
-  <!-- Google Analytics 4 -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=/* ANALYTICS_KEY */"></script>
-  <script>
-    // Respect Do Not Track
-    if (!window.navigator.doNotTrack) {
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', '/* ANALYTICS_KEY */', {
-        page_path: window.location.pathname,
-      });
-    }
-  </script>
-</head>
-<body>
-  <div id="root"></div>
-</body>
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </head>
+  <body class="bg-bg text-text font-body antialiased">
+    <div id="root"></div>
+  </body>
 </html>

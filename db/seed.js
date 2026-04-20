@@ -1,368 +1,212 @@
-// Seed data for ShopSphere (app_d8d4)
-// Realistic sample data with proper references
+// MongoDB seed data with realistic values and relationships
+// Run: mongo app_d8d4 db/seed.js
 
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
-const {
-  User,
-  Address,
-  Product,
-  Cart,
-  Wishlist,
-  Order,
-  Review,
-  Question,
-  Coupon,
-  Category,
-  Banner,
-  SellerApplication
-} = require('./schema');
-
-const SALT_ROUNDS = 10;
-
-// Helper: Generate random date between two dates
-const randomDate = (start, end) => {
-  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-};
-
-// Helper: Generate order number
-const generateOrderNumber = () => `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-// Seed function
-const seed = async () => {
-  try {
-    // Clear existing data
-    await User.deleteMany({});
-    await Address.deleteMany({});
-    await Product.deleteMany({});
-    await Cart.deleteMany({});
-    await Wishlist.deleteMany({});
-    await Order.deleteMany({});
-    await Review.deleteMany({});
-    await Question.deleteMany({});
-    await Coupon.deleteMany({});
-    await Category.deleteMany({});
-    await Banner.deleteMany({});
-    await SellerApplication.deleteMany({});
-
-    console.log('🗑️  Cleared existing data');
-
-    // Create categories
-    const categories = [
-      { name: 'Electronics', slug: 'electronics' },
-      { name: 'Clothing', slug: 'clothing' },
-      { name: 'Home & Kitchen', slug: 'home-kitchen' },
-      { name: 'Books', slug: 'books' },
-      { name: 'Sports', slug: 'sports' }
-    ];
-    const createdCategories = await Category.insertMany(categories);
-    console.log(`✅ Created ${createdCategories.length} categories`);
-
-    // Create users
-    const passwordHash = await bcrypt.hash('password123', SALT_ROUNDS);
-    const users = [
-      {
-        email: 'customer@example.com',
-        password_hash: passwordHash,
-        name: 'John Doe',
-        phone: '+1234567890',
-        role: 'customer',
-        email_verified: true,
-        created_at: randomDate(new Date(2023, 0, 1), new Date())
-      },
-      {
-        email: 'seller@example.com',
-        password_hash: passwordHash,
-        name: 'Jane Smith',
-        phone: '+1987654321',
-        role: 'seller',
-        email_verified: true,
-        created_at: randomDate(new Date(2023, 0, 1), new Date())
-      },
-      {
-        email: 'admin@example.com',
-        password_hash: passwordHash,
-        name: 'Admin User',
-        phone: '+1112223333',
-        role: 'admin',
-        email_verified: true,
-        created_at: new Date()
-      }
-    ];
-    const createdUsers = await User.insertMany(users);
-    const [customer, seller, admin] = createdUsers;
-    console.log(`✅ Created ${createdUsers.length} users`);
-
-    // Create addresses
-    const addresses = [
-      {
-        user_id: customer._id,
-        label: 'Home',
-        street: '123 Main St',
-        city: 'New York',
-        state: 'NY',
-        zip: '10001',
-        country: 'USA',
-        is_default: true,
-        created_at: new Date()
-      },
-      {
-        user_id: customer._id,
-        label: 'Work',
-        street: '456 Office Ave',
-        city: 'New York',
-        state: 'NY',
-        zip: '10002',
-        country: 'USA',
-        is_default: false,
-        created_at: new Date()
-      }
-    ];
-    await Address.insertMany(addresses);
-    console.log(`✅ Created ${addresses.length} addresses`);
-
-    // Create products
-    const products = [
-      {
-        seller_id: seller._id,
-        title: 'Wireless Noise-Cancelling Headphones',
-        description: 'Premium over-ear headphones with active noise cancellation, 30-hour battery life, and crystal-clear audio.',
-        category: 'Electronics',
-        brand: 'SoundMax',
-        price: 199.99,
-        original_price: 299.99,
-        images: [
-          'https://example.s3.amazonaws.com/headphones-1.jpg',
-          'https://example.s3.amazonaws.com/headphones-2.jpg',
-          'https://example.s3.amazonaws.com/headphones-3.jpg'
-        ],
-        variants: [
-          { size: '', color: 'Black', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 50 },
-          { size: '', color: 'Silver', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 30 }
-        ],
-        status: 'active',
-        tags: ['audio', 'wireless', 'premium'],
-        created_at: randomDate(new Date(2023, 0, 1), new Date())
-      },
-      {
-        seller_id: seller._id,
-        title: 'Organic Cotton T-Shirt',
-        description: 'Soft, breathable 100% organic cotton t-shirt, available in multiple colors and sizes.',
-        category: 'Clothing',
-        brand: 'EcoWear',
-        price: 24.99,
-        original_price: 34.99,
-        images: [
-          'https://example.s3.amazonaws.com/tshirt-1.jpg',
-          'https://example.s3.amazonaws.com/tshirt-2.jpg'
-        ],
-        variants: [
-          { size: 'S', color: 'White', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 100 },
-          { size: 'M', color: 'White', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 150 },
-          { size: 'L', color: 'White', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 80 },
-          { size: 'M', color: 'Navy', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 60 }
-        ],
-        status: 'active',
-        tags: ['cotton', 'eco-friendly', 'basic'],
-        created_at: randomDate(new Date(2023, 0, 1), new Date())
-      },
-      {
-        seller_id: seller._id,
-        title: 'Stainless Steel Water Bottle',
-        description: 'Double-walled vacuum insulated water bottle keeps drinks cold for 24 hours or hot for 12 hours.',
-        category: 'Home & Kitchen',
-        brand: 'AquaVita',
-        price: 29.99,
-        original_price: 39.99,
-        images: [
-          'https://example.s3.amazonaws.com/bottle-1.jpg'
-        ],
-        variants: [
-          { size: '20oz', color: 'Matte Black', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 200 },
-          { size: '32oz', color: 'Matte Black', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 120 },
-          { size: '32oz', color: 'Rose Gold', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 75 }
-        ],
-        status: 'active',
-        tags: ['water', 'insulated', 'eco'],
-        created_at: randomDate(new Date(2023, 0, 1), new Date())
-      }
-    ];
-    const createdProducts = await Product.insertMany(products);
-    console.log(`✅ Created ${createdProducts.length} products`);
-
-    // Create cart
-    await Cart.create({
-      user_id: customer._id,
-      items: [
-        {
-          product_id: createdProducts[0]._id,
-          variant_id: createdProducts[0].variants[0].sku,
-          quantity: 1,
-          price_snapshot: createdProducts[0].price
-        },
-        {
-          product_id: createdProducts[1]._id,
-          variant_id: createdProducts[1].variants[1].sku,
-          quantity: 2,
-          price_snapshot: createdProducts[1].price
-        }
-      ],
-      created_at: new Date(),
-      updated_at: new Date()
-    });
-    console.log('✅ Created cart');
-
-    // Create wishlist
-    await Wishlist.create({
-      user_id: customer._id,
-      product_ids: [createdProducts[0]._id, createdProducts[2]._id],
-      created_at: new Date()
-    });
-    console.log('✅ Created wishlist');
-
-    // Create coupon
-    await Coupon.create({
-      code: 'WELCOME10',
-      discount_type: 'percent',
-      discount_value: 10,
-      min_order_value: 50,
-      max_uses: 100,
-      used_count: 5,
-      valid_from: new Date(Date.now() - 86400000), // yesterday
-      valid_until: new Date(Date.now() + 2592000000), // 30 days
-      active: true,
-      created_at: new Date()
-    });
-    console.log('✅ Created coupon');
-
-    // Create banners
-    await Banner.create({
-      title: 'Summer Sale - Up to 50% Off',
-      image_url: 'https://example.s3.amazonaws.com/banner-summer.jpg',
-      link_url: '/deals/summer',
-      position: 'hero',
-      order: 1,
-      active: true,
-      start_date: new Date(Date.now() - 86400000),
-      end_date: new Date(Date.now() + 2592000000)
-    });
-    console.log('✅ Created banner');
-
-    // Create reviews
-    const reviews = [
-      {
-        product_id: createdProducts[0]._id,
-        user_id: customer._id,
-        order_id: new mongoose.Types.ObjectId(), // mock
-        rating: 5,
-        title: 'Amazing sound quality!',
-        comment: 'These headphones are incredible. The noise cancellation is top-notch and the battery lasts forever.',
-        images: ['https://example.s3.amazonaws.com/review-headphones.jpg'],
-        helpful_votes: 12,
-        verified_purchase: true,
-        created_at: randomDate(new Date(2023, 0, 1), new Date())
-      },
-      {
-        product_id: createdProducts[1]._id,
-        user_id: customer._id,
-        order_id: new mongoose.Types.ObjectId(),
-        rating: 4,
-        title: 'Comfortable and soft',
-        comment: 'Great t-shirt, fits well and feels very comfortable. Color is accurate.',
-        helpful_votes: 5,
-        verified_purchase: true,
-        created_at: randomDate(new Date(2023, 0, 1), new Date())
-      }
-    ];
-    await Review.insertMany(reviews);
-    console.log(`✅ Created ${reviews.length} reviews`);
-
-    // Update product avg ratings
-    for (const product of createdProducts) {
-      const reviews = await Review.find({ product_id: product._id });
-      if (reviews.length > 0) {
-        const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-        await Product.findByIdAndUpdate(product._id, {
-          avg_rating: Number(avg.toFixed(1)),
-          review_count: reviews.length
-        });
-      }
-    }
-    console.log('✅ Updated product ratings');
-
-    // Create questions
-    await Question.create({
-      product_id: createdProducts[0]._id,
-      user_id: customer._id,
-      question: 'Does this work with Android phones?',
-      answer: 'Yes, these headphones work with all Bluetooth-enabled devices including Android, iOS, and Windows.',
-      answered_by: seller._id,
-      created_at: new Date(Date.now() - 3600000),
-      answered_at: new Date()
-    });
-    console.log('✅ Created question');
-
-    // Create order
-    const order = await Order.create({
-      user_id: customer._id,
-      order_number: generateOrderNumber(),
-      items: [
-        {
-          product_id: createdProducts[0]._id,
-          variant: 'Black',
-          quantity: 1,
-          price: createdProducts[0].price,
-          seller_id: seller._id
-        },
-        {
-          product_id: createdProducts[1]._id,
-          variant: 'M / White',
-          quantity: 1,
-          price: createdProducts[1].price,
-          seller_id: seller._id
-        }
-      ],
-      total_amount: createdProducts[0].price + createdProducts[1].price,
-      delivery_fee: 5.99,
-      tax_amount: 15.20,
-      payment_method: 'card',
-      payment_status: 'completed',
-      order_status: 'delivered',
-      address: {
-        label: 'Home',
-        street: '123 Main St',
-        city: 'New York',
-        state: 'NY',
-        zip: '10001',
-        country: 'USA'
-      },
-      tracking_number: 'TRK123456789',
-      delivery_speed: 'standard',
-      coupon_code: 'WELCOME10',
-      created_at: new Date(Date.now() - 86400000),
-      delivered_at: new Date()
-    });
-    console.log('✅ Created order');
-
-    console.log('🎉 Seeding completed successfully');
-  } catch (error) {
-    console.error('❌ Seeding failed:', error);
-    process.exit(1);
-  }
-};
-
-// Run seed if called directly
-if (require.main === module) {
-  mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/shopsphere', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  }).then(() => {
-    console.log('📦 Connected to MongoDB');
-    return seed();
-  }).then(() => {
-    mongoose.connection.close();
-  });
+function log(message) {
+  print(`[SEED] ${new Date().toISOString()} - ${message}`);
 }
 
-module.exports = seed;
+function main() {
+  log("Starting database seeding");
+
+  // Clear existing data
+  log("Clearing existing data...");
+  db.app_d8d4_users.deleteMany({ email: { $regex: "@example.com" } });
+  db.app_d8d4_products.deleteMany({ brand: { $in: ["Apple", "Samsung", "Nike"] } });
+  db.app_d8d4_categories.deleteMany({ name: { $in: ["Electronics", "Clothing", "Books"] } });
+  db.app_d8d4_orders.deleteMany({ "address.city": "San Francisco" });
+  db.app_d8d4_reviews.deleteMany({ "comment": { $regex: "Great product" } });
+  db.app_d8d4_wishlists.deleteMany({});
+  db.app_d8d4_carts.deleteMany({});
+  db.app_d8d4_coupons.deleteMany({ code: "WELCOME10" });
+  db.app_d8d4_banners.deleteMany({ title: "Summer Sale" });
+
+  // Insert Categories
+  log("Seeding categories...");
+  const categories = [
+    { name: "Electronics", slug: "electronics", created_at: new Date() },
+    { name: "Clothing", slug: "clothing", created_at: new Date() },
+    { name: "Books", slug: "books", created_at: new Date() },
+    { name: "Home & Kitchen", slug: "home-kitchen", created_at: new Date() },
+    { name: "Sports & Outdoors", slug: "sports-outdoors", created_at: new Date() }
+  ];
+  const categoryIds = db.app_d8d4_categories.insertMany(categories).insertedIds;
+
+  // Insert Users
+  log("Seeding users...");
+  const adminId = db.app_d8d4_users.insertOne({
+    email: "admin@example.com",
+    password_hash: "$2b$10$4WJZjM1l1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1", // "password"
+    name: "Admin User",
+    role: "admin",
+    created_at: new Date(),
+    email_verified: true
+  }).insertedId;
+
+  const sellerId = db.app_d8d4_users.insertOne({
+    email: "seller@example.com",
+    password_hash: "$2b$10$4WJZjM1l1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1",
+    name: "Seller User",
+    role: "seller",
+    created_at: new Date(),
+    email_verified: true
+  }).insertedId;
+
+  const customerId = db.app_d8d4_users.insertOne({
+    email: "customer@example.com",
+    password_hash: "$2b$10$4WJZjM1l1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1Z1",
+    name: "Customer User",
+    phone: "+14155552671",
+    loyalty_points: 150,
+    role: "customer",
+    created_at: new Date(),
+    email_verified: true
+  }).insertedId;
+
+  // Insert Addresses
+  log("Seeding addresses...");
+  db.app_d8d4_addresses.insertOne({
+    user_id: customerId,
+    type: "home",
+    line1: "123 Market St",
+    city: "San Francisco",
+    state: "CA",
+    postal_code: "94103",
+    country: "USA",
+    is_default: true,
+    created_at: new Date()
+  });
+
+  // Insert Products
+  log("Seeding products...");
+  const productIds = [];
+  const electronicsId = categoryIds[Object.keys(categoryIds)[0]];
+  const clothingId = categoryIds[Object.keys(categoryIds)[1]];
+
+  const products = [
+    {
+      seller_id: sellerId,
+      title: "iPhone 14 Pro",
+      slug: "iphone-14-pro",
+      description: "Latest iPhone with A16 chip and 48MP main camera.",
+      category_id: electronicsId,
+      brand: "Apple",
+      price: 999,
+      original_price: 1099,
+      discount_percent: 9,
+      stock_quantity: 50,
+      images: [
+        "https://example.com/images/iphone14pro-1.jpg",
+        "https://example.com/images/iphone14pro-2.jpg"
+      ],
+      variants: [
+        {
+          name: "Color",
+          values: ["Space Black", "Silver", "Gold", "Deep Purple"],
+          price_modifier: 0
+        },
+        {
+          name: "Storage",
+          values: ["128GB", "256GB", "512GB", "1TB"],
+          price_modifier: 0
+        }
+      ],
+      tags: ["smartphone", "apple", "ios"],
+      is_featured: true,
+      status: "active",
+      created_at: new Date()
+    },
+    {
+      seller_id: sellerId,
+      title: "Samsung Galaxy S23",
+      slug: "samsung-galaxy-s23",
+      description: "Powerful Android flagship with Snapdragon 8 Gen 2.",
+      category_id: electronicsId,
+      brand: "Samsung",
+      price: 799,
+      original_price: 899,
+      discount_percent: 11,
+      stock_quantity: 30,
+      images: [
+        "https://example.com/images/galaxys23-1.jpg",
+        "https://example.com/images/galaxys23-2.jpg"
+      ],
+      tags: ["smartphone", "samsung", "android"],
+      is_sponsored: true,
+      status: "active",
+      created_at: new Date()
+    },
+    {
+      seller_id: sellerId,
+      title: "Nike Air Max 270",
+      slug: "nike-air-max-270",
+      description: "Comfortable running shoes with visible Air unit.",
+      category_id: clothingId,
+      brand: "Nike",
+      price: 120,
+      original_price: 150,
+      discount_percent: 20,
+      stock_quantity: 100,
+      images: [
+        "https://example.com/images/nike-air-max-270-1.jpg",
+        "https://example.com/images/nike-air-max-270-2.jpg"
+      ],
+      variants: [
+        {
+          name: "Size",
+          values: ["US 8", "US 9", "US 10", "US 11"],
+          price_modifier: 0
+        },
+        {
+          name: "Color",
+          values: ["Black", "White", "Blue"],
+          price_modifier: 0
+        }
+      ],
+      tags: ["shoes", "nike", "running"],
+      status: "active",
+      created_at: new Date()
+    }
+  ];
+  products.forEach(p => {
+    productIds.push(db.app_d8d4_products.insertOne(p).insertedId);
+  });
+
+  // Insert Reviews
+  log("Seeding reviews...");
+  db.app_d8d4_reviews.insertMany([
+    {
+      product_id: productIds[0],
+      user_id: customerId,
+      rating: 5,
+      title: "Amazing phone!",
+      comment: "Great product with excellent camera quality.",
+      verified_purchase: true,
+      created_at: new Date()
+    },
+    {
+      product_id: productIds[1],
+      user_id: customerId,
+      rating: 4,
+      title: "Good Android option",
+      comment: "Fast performance and clean UI.",
+      verified_purchase: true,
+      created_at: new Date()
+    }
+  ]);
+
+  // Insert Wishlist
+  log("Seeding wishlist...");
+  db.app_d8d4_wishlists.insertOne({
+    user_id: customerId,
+    product_id: productIds[0],
+    added_at: new Date()
+  });
+
+  // Insert Cart
+  log("Seeding cart...");
+  db.app_d8d4_carts.insertOne({
+    user_id: customerId,
+    items: [
+      {
+        product_id: productIds[0],
+        variant

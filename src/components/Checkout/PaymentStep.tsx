@@ -1,183 +1,123 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { useCheckoutStore } from '../../stores/checkoutStore';
+import { useNavigate } from 'react-router-dom';
+import { checkoutStore } from '../../stores/checkoutStore';
 import { loadStripe } from '@stripe/stripe-js';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-const paymentMethods = [
-  { id: 'card', label: 'Credit/Debit Card', icon: '💳' },
-  { id: 'upi', label: 'UPI', icon: '📱' },
-  { id: 'cod', label: 'Cash on Delivery', icon: '💵' },
-];
+interface PaymentStepProps {
+  onBack: () => void;
+}
 
-export const PaymentStep: React.FC<{ onNext: () => void; onBack: () => void }> = ({ onNext, onBack }) => {
-  const { paymentMethod, setPaymentMethod, cartTotal, deliveryOption } = useCheckoutStore();
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [nameOnCard, setNameOnCard] = useState('');
+const PaymentStep: React.FC<PaymentStepProps> = ({ onBack }) => {
+  const [paymentMethod, setPaymentMethod] = useState('stripe');
+  const [cardName, setCardName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-
-  const handlePaymentMethodChange = (value: string) => {
-    setPaymentMethod(value);
-  };
+  const navigate = useNavigate();
+  const { address, deliverySpeed } = checkoutStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!address) return;
+
     setIsProcessing(true);
+    try {
+      const stripe = await stripePromise;
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address,
+          deliverySpeed,
+          paymentMethod,
+        }),
+      });
 
-    if (paymentMethod === 'card') {
-      try {
-        const stripe = await stripePromise;
-        const response = await fetch('/api/stripe/create-checkout-session', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            items: JSON.parse(localStorage.getItem('checkoutItems') || '[]'),
-            deliveryOption,
-            paymentMethod: 'card',
-          }),
-        });
+      const session = await response.json();
 
-        const session = await response.json();
-        if (stripe) {
-          const result = await stripe.redirectToCheckout({
-            sessionId: session.id,
-          });
-          
-          if (result.error) {
-            console.error(result.error.message);
-          }
-        }
-      } catch (error) {
-        console.error('Payment error:', error);
-      } finally {
-        setIsProcessing(false);
+      if (session.error) {
+        throw new Error(session.error);
       }
-    } else {
-      // For UPI and COD, proceed to order confirmation
-      onNext();
+
+      const { error } = await stripe!.redirectToCheckout({
+        sessionId: session.id,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      alert(error.message || 'Payment failed. Please try again.');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const totalAmount = cartTotal + (deliveryOption?.price || 0);
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <h2 className="text-2xl font-bold">Payment Method</h2>
-      
-      <RadioGroup
-        value={paymentMethod}
-        onValueChange={handlePaymentMethodChange}
-        className="space-y-4"
-      >
-        {paymentMethods.map((method) => (
-          <div
-            key={method.id}
-            className={`flex items-start space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-              paymentMethod === method.id ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/50'
-            }`}
-            onClick={() => handlePaymentMethodChange(method.id)}
+    <Card className="bg-surface border-border">
+      <CardHeader>
+        <CardTitle>Payment Method</CardTitle>
+        <CardDescription>
+          Choose your preferred payment method to complete your order
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit}>
+          <RadioGroup
+            value={paymentMethod}
+            onValueChange={setPaymentMethod}
+            className="space-y-4 mb-6"
           >
-            <RadioGroupItem value={method.id} id={method.id} className="mt-1" />
-            <div className="flex-1">
-              <Label htmlFor={method.id} className="font-medium cursor-pointer flex items-center space-x-2">
-                <span>{method.icon}</span>
-                <span>{method.label}</span>
-              </Label>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="stripe" id="stripe" />
+              <Label htmlFor="stripe">Credit/Debit Card</Label>
             </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="upi" id="upi" />
+              <Label htmlFor="upi">UPI (India)</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="cod" id="cod" />
+              <Label htmlFor="cod">Cash on Delivery</Label>
+            </div>
+          </RadioGroup>
+
+          {paymentMethod === 'stripe' && (
+            <div className="space-y-4 mb-6">
+              <Input
+                placeholder="Name on card"
+                value={cardName}
+                onChange={(e) => setCardName(e.target.value)}
+                required
+              />
+              <div className="p-4 border border-border rounded bg-card">
+                <p className="text-sm text-text-dim">
+                  Card details will be entered securely on the next page
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between pt-6">
+            <Button type="button" variant="outline" onClick={onBack}>
+              Back
+            </Button>
+            <Button type="submit" disabled={isProcessing || !address}>
+              {isProcessing ? 'Processing...' : 'Continue to Payment'}
+            </Button>
           </div>
-        ))}
-      </RadioGroup>
-
-      {paymentMethod === 'card' && (
-        <div className="space-y-4 p-4 bg-surface/30 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="nameOnCard">Name on Card</Label>
-              <Input
-                id="nameOnCard"
-                value={nameOnCard}
-                onChange={(e) => setNameOnCard(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cardNumber">Card Number</Label>
-              <Input
-                id="cardNumber"
-                value={cardNumber}
-                onChange={(e) => setCardNumber(e.target.value)}
-                placeholder="1234 5678 9012 3456"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="expiry">Expiry Date</Label>
-              <Input
-                id="expiry"
-                value={expiry}
-                onChange={(e) => setExpiry(e.target.value)}
-                placeholder="MM/YY"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cvv">CVV</Label>
-              <Input
-                id="cvv"
-                value={cvv}
-                onChange={(e) => setCvv(e.target.value)}
-                placeholder="123"
-                required
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {paymentMethod === 'upi' && (
-        <div className="space-y-4 p-4 bg-surface/30 rounded-lg">
-          <div className="space-y-2">
-            <Label htmlFor="upiId">UPI ID</Label>
-            <Input
-              id="upiId"
-              placeholder="yourname@upi"
-              required
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="bg-surface/30 rounded-lg p-4">
-        <div className="flex justify-between mb-2">
-          <span className="text-text_dim">Subtotal</span>
-          <span>₹{cartTotal.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between mb-2">
-          <span className="text-text_dim">Delivery</span>
-          <span>{deliveryOption?.price === 0 ? 'Free' : `₹${deliveryOption?.price.toFixed(2)}`}</span>
-        </div>
-        <div className="flex justify-between text-lg font-bold pt-2 border-t border-border">
-          <span>Total</span>
-          <span>₹{totalAmount.toFixed(2)}</span>
-        </div>
-      </div>
-
-      <div className="flex justify-between pt-6">
-        <Button variant="outline" onClick={onBack}>
-          Back
-        </Button>
-        <Button type="submit" disabled={isProcessing || !paymentMethod}>
-          {isProcessing ? 'Processing...' : paymentMethod === 'card' ? 'Pay Now' : 'Continue'}
-        </Button>
-      </div>
-    </form>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
+
+export default PaymentStep;
