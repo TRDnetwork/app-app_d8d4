@@ -1,3 +1,5 @@
+
+```
 # Tests
 
 ## Run
@@ -9,3 +11,4 @@
 - `tests/unit/` — pure function tests (fast, isolated)
 - `tests/integration/` — React component + flow tests
 - `tests/mocks/` — shared mocks for external services
+```

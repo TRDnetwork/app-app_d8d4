@@ -1,42 +1,39 @@
 import { Schema, model, models } from 'mongoose';
 
-const usageEventSchema = new Schema(
-  {
-    user_id: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    event_type: {
-      type: String,
-      required: true,
-      enum: ['api_call', 'storage', 'seats'],
-    },
-    quantity: {
-      type: Number,
-      required: true,
-      min: 1,
-    },
-    timestamp: {
-      type: Date,
-      default: Date.now,
-    },
+const UsageEventSchema = new Schema({
+  user_id: { 
+    type: Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: true,
+    index: true
   },
-  {
-    timestamps: true,
-    collection: 'app_d8d4_usage_events',
+  event_type: { 
+    type: String, 
+    enum: ['workout_log', 'workout_plan', 'api_call', 'storage_gb'], 
+    required: true 
+  },
+  quantity: { 
+    type: Number, 
+    required: true,
+    min: 1
+  },
+  timestamp: { 
+    type: Date, 
+    default: Date.now,
+    index: true
   }
-);
+}, {
+  timestamps: false,
+  collection: 'usage_events'
+});
 
-// Create indexes for frequently queried fields
-usageEventSchema.index({ user_id: 1 });
-usageEventSchema.index({ event_type: 1 });
-usageEventSchema.index({ timestamp: 1 });
+// Create compound index for efficient querying
+UsageEventSchema.index({ user_id: 1, event_type: 1, timestamp: -1 });
 
-// Cap the collection size to prevent unbounded growth
-usageEventSchema.index({ timestamp: 1 }, { expireAfterSeconds: 2592000 }); // 30 days
+// Limit the size of the usage_events collection to prevent performance issues
+UsageEventSchema.index({ timestamp: 1 }, { expireAfterSeconds: 31536000 }); // 1 year TTL
 
-export default models.UsageEvent || model('UsageEvent', usageEventSchema);
+export const UsageEvent = models.UsageEvent || model('UsageEvent', UsageEventSchema);
 ```
 
 ```typescript

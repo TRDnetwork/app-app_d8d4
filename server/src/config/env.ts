@@ -78,3 +78,5 @@ try {
 
 export const config = env;
 ```
+
+```typescript

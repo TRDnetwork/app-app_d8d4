@@ -1,174 +1,126 @@
-import { createClient } from '@supabase/supabase-js';
 import { useAuthStore } from '../stores/authStore';
 import { toast } from '@/components/ui/use-toast';
 
-// Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env file.');
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Auth provider configuration
-const authProviders = ['google', 'facebook'] as const;
-type AuthProvider = typeof authProviders[number];
-
-interface AuthError {
-  message: string;
-  status: number;
-}
-
-interface AuthResponse {
-  data: {
-    user: any;
-    session: any;
-  } | null;
-  error: AuthError | null;
-}
-
 // Initialize auth state on app load
 export const initializeAuth = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (session) {
-    useAuthStore.getState().setUser({
-      _id: session.user.id,
-      email: session.user.email || '',
-      name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || '',
-      role: session.user.user_metadata?.role || 'customer',
-      profile_picture_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
-      token: session.access_token,
-    });
-  }
-
-  // Listen for auth changes
-  supabase.auth.onAuthStateChange((event, session) => {
-    handleAuthChange(event, session);
-  });
-};
-
-// Handle auth state changes
-const handleAuthChange = async (event: string, session: any) => {
-  if (event === 'SIGNED_IN' && session) {
-    const userData = {
-      _id: session.user.id,
-      email: session.user.email || '',
-      name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || '',
-      role: session.user.user_metadata?.role || 'customer',
-      profile_picture_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
-      token: session.access_token,
-    };
-    
-    useAuthStore.getState().setUser(userData);
-    
-    toast({
-      title: "Welcome back!",
-      description: `Signed in as ${userData.name || userData.email}`,
-    });
-  } else if (event === 'SIGNED_OUT') {
-    useAuthStore.getState().setUser(null);
-    toast({
-      title: "Signed out",
-      description: "You have been signed out successfully",
-    });
+  // No Supabase initialization - using custom JWT auth
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    // Verify token is still valid
+    try {
+      const response = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        useAuthStore.getState().setUser(userData.user);
+      } else {
+        // Token is invalid, clear it
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      }
+    } catch (error) {
+      console.error('Token verification failed:', error);
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+    }
   }
 };
 
 // Email/password authentication
 export const signUp = async (email: string, password: string, name: string) => {
-  const { data, error }: AuthResponse = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: name,
-        role: 'customer'
+  try {
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      emailRedirectTo: `${window.location.origin}/auth/callback`
-    }
-  });
+      body: JSON.stringify({ email, password, name }),
+    });
 
-  if (error) {
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Registration failed');
+    }
+
+    const data = await response.json();
+    
+    // Store tokens securely
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    
+    useAuthStore.getState().setUser(data.user);
+    
+    toast({
+      title: "Welcome!",
+      description: `Account created successfully`,
+    });
+    
+    return data;
+  } catch (err) {
     toast({
       variant: "destructive",
-      title: "Sign up failed",
-      description: error.message,
+      title: "Registration failed",
+      description: err instanceof Error ? err.message : 'Unknown error',
     });
-    throw error;
+    throw err;
   }
-
-  if (data.user) {
-    // Check if email confirmation is required
-    if (data.user.identities?.length === 0) {
-      toast({
-        title: "Check your email",
-        description: "We've sent you a confirmation link. Please check your inbox.",
-      });
-    } else {
-      // User is already confirmed (e.g., OAuth)
-      useAuthStore.getState().setUser({
-        _id: data.user.id,
-        email: data.user.email || '',
-        name: name,
-        role: 'customer',
-        token: data.session?.access_token || '',
-      });
-    }
-  }
-
-  return data;
 };
 
 export const signIn = async (email: string, password: string) => {
-  const { data, error }: AuthResponse = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  try {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (error) {
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Login failed');
+    }
+
+    const data = await response.json();
+    
+    // Store tokens securely
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    
+    useAuthStore.getState().setUser(data.user);
+    
+    toast({
+      title: "Welcome back!",
+      description: `Signed in as ${data.user.name || data.user.email}`,
+    });
+    
+    return data;
+  } catch (err) {
     toast({
       variant: "destructive",
-      title: "Sign in failed",
-      description: error.message,
+      title: "Login failed",
+      description: err instanceof Error ? err.message : 'Unknown error',
     });
-    throw error;
+    throw err;
   }
-
-  if (data.user) {
-    useAuthStore.getState().setUser({
-      _id: data.user.id,
-      email: data.user.email || '',
-      name: data.user.user_metadata?.full_name || '',
-      role: data.user.user_metadata?.role || 'customer',
-      profile_picture_url: data.user.user_metadata?.avatar_url,
-      token: data.session?.access_token || '',
-    });
-  }
-
-  return data;
 };
 
 // OAuth authentication
-export const signInWithProvider = async (provider: AuthProvider) => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent'
-      }
-    }
-  });
-
-  if (error) {
+export const signInWithProvider = async (provider: 'google' | 'facebook') => {
+  try {
+    // Redirect to backend OAuth endpoint
+    window.location.href = `/api/auth/oauth/${provider}`;
+  } catch (error) {
     toast({
       variant: "destructive",
       title: "Authentication failed",
-      description: error.message,
+      description: error instanceof Error ? error.message : 'Unknown error',
     });
     throw error;
   }
@@ -176,93 +128,145 @@ export const signInWithProvider = async (provider: AuthProvider) => {
 
 // Password recovery
 export const forgotPassword = async (email: string) => {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
-  });
+  try {
+    const response = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
 
-  if (error) {
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Password reset request failed');
+    }
+
+    toast({
+      title: "Check your email",
+      description: "We've sent you a password reset link. Please check your inbox.",
+    });
+  } catch (error) {
     toast({
       variant: "destructive",
       title: "Password reset failed",
-      description: error.message,
+      description: error instanceof Error ? error.message : 'Unknown error',
     });
     throw error;
   }
-
-  toast({
-    title: "Check your email",
-    description: "We've sent you a password reset link. Please check your inbox.",
-  });
 };
 
-export const resetPassword = async (newPassword: string) => {
-  const { data, error } = await supabase.auth.updateUser({
-    password: newPassword
-  });
+export const resetPassword = async (token: string, newPassword: string) => {
+  try {
+    const response = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token, newPassword }),
+    });
 
-  if (error) {
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Password reset failed');
+    }
+
+    toast({
+      title: "Password updated",
+      description: "Your password has been successfully updated.",
+    });
+
+    return await response.json();
+  } catch (error) {
     toast({
       variant: "destructive",
       title: "Password reset failed",
-      description: error.message,
+      description: error instanceof Error ? error.message : 'Unknown error',
     });
     throw error;
   }
-
-  toast({
-    title: "Password updated",
-    description: "Your password has been successfully updated.",
-  });
-
-  return data;
 };
 
 // Email verification
 export const verifyEmail = async (token: string) => {
-  const { error } = await supabase.auth.verifyOtp({
-    token_hash: token,
-    type: 'email'
-  });
+  try {
+    const response = await fetch('/api/auth/verify-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token }),
+    });
 
-  if (error) {
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Email verification failed');
+    }
+
+    toast({
+      title: "Email verified",
+      description: "Your email has been successfully verified.",
+    });
+  } catch (error) {
     toast({
       variant: "destructive",
       title: "Email verification failed",
-      description: error.message,
+      description: error instanceof Error ? error.message : 'Unknown error',
     });
     throw error;
   }
-
-  toast({
-    title: "Email verified",
-    description: "Your email has been successfully verified.",
-  });
 };
 
 // Sign out
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  
-  if (error) {
-    toast({
-      variant: "destructive",
-      title: "Sign out failed",
-      description: error.message,
+  try {
+    // Call backend logout endpoint to invalidate refresh token
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+      },
     });
-    throw error;
+
+    // Clear local storage
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    
+    useAuthStore.getState().setUser(null);
+    
+    toast({
+      title: "Signed out",
+      description: "You have been signed out successfully",
+    });
+  } catch (error) {
+    console.error('Logout failed:', error);
+    // Still clear local storage even if backend call fails
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    useAuthStore.getState().setUser(null);
   }
 };
 
 // Get current user session
 export const getSession = async () => {
-  const { data, error } = await supabase.auth.getSession();
+  const accessToken = localStorage.getItem('accessToken');
+  if (!accessToken) return null;
   
-  if (error) {
+  try {
+    const response = await fetch('/api/auth/session', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+    
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (error) {
     console.error('Error getting session:', error);
-    return null;
   }
   
-  return data.session;
+  return null;
 };
 
 // Update user profile
@@ -271,45 +275,51 @@ export const updateProfile = async (updates: {
   phone?: string; 
   avatar_url?: string 
 }) => {
-  const { data, error } = await supabase.auth.updateUser({
-    data: {
-      full_name: updates.name,
-      phone: updates.phone,
-      avatar_url: updates.avatar_url
-    }
-  });
+  try {
+    const response = await fetch('/api/users/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+      },
+      body: JSON.stringify(updates),
+    });
 
-  if (error) {
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Profile update failed');
+    }
+
+    const data = await response.json();
+    
+    // Update local state
+    const currentUser = useAuthStore.getState().user;
+    if (currentUser) {
+      useAuthStore.getState().setUser({
+        ...currentUser,
+        ...data.user,
+      });
+    }
+
+    toast({
+      title: "Profile updated",
+      description: "Your profile has been successfully updated.",
+    });
+
+    return data;
+  } catch (error) {
     toast({
       variant: "destructive",
       title: "Profile update failed",
-      description: error.message,
+      description: error instanceof Error ? error.message : 'Unknown error',
     });
     throw error;
   }
-
-  // Update local state
-  const currentUser = useAuthStore.getState().user;
-  if (currentUser) {
-    useAuthStore.getState().setUser({
-      ...currentUser,
-      name: updates.name || currentUser.name,
-      profile_picture_url: updates.avatar_url || currentUser.profile_picture_url
-    });
-  }
-
-  toast({
-    title: "Profile updated",
-    description: "Your profile has been successfully updated.",
-  });
-
-  return data;
 };
 
 // Check auth status
 export const checkAuthStatus = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session !== null;
+  return !!localStorage.getItem('accessToken');
 };
 
 // Get auth error from URL (for OAuth callbacks)
@@ -343,33 +353,51 @@ export const handleAuthCallback = async () => {
     return;
   }
   
-  // Clear URL parameters
-  window.history.replaceState({}, document.title, window.location.pathname);
+  // Check for OAuth success parameters
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  
+  if (accessToken && refreshToken) {
+    // Store tokens
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+    
+    // Clear URL parameters
+    window.history.replaceState({}, document.title, window.location.pathname);
+    
+    // Redirect to home or previous page
+    window.location.href = '/';
+  }
 };
 
 // Resend verification email
 export const resendVerificationEmail = async (email: string) => {
-  const { error } = await supabase.auth.resend({
-    type: 'signup',
-    email: email,
-    options: {
-      emailRedirectTo: `${window.location.origin}/auth/callback`
-    }
-  });
+  try {
+    const response = await fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
 
-  if (error) {
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to resend verification email');
+    }
+
+    toast({
+      title: "Verification email sent",
+      description: "We've sent a new verification link to your email address.",
+    });
+  } catch (error) {
     toast({
       variant: "destructive",
       title: "Failed to resend verification email",
-      description: error.message,
+      description: error instanceof Error ? error.message : 'Unknown error',
     });
     throw error;
   }
-
-  toast({
-    title: "Verification email sent",
-    description: "We've sent a new verification link to your email address.",
-  });
 };
 
 // Auth context for React components

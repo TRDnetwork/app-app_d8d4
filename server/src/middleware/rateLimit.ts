@@ -46,3 +46,5 @@ export const passwordResetLimiter = rateLimit({
   legacyHeaders: false,
 });
 ```
+
+```typescript

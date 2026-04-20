@@ -2,33 +2,45 @@
 
 ## Deploy to Vercel
 
-1. Import the `client` directory as a new Vercel project from GitHub
-2. Set the build command to `cd client && npm run build`
-3. Set the output directory to `client/dist`
-4. Add all environment variables from `.env.example` in the Vercel dashboard
-5. Deploy the project
+1. Push your code to a GitHub repository
+2. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+3. Click "New Project" and import your GitHub repository
+4. Configure the project:
+   - Framework: Vite (auto-detected)
+   - Root Directory: `/client`
+   - Build Command: `npm run build`
+   - Output Directory: `dist` (or `build` if using CRA)
+   - Install Command: `npm install`
+5. Click "Deploy"
 
 ## Environment Variables
 
-Required environment variables:
+Add these environment variables in Vercel project settings:
 
-- `API_BASE_URL`: Backend API base URL (e.g., https://shopsphere-server.onrender.com)
-- `BASE_URL`: Frontend base URL (e.g., https://shopsphere-client.vercel.app)
-- `STRIPE_PUBLISHABLE_KEY`: Stripe publishable key for client-side payments
-- `RESEND_API_KEY`: Resend API key for transactional emails
-- `ALGOLIA_SEARCH_KEY`: Algolia search-only API key
-- `GOOGLE_CLIENT_ID`: Google OAuth client ID
-- `FACEBOOK_APP_ID`: Facebook OAuth app ID
+| Key | Value |
+|-----|-------|
+| `API_BASE_URL` | Your backend API URL (e.g., `https://shopsphere-server.onrender.com`) |
+| `STRIPE_PUBLISHABLE_KEY` | Your Stripe publishable key |
+| `GOOGLE_CLIENT_ID` | Your Google OAuth client ID |
+| `FACEBOOK_APP_ID` | Your Facebook App ID |
 
-## First-time setup
+## First-time Setup
 
-1. Deploy the Express backend to Render or Railway first
+1. Deploy the backend first to Railway/Render:
+   ```bash
+   git push railway main
+   ```
 2. Run database migrations and seed data:
    ```bash
+   # Connect to your MongoDB and run:
    node server/src/db/seed.js
    ```
-3. Configure Stripe webhook endpoint to point to your backend's `/api/stripe/webhook`
-4. Set up CORS in backend to allow your Vercel frontend domain
-5. Enable OAuth apps in Google/Facebook developer consoles with proper redirect URIs
-6. Configure S3 bucket with proper CORS and IAM permissions
-7. Index products in Algolia using the search service sync command
+3. Enable MongoDB Atlas search if using Atlas Search
+4. Configure Stripe webhooks:
+   - Go to [Stripe Webhooks](https://dashboard.stripe.com/webhooks)
+   - Add endpoint: `https://shopsphere-server.onrender.com/api/stripe/webhook`
+   - Use API version: `2023-10-16`
+   - Copy the webhook secret to `STRIPE_WEBHOOK_SECRET`
+5. Set up OAuth providers:
+   - Google: Add `https://your-app.vercel.app/api/auth/oauth/google/callback` to authorized redirect URIs
+   - Facebook: Add `https://your-app.vercel.app/api/auth/oauth/facebook/callback` to valid OAuth redirect URIs

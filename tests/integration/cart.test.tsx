@@ -1,152 +1,169 @@
+
+```
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { Cart } from '../../client/src/pages/Cart';
-import { useCart } from '../../client/src/stores/cartStore';
+import { Cart } from '../../src/pages/Cart';
+import { useCartStore } from '../../src/stores/cartStore';
 
-// Mock dependencies
-vi.mock('../../client/src/stores/cartStore', () => ({
-  useCart: vi.fn(),
-  CartProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
+// Mock the cart store
+vi.mock('../../src/stores/cartStore', () => ({
+  useCartStore: vi.fn(),
 }));
 
-describe('Cart Component', () => {
-  const mockCartItems = [
-    {
-      _id: 'item1',
-      product_id: 'prod1',
-      variant_id: 'v1',
-      quantity: 2,
-      price_snapshot: 29.99,
-      title: 'Wireless Headphones',
-      image: 'https://example.com/headphones.jpg'
-    },
-    {
-      _id: 'item2',
-      product_id: 'prod2',
-      variant_id: 'v2',
-      quantity: 1,
-      price_snapshot: 19.99,
-      title: 'Charging Cable',
-      image: 'https://example.com/cable.jpg'
-    }
-  ];
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('displays empty cart message when cart is empty', () => {
-    (useCart as vi.Mock).mockReturnValue({
+describe('Cart Functionality', () => {
+  it('displays empty cart message when no items', () => {
+    (useCartStore as any).mockReturnValue({
       items: [],
       total: 0,
-      loading: false,
-      addItem: vi.fn(),
-      updateItem: vi.fn(),
       removeItem: vi.fn(),
-      fetchCart: vi.fn()
+      updateQuantity: vi.fn(),
+      clearCart: vi.fn(),
+      applyCoupon: vi.fn(),
     });
 
     render(<Cart />);
-
-    expect(screen.getByText(/your cart is empty/i)).toBeInTheDocument();
+    
+    expect(screen.getByText('Your cart is empty')).toBeInTheDocument();
+    expect(screen.getByText('Looks like you haven\'t added any items to your cart yet.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /continue shopping/i })).toBeInTheDocument();
   });
 
-  it('displays loading skeleton when cart is loading', () => {
-    (useCart as vi.Mock).mockReturnValue({
-      items: [],
-      total: 0,
-      loading: true,
-      addItem: vi.fn(),
-      updateItem: vi.fn(),
-      removeItem: vi.fn(),
-      fetchCart: vi.fn()
-    });
-
-    render(<Cart />);
-
-    expect(screen.getAllByTestId('skeleton')).toHaveLength(3);
-  });
-
   it('displays cart items with correct information', () => {
-    (useCart as vi.Mock).mockReturnValue({
-      items: mockCartItems,
-      total: 79.97,
-      loading: false,
-      addItem: vi.fn(),
-      updateItem: vi.fn(),
+    const mockItems = [
+      {
+        product_id: '1',
+        title: 'iPhone 15 Pro',
+        image: 'https://example.com/iphone.jpg',
+        price: 999,
+        quantity: 1
+      },
+      {
+        product_id: '2',
+        title: 'MacBook Pro',
+        image: 'https://example.com/macbook.jpg',
+        price: 1999,
+        quantity: 1
+      }
+    ];
+
+    (useCartStore as any).mockReturnValue({
+      items: mockItems,
+      total: 2998,
       removeItem: vi.fn(),
-      fetchCart: vi.fn()
+      updateQuantity: vi.fn(),
+      clearCart: vi.fn(),
+      applyCoupon: vi.fn(),
     });
 
     render(<Cart />);
-
-    expect(screen.getByText(/wireless headphones/i)).toBeInTheDocument();
-    expect(screen.getByText(/charging cable/i)).toBeInTheDocument();
-    expect(screen.getByText(/\$59.98/i)).toBeInTheDocument(); // 2 * 29.99
-    expect(screen.getByText(/\$19.99/i)).toBeInTheDocument();
-    expect(screen.getByText(/\$79.97/i)).toBeInTheDocument(); // subtotal
-    expect(screen.getByText(/\$85.96/i)).toBeInTheDocument(); // total with delivery
+    
+    expect(screen.getByText('Shopping Cart')).toBeInTheDocument();
+    expect(screen.getAllByRole('img').length).toBe(2);
+    expect(screen.getByText('iPhone 15 Pro')).toBeInTheDocument();
+    expect(screen.getByText('MacBook Pro')).toBeInTheDocument();
+    expect(screen.getByText('$2,998.00')).toBeInTheDocument();
   });
 
-  it('updates item quantity when quantity input changes', async () => {
-    const mockUpdateItem = vi.fn();
-    (useCart as vi.Mock).mockReturnValue({
-      items: mockCartItems,
-      total: 79.97,
-      loading: false,
-      addItem: vi.fn(),
-      updateItem: mockUpdateItem,
+  it('updates quantity when buttons are clicked', async () => {
+    const mockUpdateQuantity = vi.fn();
+    const mockItems = [
+      {
+        product_id: '1',
+        title: 'iPhone 15 Pro',
+        image: 'https://example.com/iphone.jpg',
+        price: 999,
+        quantity: 1
+      }
+    ];
+
+    (useCartStore as any).mockReturnValue({
+      items: mockItems,
+      total: 999,
       removeItem: vi.fn(),
-      fetchCart: vi.fn()
+      updateQuantity: mockUpdateQuantity,
+      clearCart: vi.fn(),
+      applyCoupon: vi.fn(),
     });
 
     render(<Cart />);
-
-    const quantityInput = screen.getAllByLabelText(/quantity/i)[0];
-    fireEvent.change(quantityInput, { target: { value: '3' } });
-
+    
+    const increaseButton = screen.getAllByText('+')[0];
+    const decreaseButton = screen.getAllByText('-')[0];
+    
+    fireEvent.click(increaseButton);
     await waitFor(() => {
-      expect(mockUpdateItem).toHaveBeenCalledWith('item1', 3);
+      expect(mockUpdateQuantity).toHaveBeenCalledWith('1', 2);
+    });
+    
+    fireEvent.click(decreaseButton);
+    await waitFor(() => {
+      expect(mockUpdateQuantity).toHaveBeenCalledWith('1', 1);
     });
   });
 
-  it('removes item when remove button is clicked', async () => {
+  it('removes item when delete button is clicked', async () => {
     const mockRemoveItem = vi.fn();
-    (useCart as vi.Mock).mockReturnValue({
-      items: mockCartItems,
-      total: 79.97,
-      loading: false,
-      addItem: vi.fn(),
-      updateItem: vi.fn(),
+    const mockItems = [
+      {
+        product_id: '1',
+        title: 'iPhone 15 Pro',
+        image: 'https://example.com/iphone.jpg',
+        price: 999,
+        quantity: 1
+      }
+    ];
+
+    (useCartStore as any).mockReturnValue({
+      items: mockItems,
+      total: 999,
       removeItem: mockRemoveItem,
-      fetchCart: vi.fn()
+      updateQuantity: vi.fn(),
+      clearCart: vi.fn(),
+      applyCoupon: vi.fn(),
     });
 
     render(<Cart />);
-
-    const removeButtons = screen.getAllByRole('button', { name: /remove/i });
-    fireEvent.click(removeButtons[0]);
-
+    
+    const deleteButton = screen.getAllByRole('button')[0];
+    fireEvent.click(deleteButton);
+    
     await waitFor(() => {
-      expect(mockRemoveItem).toHaveBeenCalledWith('item1');
+      expect(mockRemoveItem).toHaveBeenCalledWith('1');
     });
   });
 
-  it('navigates to checkout when proceed button is clicked', () => {
-    (useCart as vi.Mock).mockReturnValue({
-      items: mockCartItems,
-      total: 79.97,
-      loading: false,
-      addItem: vi.fn(),
-      updateItem: vi.fn(),
+  it('applies coupon when code is entered', async () => {
+    const mockApplyCoupon = vi.fn();
+    const mockItems = [
+      {
+        product_id: '1',
+        title: 'iPhone 15 Pro',
+        image: 'https://example.com/iphone.jpg',
+        price: 999,
+        quantity: 1
+      }
+    ];
+
+    (useCartStore as any).mockReturnValue({
+      items: mockItems,
+      total: 999,
       removeItem: vi.fn(),
-      fetchCart: vi.fn()
+      updateQuantity: vi.fn(),
+      clearCart: vi.fn(),
+      applyCoupon: mockApplyCoupon,
     });
 
     render(<Cart />);
-
-    const proceedButton = screen.getByRole('link', { name: /proceed to checkout/i });
-    expect(proceedButton).toHaveAttribute('href', '/checkout');
+    
+    fireEvent.change(screen.getByPlaceholderText(/enter coupon code/i), {
+      target: { value: 'WELCOME10' }
+    });
+    
+    fireEvent.click(screen.getByRole('button', { name: /apply/i }));
+    
+    await waitFor(() => {
+      expect(mockApplyCoupon).toHaveBeenCalledWith('WELCOME10');
+    });
   });
 });
+```
