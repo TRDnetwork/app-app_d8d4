@@ -1,158 +1,142 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '../ui/button';
-import { Mic, Square } from 'lucide-react';
-import { useToast } from '../ui/use-toast';
+import { Mic, StopCircle, Play, Download } from 'lucide-react';
+import { toast } from '../../lib/hooks/use-toast';
+import { audioRecorder } from '../../lib/voice';
 
-const AudioRecorder: React.FC = () => {
+interface AudioRecorderProps {
+  onRecordingComplete?: (blob: Blob) => void;
+  className?: string;
+}
+
+export function AudioRecorder({ onRecordingComplete, className = '' }: AudioRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<BlobPart[]>([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recorderRef = useRef(audioRecorder);
 
-  const { toast } = useToast();
-
-  // Start recording
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-      
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        setAudioBlob(blob);
-        
+      await recorderRef.current.startRecording((blob) => {
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
         
-        // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
-      };
+        if (onRecordingComplete) {
+          onRecordingComplete(blob);
+        }
+        
+        toast({
+          title: 'Recording complete',
+          description: 'Your audio has been recorded successfully.',
+        });
+      });
       
-      mediaRecorder.start();
       setIsRecording(true);
-      
-      toast({
-        title: "Recording started",
-        description: "Speak into your microphone",
-      });
-    } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not access microphone",
-      });
-      console.error('Error accessing microphone:', err);
+    } catch (error) {
+      // Error is handled by the audioRecorder
     }
   };
 
-  // Stop recording
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      
-      toast({
-        title: "Recording stopped",
-        description: "Audio saved",
-      });
+    recorderRef.current.stopRecording();
+    setIsRecording(false);
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
     }
   };
 
-  // Download audio
-  const downloadAudio = () => {
-    if (!audioBlob) return;
+  const playAudio = () => {
+    if (!audioRef.current) return;
     
-    const url = URL.createObjectURL(audioBlob);
+    audioRef.current.play();
+    setIsPlaying(true);
+  };
+
+  const pauseAudio = () => {
+    if (!audioRef.current) return;
+    
+    audioRef.current.pause();
+    setIsPlaying(false);
+  };
+
+  const togglePlayPause = () => {
+    if (isPlaying) {
+      pauseAudio();
+    } else {
+      playAudio();
+    }
+  };
+
+  const downloadAudio = () => {
+    if (!audioUrl) return;
+    
     const a = document.createElement('a');
-    a.href = url;
+    a.href = audioUrl;
     a.download = `recording-${new Date().toISOString().split('T')[0]}.webm`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Downloaded",
-      description: "Audio file saved to your device",
-    });
-  };
-
-  // Upload audio
-  const uploadAudio = async () => {
-    if (!audioBlob) return;
-    
-    // In a real app, this would upload to a server
-    // For now, we'll just show a toast
-    toast({
-      title: "Uploading",
-      description: "Uploading audio to server...",
-    });
-    
-    // Simulate upload
-    setTimeout(() => {
-      toast({
-        title: "Uploaded",
-        description: "Audio uploaded successfully",
-      });
-    }, 2000);
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex space-x-2">
+    <div className={`space-y-4 ${className}`}>
+      <div className="flex items-center space-x-2">
         <Button
-          variant="outline"
-          onClick={isRecording ? stopRecording : startRecording}
-          disabled={isRecording && !mediaRecorderRef.current}
+          type="button"
+          variant={isRecording ? "destructive" : "default"}
+          size="icon"
+          onClick={toggleRecording}
         >
-          {isRecording ? (
-            <>
-              <Square className="mr-2 h-4 w-4" />
-              Stop
-            </>
-          ) : (
-            <>
-              <Mic className="mr-2 h-4 w-4" />
-              Record
-            </>
-          )}
+          {isRecording ? <StopCircle className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
         </Button>
         
-        {audioBlob && (
-          <>
-            <Button variant="outline" onClick={downloadAudio}>
-              Download
-            </Button>
-            <Button variant="outline" onClick={uploadAudio}>
-              Upload
-            </Button>
-          </>
-        )}
+        <span className="text-sm text-muted-foreground">
+          {isRecording ? 'Recording...' : 'Record audio'}
+        </span>
       </div>
+      
+      {isRecording && (
+        <div className="flex space-x-1">
+          <div className="w-2 h-2 bg-destructive rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+          <div className="w-2 h-2 bg-destructive rounded-full animate-pulse" style={{ animationDelay: '200ms' }}></div>
+          <div className="w-2 h-2 bg-destructive rounded-full animate-pulse" style={{ animationDelay: '400ms' }}></div>
+        </div>
+      )}
       
       {audioUrl && (
         <div className="space-y-2">
-          <audio controls src={audioUrl} className="w-full" />
-          <p className="text-sm text-text-dim">
-            {audioBlob ? `${(audioBlob.size / 1024).toFixed(1)} KB` : ''}
-          </p>
+          <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="hidden" />
+          
+          <div className="flex items-center space-x-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={togglePlayPause}
+            >
+              {isPlaying ? <StopCircle className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </Button>
+            
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={downloadAudio}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>
   );
-};
-
-export default AudioRecorder;
+}
 ```
 
 ```typescript

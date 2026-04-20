@@ -1,60 +1,68 @@
 import React from 'react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Separator } from '../components/ui/separator';
 import { VoiceSettings } from '../components/voice/VoiceSettings';
 import { VoiceCommandList } from '../components/voice/VoiceCommandList';
 import { AudioRecorder } from '../components/voice/AudioRecorder';
 
-const Profile = () => {
+export default function Profile() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold">Profile</h1>
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <h1 className="text-3xl font-bold mb-8">Profile Settings</h1>
       
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-            <CardDescription>Update your personal details</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input type="text" id="name" defaultValue="John Doe" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Personal Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Name</label>
+                  <input
+                    type="text"
+                    defaultValue="John Doe"
+                    className="w-full px-3 py-2 border border-input rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <input
+                    type="email"
+                    defaultValue="john@example.com"
+                    className="w-full px-3 py-2 border border-input rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    defaultValue="+1 (555) 123-4567"
+                    className="w-full px-3 py-2 border border-input rounded-md"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input type="email" id="email" defaultValue="john@example.com" disabled />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input type="tel" id="phone" defaultValue="+1 555-123-4567" />
-              </div>
-              <Button type="submit">Save Changes</Button>
-            </form>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Audio Recorder</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AudioRecorder />
+            </CardContent>
+          </Card>
+        </div>
         
-        <div className="space-y-8">
+        <div className="space-y-6">
           <VoiceSettings />
+          
           <VoiceCommandList />
         </div>
       </div>
-      
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>Audio Recorder</CardTitle>
-          <CardDescription>Record and save audio messages</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AudioRecorder />
-        </CardContent>
-      </Card>
     </div>
   );
-};
-
-export default Profile;
+}
 ```

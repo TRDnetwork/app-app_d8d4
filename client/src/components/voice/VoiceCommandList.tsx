@@ -1,73 +1,40 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Command } from 'lucide-react';
+import { voiceCommandProcessor } from '../../lib/voice';
 
-const VoiceCommandList: React.FC = () => {
-  const commands = [
-    {
-      category: 'Shopping',
-      items: [
-        'Add [product name] to cart',
-        'Search for [product]',
-        'Go to cart',
-        'Go to checkout',
-        'What\'s in my cart?'
-      ]
-    },
-    {
-      category: 'Navigation',
-      items: [
-        'Go home',
-        'Go to products',
-        'Go to orders',
-        'Go to profile',
-        'Go to wishlist'
-      ]
-    },
-    {
-      category: 'Information',
-      items: [
-        'What\'s my order status?',
-        'How much is [product]?',
-        'What are the deals today?',
-        'What\'s my loyalty points?'
-      ]
-    },
-    {
-      category: 'Help',
-      items: [
-        'Help',
-        'What can I say?',
-        'Show voice commands'
-      ]
-    }
-  ];
+export function VoiceCommandList() {
+  const commands = voiceCommandProcessor.getAvailableCommands();
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Voice Commands</CardTitle>
+        <div className="flex items-center space-x-2">
+          <Command className="h-5 w-5" />
+          <CardTitle>Voice Commands</CardTitle>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
-          {commands.map((category) => (
-            <div key={category.category} className="space-y-2">
-              <h3 className="font-medium text-text">{category.category}</h3>
-              <ul className="space-y-1">
-                {category.items.map((command, index) => (
-                  <li key={index} className="text-sm text-text-dim pl-2 border-l-2 border-border">
-                    {command}
-                  </li>
-                ))}
-              </ul>
-            </div>
+        <ul className="space-y-2">
+          {commands.map((command) => (
+            <li key={command} className="flex items-center space-x-2">
+              <span className="text-sm font-medium">"{command}"</span>
+              <span className="text-xs text-muted-foreground">
+                {command === 'add task' && 'Add a new task with a name'}
+                {command === 'search for' && 'Search for products or content'}
+                {command === 'go to home' && 'Navigate to the home page'}
+                {command === 'go to profile' && 'Navigate to your profile'}
+                {command === 'go to cart' && 'Navigate to your shopping cart'}
+                {command === 'track my order' && 'Check the status of your order'}
+                {command === 'check order status' && 'Get information about your order'}
+              </span>
+            </li>
           ))}
-        </div>
+        </ul>
       </CardContent>
     </Card>
   );
-};
-
-export default VoiceCommandList;
+}
 ```
 
 ```typescript

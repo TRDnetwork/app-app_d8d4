@@ -1,20 +1,13 @@
-```typescript
 import OpenAI from 'openai';
-import { arrayToVector } from '../db/vector';
+import { env } from '../config/env';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: env.OPENAI_API_KEY,
 });
 
-// Configuration for chunking
-const CHUNK_SIZE = 500; // tokens
-const CHUNK_OVERLAP = 50; // tokens
-
-/**
- * Generate embeddings for text using OpenAI's text-embedding-3-small model
- */
-export async function generateEmbedding(text: string): Promise<number[]> {
+// Function to generate embeddings using OpenAI
+export async function generateEmbeddings(text: string): Promise<number[]> {
   try {
     const response = await openai.embeddings.create({
       model: 'text-embedding-3-small',
@@ -23,96 +16,88 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     
     return response.data[0].embedding;
   } catch (error) {
-    console.error('Error generating embedding:', error);
+    console.error('Error generating embeddings:', error);
     throw error;
   }
 }
 
-/**
- * Generate embeddings for multiple texts in a single batch for efficiency
- */
-export async function generateEmbeddingsBatch(texts: string[]): Promise<number[][]> {
-  try {
-    const response = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: texts,
-    });
-    
-    return response.data.map(item => item.embedding);
-  } catch (error) {
-    console.error('Error generating embeddings batch:', error);
-    throw error;
-  }
-}
-
-/**
- * Split text into chunks of specified size with overlap
- */
-export function chunkText(text: string, chunkSize: number = CHUNK_SIZE, overlap: number = CHUNK_OVERLAP): string[] {
-  // Simple token counting (approximation)
+// Function to chunk text into smaller pieces
+export function chunkText(text: string, maxTokens: number = 500, overlap: number = 50): string[] {
   const words = text.split(/\s+/);
   const chunks: string[] = [];
+  let currentChunk: string[] = [];
+  let currentTokenCount = 0;
   
-  for (let i = 0; i < words.length; i += chunkSize - overlap) {
-    const chunk = words.slice(i, i + chunkSize).join(' ');
-    chunks.push(chunk);
+  for (const word of words) {
+    // Estimate token count (rough approximation: 1 token ≈ 4 chars)
+    const wordTokenCount = Math.ceil(word.length / 4);
+    
+    // If adding this word would exceed the limit, save current chunk and start new one
+    if (currentTokenCount + wordTokenCount > maxTokens && currentChunk.length > 0) {
+      chunks.push(currentChunk.join(' '));
+      
+      // Create overlap by taking last 'overlap' words from current chunk
+      const overlapWords = currentChunk.slice(-overlap);
+      currentChunk = [...overlapWords, word];
+      currentTokenCount = overlapWords.join(' ').length / 4 + wordTokenCount;
+    } else {
+      currentChunk.push(word);
+      currentTokenCount += wordTokenCount;
+    }
+  }
+  
+  // Add the final chunk if it exists
+  if (currentChunk.length > 0) {
+    chunks.push(currentChunk.join(' '));
   }
   
   return chunks;
 }
 
-/**
- * Process a document by chunking and generating embeddings
- */
+// Function to process and embed a document
 export async function processDocument(title: string, content: string, metadata: Record<string, any> = {}) {
-  // Create the document first
-  const document = await createDocument(title, content, metadata);
+  // Generate embedding for the full document (for metadata search)
+  const documentEmbedding = await generateEmbeddings(title + ' ' + content.substring(0, 1000));
   
-  // Chunk the content
-  const chunks = chunkText(content);
-  
-  // Generate embeddings for all chunks in a batch for efficiency
-  const embeddings = await generateEmbeddingsBatch(chunks);
-  
-  // Create chunk records with embeddings
-  const chunkData = chunks.map((text, index) => ({
-    text,
-    index,
-    embedding: embeddings[index]
-  }));
-  
-  await createChunks(document.id, chunkData);
-  
-  // Generate embedding for the full document (using title + first chunk)
-  const documentEmbedding = await generateEmbedding(
-    `${title}\n\n${chunks[0]?.substring(0, 1000) || content.substring(0, 1000)}`
-  );
-  
-  // Update document with embedding
-  await updateDocument(document.id, { 
-    title, 
-    content, 
-    metadata: { ...metadata, chunk_count: chunks.length } 
-  });
-  
-  // Update the document's embedding
+  // Insert document into database
   const client = await pool.connect();
   try {
-    await client.query(
-      'UPDATE documents SET embedding = $1 WHERE id = $2',
-      [arrayToVector(documentEmbedding), document.id]
+    await client.query('BEGIN');
+    
+    const documentResult = await client.query(
+      `INSERT INTO documents (title, content, embedding, metadata) 
+       VALUES ($1, $2, $3, $4) 
+       RETURNING id`,
+      [title, content, documentEmbedding, metadata]
     );
+    
+    const documentId = documentResult.rows[0].id;
+    
+    // Chunk the content and generate embeddings for each chunk
+    const chunks = chunkText(content);
+    const chunkEmbeddings = await Promise.all(
+      chunks.map(chunk => generateEmbeddings(chunk))
+    );
+    
+    // Insert chunks into database
+    for (let i = 0; i < chunks.length; i++) {
+      await client.query(
+        `INSERT INTO chunks (document_id, chunk_text, chunk_embedding, chunk_index) 
+         VALUES ($1, $2, $3, $4)`,
+        [documentId, chunks[i], chunkEmbeddings[i], i]
+      );
+    }
+    
+    await client.query('COMMIT');
+    return documentId;
   } catch (error) {
-    console.error('Error updating document embedding:', error);
+    await client.query('ROLLBACK');
+    console.error('Error processing document:', error);
     throw error;
   } finally {
     client.release();
   }
-  
-  return {
-    documentId: document.id,
-    chunkCount: chunks.length,
-    documentEmbedding
-  };
 }
 ```
+
+```typescript
