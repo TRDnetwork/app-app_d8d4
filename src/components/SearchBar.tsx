@@ -3,8 +3,10 @@
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 export function SearchBar() {
+  const t = useTranslations();
   const [query, setQuery] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -21,7 +23,7 @@ export function SearchBar() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text_dim" />
         <Input
           type="text"
-          placeholder="Search for products, brands, and more..."
+          placeholder={t('nav.search')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="pl-10 py-6 text-lg"

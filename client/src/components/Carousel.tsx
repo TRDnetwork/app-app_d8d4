@@ -1,50 +1,22 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ReactNode } from 'react';
 
-interface CarouselProps {
-  title: string;
-  children: React.ReactNode;
-}
-
-export default function Carousel({ title, children }: CarouselProps) {
-  const scrollLeft = () => {
-    // Implementation for scrolling left
-  };
-
-  const scrollRight = () => {
-    // Implementation for scrolling right
-  };
-
+export function Carousel({ children }: { children: ReactNode }) {
   return (
-    <div className="mb-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-bold">{title}</h2>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={scrollLeft}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={scrollRight}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+    <div className="relative">
+      <div className="flex overflow-x-auto space-x-4 pb-4 hide-scrollbar">
+        {children}
       </div>
-      <div className="overflow-x-auto pb-4">
-        <div className="flex gap-4">
-          {children}
-        </div>
-      </div>
+      <style jsx>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 }

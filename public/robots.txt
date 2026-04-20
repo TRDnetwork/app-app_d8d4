@@ -1,19 +1,9 @@
 User-agent: *
 Allow: /
-Disallow: /api/
 Disallow: /admin/
-Disallow: /checkout/
-Disallow: /cart/
+Disallow: /server/
+Disallow: /api/auth/
+Disallow: /api/admin/
+Disallow: /api/seller/
 
 Sitemap: https://shopsphere.com/sitemap.xml
-
-# Google AdsBot
-User-agent: AdsBot-Google
-Allow: /
-
-# Googlebot for images
-User-agent: Googlebot-Image
-Allow: /
-
-# Rate limiting
-Crawl-delay: 10

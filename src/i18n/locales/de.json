@@ -1,0 +1,94 @@
+{
+  "nav": {
+    "home": "Startseite",
+    "products": "Produkte",
+    "categories": "Kategorien",
+    "deals": "Angebote",
+    "account": "Konto",
+    "cart": "Warenkorb",
+    "search": "Produkte, Marken und mehr suchen..."
+  },
+  "hero": {
+    "title": "Willkommen bei ShopSphere",
+    "subtitle": "Premium-Produkte mit blitzschneller Lieferung"
+  },
+  "product": {
+    "addToCart": "In den Warenkorb",
+    "viewDetails": "Details anzeigen",
+    "rating": "Bewertung",
+    "reviews": "Bewertungen",
+    "price": "Preis",
+    "originalPrice": "Originalpreis",
+    "discount": "Rabatt",
+    "outOfStock": "Nicht verfügbar",
+    "inStock": "Auf Lager"
+  },
+  "cart": {
+    "title": "Ihr Warenkorb",
+    "subtotal": "Zwischensumme",
+    "shipping": "Versand",
+    "tax": "Steuern",
+    "total": "Gesamt",
+    "checkout": "Zur Kasse",
+    "empty": "Ihr Warenkorb ist leer",
+    "continueShopping": "Weiter einkaufen"
+  },
+  "checkout": {
+    "title": "Bezahlen",
+    "stepAddress": "Lieferadresse",
+    "stepDelivery": "Lieferoptionen",
+    "stepPayment": "Zahlung",
+    "stepReview": "Bestellung prüfen",
+    "continue": "Weiter",
+    "back": "Zurück",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "email": "E-Mail",
+    "address": "Adresse",
+    "apartment": "Wohnung, Suite, etc. (optional)",
+    "city": "Stadt",
+    "state": "Bundesstaat",
+    "zip": "Postleitzahl",
+    "saveAddress": "Diese Informationen für das nächste Mal speichern",
+    "standard": "Standardlieferung",
+    "express": "Expresslieferung",
+    "sameDay": "Lieferung am selben Tag",
+    "payment": "Zahlung",
+    "orderSummary": "Bestellübersicht"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "logout": "Abmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "forgotPassword": "Passwort vergessen?",
+    "resetPassword": "Passwort zurücksetzen",
+    "signIn": "Melden Sie sich bei Ihrem Konto an",
+    "createAccount": "Ein neues Konto erstellen",
+    "resetInstructions": "Geben Sie Ihre E-Mail-Adresse ein, um Ihr Passwort zurückzusetzen"
+  },
+  "footer": {
+    "about": "Über uns",
+    "contact": "Kontakt",
+    "privacy": "Datenschutz",
+    "terms": "Nutzungsbedingungen",
+    "copyright": "© {year} ShopSphere. Alle Rechte vorbehalten."
+  },
+  "common": {
+    "loading": "Wird geladen...",
+    "error": "Etwas ist schief gelaufen",
+    "success": "Erfolg",
+    "close": "Schließen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "view": "Anzeigen",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "sort": "Sortieren",
+    "clear": "Löschen"
+  }
+}

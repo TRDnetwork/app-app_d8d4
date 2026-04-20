@@ -1,0 +1,94 @@
+{
+  "nav": {
+    "home": "ホーム",
+    "products": "商品",
+    "categories": "カテゴリー",
+    "deals": "セール",
+    "account": "アカウント",
+    "cart": "カート",
+    "search": "商品、ブランドなどを検索..."
+  },
+  "hero": {
+    "title": "ShopSphereへようこそ",
+    "subtitle": "プレミアム商品を超高速配送でお届け"
+  },
+  "product": {
+    "addToCart": "カートに追加",
+    "viewDetails": "詳細を見る",
+    "rating": "評価",
+    "reviews": "レビュー",
+    "price": "価格",
+    "originalPrice": "通常価格",
+    "discount": "割引",
+    "outOfStock": "在庫切れ",
+    "inStock": "在庫あり"
+  },
+  "cart": {
+    "title": "あなたのカート",
+    "subtotal": "小計",
+    "shipping": "送料",
+    "tax": "税金",
+    "total": "合計",
+    "checkout": "購入手続きへ",
+    "empty": "カートは空です",
+    "continueShopping": "買い物を続ける"
+  },
+  "checkout": {
+    "title": "購入",
+    "stepAddress": "配送先住所",
+    "stepDelivery": "配送方法",
+    "stepPayment": "支払い",
+    "stepReview": "注文内容の確認",
+    "continue": "続ける",
+    "back": "戻る",
+    "firstName": "名",
+    "lastName": "姓",
+    "email": "メールアドレス",
+    "address": "住所",
+    "apartment": "アパート、スイートなど（任意）",
+    "city": "市区町村",
+    "state": "都道府県",
+    "zip": "郵便番号",
+    "saveAddress": "次回のためにこの情報を保存する",
+    "standard": "標準配送",
+    "express": "速達配送",
+    "sameDay": "当日配送",
+    "payment": "支払い",
+    "orderSummary": "注文内容の概要"
+  },
+  "auth": {
+    "login": "ログイン",
+    "register": "登録",
+    "logout": "ログアウト",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "confirmPassword": "パスワードの確認",
+    "forgotPassword": "パスワードをお忘れですか？",
+    "resetPassword": "パスワードをリセット",
+    "signIn": "アカウントにサインイン",
+    "createAccount": "新しいアカウントを作成",
+    "resetInstructions": "パスワードをリセットするにはメールアドレスを入力してください"
+  },
+  "footer": {
+    "about": "会社概要",
+    "contact": "お問い合わせ",
+    "privacy": "プライバシーポリシー",
+    "terms": "利用規約",
+    "copyright": "© {year} ShopSphere. 全著作権所有。"
+  },
+  "common": {
+    "loading": "読み込み中...",
+    "error": "問題が発生しました",
+    "success": "成功",
+    "close": "閉じる",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "view": "表示",
+    "search": "検索",
+    "filter": "フィルター",
+    "sort": "並べ替え",
+    "clear": "クリア"
+  }
+}

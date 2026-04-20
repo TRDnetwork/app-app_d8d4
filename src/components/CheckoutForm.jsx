@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslations } from 'next-intl';
 
 export default function CheckoutForm({ onAddressSubmit }) {
+  const t = useTranslations();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     firstName: '',
@@ -32,15 +34,15 @@ export default function CheckoutForm({ onAddressSubmit }) {
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.firstName) newErrors.firstName = 'First name is required';
-    if (!formData.lastName) newErrors.lastName = 'Last name is required';
-    if (!formData.email) newErrors.email = 'Email is required';
+    if (!formData.firstName) newErrors.firstName = t('checkout.firstName') + ' ' + t('common.isRequired');
+    if (!formData.lastName) newErrors.lastName = t('checkout.lastName') + ' ' + t('common.isRequired');
+    if (!formData.email) newErrors.email = t('checkout.email') + ' ' + t('common.isRequired');
     else if (!/\S+@\S+\.\S+/.test(formData.email))
-      newErrors.email = 'Email is invalid';
-    if (!formData.address) newErrors.address = 'Address is required';
-    if (!formData.city) newErrors.city = 'City is required';
-    if (!formData.state) newErrors.state = 'State is required';
-    if (!formData.zip) newErrors.zip = 'ZIP code is required';
+      newErrors.email = t('checkout.email') + ' ' + t('common.isInvalid');
+    if (!formData.address) newErrors.address = t('checkout.address') + ' ' + t('common.isRequired');
+    if (!formData.city) newErrors.city = t('checkout.city') + ' ' + t('common.isRequired');
+    if (!formData.state) newErrors.state = t('checkout.state') + ' ' + t('common.isRequired');
+    if (!formData.zip) newErrors.zip = t('checkout.zip') + ' ' + t('common.isRequired');
     return newErrors;
   };
 
@@ -50,8 +52,8 @@ export default function CheckoutForm({ onAddressSubmit }) {
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       toast({
-        title: 'Validation Error',
-        description: 'Please fill in all required fields.',
+        title: t('common.validationError'),
+        description: t('common.fillRequiredFields'),
         variant: 'destructive',
       });
       return;
@@ -63,7 +65,7 @@ export default function CheckoutForm({ onAddressSubmit }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="firstName">First Name</Label>
+          <Label htmlFor="firstName">{t('checkout.firstName')}</Label>
           <Input
             id="firstName"
             name="firstName"
@@ -76,7 +78,7 @@ export default function CheckoutForm({ onAddressSubmit }) {
           )}
         </div>
         <div>
-          <Label htmlFor="lastName">Last Name</Label>
+          <Label htmlFor="lastName">{t('checkout.lastName')}</Label>
           <Input
             id="lastName"
             name="lastName"
@@ -90,7 +92,7 @@ export default function CheckoutForm({ onAddressSubmit }) {
         </div>
       </div>
       <div>
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t('checkout.email')}</Label>
         <Input
           id="email"
           name="email"
@@ -104,7 +106,7 @@ export default function CheckoutForm({ onAddressSubmit }) {
         )}
       </div>
       <div>
-        <Label htmlFor="address">Address</Label>
+        <Label htmlFor="address">{t('checkout.address')}</Label>
         <Input
           id="address"
           name="address"
@@ -117,7 +119,7 @@ export default function CheckoutForm({ onAddressSubmit }) {
         )}
       </div>
       <div>
-        <Label htmlFor="apartment">Apartment, suite, etc. (optional)</Label>
+        <Label htmlFor="apartment">{t('checkout.apartment')}</Label>
         <Input
           id="apartment"
           name="apartment"
@@ -127,7 +129,7 @@ export default function CheckoutForm({ onAddressSubmit }) {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <Label htmlFor="city">City</Label>
+          <Label htmlFor="city">{t('checkout.city')}</Label>
           <Input
             id="city"
             name="city"
@@ -140,7 +142,7 @@ export default function CheckoutForm({ onAddressSubmit }) {
           )}
         </div>
         <div>
-          <Label htmlFor="state">State</Label>
+          <Label htmlFor="state">{t('checkout.state')}</Label>
           <Input
             id="state"
             name="state"
@@ -153,7 +155,7 @@ export default function CheckoutForm({ onAddressSubmit }) {
           )}
         </div>
         <div>
-          <Label htmlFor="zip">ZIP Code</Label>
+          <Label htmlFor="zip">{t('checkout.zip')}</Label>
           <Input
             id="zip"
             name="zip"
@@ -173,15 +175,4 @@ export default function CheckoutForm({ onAddressSubmit }) {
           name="saveAddress"
           checked={formData.saveAddress}
           onChange={handleChange}
-          className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-        />
-        <Label htmlFor="saveAddress" className="ml-2 text-sm">
-          Save this information for next time
-        </Label>
-      </div>
-      <Button type="submit" className="w-full mt-6">
-        Continue to Delivery
-      </Button>
-    </form>
-  );
-}
+          className="rounded border

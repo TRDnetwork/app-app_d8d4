@@ -1,19 +1,22 @@
-// Steering interpretation: Using next-intl for Next.js App Router as specified in ARCHITECT_PLAN.md
-import { createSharedPathnamesNavigation } from 'next-intl/navigation';
+// Steering interpretation: Using next-intl for Next.js 14 App Router as specified in ARCHITECT_PLAN.md
 import { notFound } from 'next/navigation';
-import { getRequestConfig } from 'next-intl/server';
+import { createInternationalization } from 'next-intl';
 
-// Can be imported from a shared config
-const locales = ['en', 'es', 'fr', 'de', 'ja'];
+export const locales = ['en', 'es', 'fr', 'de', 'ja'] as const;
+export type Locale = typeof locales[number];
 
-export const { Link, redirect, usePathname, useRouter } =
-  createSharedPathnamesNavigation({ locales });
-
-export default getRequestConfig(async ({ locale }) => {
-  // Validate that the incoming `locale` parameter is valid
-  if (!locales.includes(locale as any)) notFound();
-
-  return {
-    messages: (await import(`../messages/${locale}.json`)).default
-  };
+export const i18n = createInternationalization({
+  defaultLocale: 'en',
+  localePrefix: 'as-needed',
+  locales,
+  getMessageFallback({ key, namespace, error }) {
+    return key;
+  },
+  async getMessages(locale) {
+    try {
+      return (await import(`../locales/${locale}.json`)).default;
+    } catch (error) {
+      notFound();
+    }
+  }
 });

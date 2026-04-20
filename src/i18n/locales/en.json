@@ -1,0 +1,94 @@
+{
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "categories": "Categories",
+    "deals": "Deals",
+    "account": "Account",
+    "cart": "Cart",
+    "search": "Search for products, brands, and more..."
+  },
+  "hero": {
+    "title": "Welcome to ShopSphere",
+    "subtitle": "Premium products with lightning-fast delivery"
+  },
+  "product": {
+    "addToCart": "Add to Cart",
+    "viewDetails": "View Details",
+    "rating": "Rating",
+    "reviews": "Reviews",
+    "price": "Price",
+    "originalPrice": "Original Price",
+    "discount": "Discount",
+    "outOfStock": "Out of Stock",
+    "inStock": "In Stock"
+  },
+  "cart": {
+    "title": "Your Cart",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "tax": "Tax",
+    "total": "Total",
+    "checkout": "Proceed to Checkout",
+    "empty": "Your cart is empty",
+    "continueShopping": "Continue Shopping"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "stepAddress": "Shipping Address",
+    "stepDelivery": "Delivery Options",
+    "stepPayment": "Payment",
+    "stepReview": "Review Order",
+    "continue": "Continue",
+    "back": "Back",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "address": "Address",
+    "apartment": "Apartment, suite, etc. (optional)",
+    "city": "City",
+    "state": "State",
+    "zip": "ZIP Code",
+    "saveAddress": "Save this information for next time",
+    "standard": "Standard Delivery",
+    "express": "Express Delivery",
+    "sameDay": "Same-Day Delivery",
+    "payment": "Payment",
+    "orderSummary": "Order Summary"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "resetPassword": "Reset Password",
+    "signIn": "Sign in to your account",
+    "createAccount": "Create a new account",
+    "resetInstructions": "Enter your email to reset your password"
+  },
+  "footer": {
+    "about": "About",
+    "contact": "Contact",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "copyright": "© {year} ShopSphere. All rights reserved."
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "success": "Success",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "clear": "Clear"
+  }
+}
