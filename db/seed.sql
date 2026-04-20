@@ -1,1 +1,1 @@
--- No seed data for Supabase — MongoDB handles seeding via db/seed.ts
+-- No seed data in SQL — MongoDB seed script is located at db/seed.ts
