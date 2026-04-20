@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+  <path d="M10 16C13.3137 16 16 13.3137 16 10C16 6.68629 13.3137 4 10 4C6.68629 4 4 6.68629 4 10C4 13.3137 6.68629 16 10 16Z" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M10 2V4" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
+  <path d="M10 16V18" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
+  <path d="M2 10H4" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
+  <path d="M16 10H18" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
+  <path d="M4.93 4.93L6.34 6.34" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
+  <path d="M13.66 13.66L15.07 15.07" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
+  <path d="M15.07 4.93L13.66 6.34" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
+  <path d="M6.34 13.66L4.93 15.07" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
+</svg>
+```
+
+```svg

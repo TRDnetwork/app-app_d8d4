@@ -3,137 +3,140 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useAuth } from '../../lib/auth';
-import { apiClient } from '../../lib/api';
+import { useCheckoutStore } from '../../stores/checkoutStore';
 
-interface Address {
-  _id: string;
-  label: string;
-  street: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
-  is_default: boolean;
-}
-
-interface AddressStepProps {
-  addresses: Address[];
-  selectedAddress: string | null;
-  onSelectAddress: (id: string) => void;
-  onAddNew: () => void;
-  onContinue: () => void;
-}
-
-const AddressStep: React.FC<AddressStepProps> = ({
-  addresses,
-  selectedAddress,
-  onSelectAddress,
-  onAddNew,
-  onContinue,
-}) => {
+export const AddressStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
   const { user } = useAuth();
-  const [isAdding, setIsAdding] = useState(false);
-  const [newAddress, setNewAddress] = useState({
-    label: 'Home',
+  const { address, setAddress } = useCheckoutStore();
+  const [isAddingNew, setIsAddingNew] = useState(!address);
+  const [formData, setFormData] = useState(address || {
     street: '',
     city: '',
     state: '',
     zip: '',
     country: 'India',
+    phone: '',
   });
 
-  const handleSaveNew = async () => {
-    try {
-      const data = await apiClient('/users/me/addresses', {
-        method: 'POST',
-        body: JSON.stringify(newAddress),
-      });
-      onSelectAddress(data.address._id);
-      setIsAdding(false);
-      onContinue();
-    } catch (err) {
-      console.error('Failed to save address:', err);
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  if (isAdding) {
-    return (
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Add New Address</h3>
-        <div className="grid grid-cols-1 gap-4">
-          <div>
-            <Label>Label</Label>
-            <Input value={newAddress.label} onChange={(e) => setNewAddress({ ...newAddress, label: e.target.value })} />
-          </div>
-          <div>
-            <Label>Street</Label>
-            <Input value={newAddress.street} onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>City</Label>
-              <Input value={newAddress.city} onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })} />
-            </div>
-            <div>
-              <Label>State</Label>
-              <Input value={newAddress.state} onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>ZIP</Label>
-              <Input value={newAddress.zip} onChange={(e) => setNewAddress({ ...newAddress, zip: e.target.value })} />
-            </div>
-            <div>
-              <Label>Country</Label>
-              <Input value={newAddress.country} onChange={(e) => setNewAddress({ ...newAddress, country: e.target.value })} />
-            </div>
-          </div>
-        </div>
-        <div className="flex space-x-4">
-          <Button variant="outline" onClick={() => setIsAdding(false)}>Cancel</Button>
-          <Button onClick={handleSaveNew}>Save & Continue</Button>
-        </div>
-      </div>
-    );
-  }
+  const handleSave = () => {
+    setAddress(formData);
+    onNext();
+  };
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Shipping Address</h2>
-      <div className="space-y-4">
-        {addresses.map((addr) => (
-          <div
-            key={addr._id}
-            className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-              selectedAddress === addr._id ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted'
-            }`}
-            onClick={() => onSelectAddress(addr._id)}
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="font-medium">{addr.label}</p>
-                <p className="text-sm text-muted-foreground">{addr.street}, {addr.city}, {addr.state} {addr.zip}</p>
-                <p className="text-sm text-muted-foreground">{addr.country}</p>
+      
+      {user?.addresses?.length > 0 && !isAddingNew ? (
+        <div className="space-y-4">
+          {user.addresses.map((addr) => (
+            <div
+              key={addr._id}
+              className="border border-border p-4 rounded-lg cursor-pointer hover:bg-surface/50"
+              onClick={() => {
+                setAddress(addr);
+                onNext();
+              }}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-medium">{addr.label || 'Home'}</p>
+                  <p className="text-text_dim">{addr.street}, {addr.city}, {addr.state} {addr.zip}</p>
+                  <p className="text-text_dim">{addr.country}</p>
+                  <p className="text-text_dim">Phone: {addr.phone}</p>
+                </div>
+                {address?._id === addr._id && (
+                  <div className="text-accent">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
               </div>
-              {addr.is_default && (
-                <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Default</span>
-              )}
+            </div>
+          ))}
+          <Button variant="outline" onClick={() => setIsAddingNew(true)}>
+            Add New Address
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="street">Street Address</Label>
+              <Input
+                id="street"
+                name="street"
+                value={formData.street}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="state">State</Label>
+              <Input
+                id="state"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="zip">ZIP Code</Label>
+              <Input
+                id="zip"
+                name="zip"
+                value={formData.zip}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <Input
+                id="country"
+                name="country"
+                value={formData.country}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                required
+              />
             </div>
           </div>
-        ))}
-        <Button variant="outline" className="w-full" onClick={onAddNew}>
-          + Add New Address
-        </Button>
-      </div>
-      <div className="flex justify-between">
-        <div></div>
-        <Button onClick={onContinue} disabled={!selectedAddress}>
-          Continue to Delivery
-        </Button>
-      </div>
+          <div className="flex space-x-4">
+            <Button onClick={handleSave}>Save & Continue</Button>
+            {!address && (
+              <Button variant="outline" onClick={() => setIsAddingNew(false)}>
+                Cancel
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-export default AddressStep;
