@@ -1,35 +1,12 @@
+import React from 'react';
 import { useAuth } from '../lib/auth';
-import { Navigate, useLocation } from 'react-router-dom';
-import { toast } from './ui/use-toast';
+import { Navigate } from 'react-router-dom';
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  allowedRoles?: ('customer' | 'seller' | 'admin')[];
-}
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth();
 
-const ProtectedRoute = ({ children, allowedRoles = ['customer'] }: ProtectedRouteProps) => {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const location = useLocation();
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-
-  if (!isAuthenticated) {
-    toast({
-      title: 'Access Denied',
-      description: 'Please log in to continue.',
-    });
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  if (allowedRoles && !allowedRoles.includes(user!.role)) {
-    toast({
-      title: 'Unauthorized',
-      description: 'You do not have permission to view this page.',
-    });
-    return <Navigate to="/" replace />;
-  }
+  if (isLoading) return <div>Loading...</div>;
+  if (!isAuthenticated) return <Navigate to="/login" />;
 
   return <>{children}</>;
 };

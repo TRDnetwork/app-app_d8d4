@@ -1,15 +1,14 @@
 import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import { Toaster } from './components/ui/toaster';
+import { AuthProvider } from './lib/auth';
 import Router from './router';
 
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <AuthProvider>
         <Router />
-        <Toaster />
-      </div>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

@@ -16,10 +16,6 @@
     --secondary-foreground: #F8FAFC;
     --muted: #334155;
     --muted-foreground: #94A3B8;
-    --accent: #FF9900;
-    --accent-foreground: #0F172A;
-    --destructive: #EF4444;
-    --destructive-foreground: #F8FAFC;
     --border: #334155;
     --input: #334155;
     --ring: #FF9900;
@@ -28,13 +24,18 @@
 }
 
 @layer base {
+  * {
+    @apply border-border;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-bg text-text;
     font-family: 'Source Sans Pro', sans-serif;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-bold text-foreground;
+    @apply text-text;
     font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    line-height: 1.2;
   }
 }
 
@@ -52,12 +53,18 @@
     @apply rounded-lg border bg-card text-card-foreground shadow-sm;
   }
   .card-header {
-    @apply p-6 pb-4 font-semibold leading-none tracking-tight;
+    @apply p-6 pb-4;
+  }
+  .card-title {
+    @apply text-xl font-semibold leading-none tracking-tight;
   }
   .card-content {
     @apply p-6 pt-0;
   }
-  .skeleton {
-    @apply bg-muted animate-pulse;
+  .card-footer {
+    @apply p-6 pt-0;
+  }
+  .input {
+    @apply flex h-10 w-full rounded-md border bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50;
   }
 }

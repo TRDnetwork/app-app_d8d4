@@ -1,114 +1,116 @@
-import express from 'express';
-import Stripe from 'stripe';
-import { Order } from '../../server/src/models/Order.js';
-import { Product } from '../../server/src/models/Product.js';
+import { stripe } from '../../server/src/services/stripe';
+import { db } from '../../server/src/services/database';
 
-const router = express.Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-/**
- * Create Stripe Checkout Session
- * Expects orderData with: items, address, deliverySpeed, couponCode, total
- */
-router.post('/create-checkout-session', async (req, res) => {
+  const { cartItems, address, deliverySpeed, couponCode } = req.body;
+  const userId = req.user?.id; // Assuming auth middleware adds user to req
+
+  if (!userId || !cartItems || !address) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
   try {
-    const { orderData } = req.body;
-    
-    if (!orderData || !orderData.items || !orderData.total) {
-      return res.status(400).json({ 
-        error: 'Invalid order data' 
-      });
-    }
+    // Verify inventory
+    const productIds = cartItems.map(item => item.productId);
+    const products = await db.collection('app_d8d4_products').find({ _id: { $in: productIds.map(id => db.ObjectId(id)) } }).toArray();
 
-    // Validate inventory before creating session
-    for (const item of orderData.items) {
-      const product = await Product.findById(item.product_id);
+    const lineItems = cartItems.map(item => {
+      const product = products.find(p => p._id.toString() === item.productId);
       if (!product || product.stock_quantity < item.quantity) {
-        return res.status(400).json({ 
-          error: `Product ${item.name} is out of stock` 
-        });
+        throw new Error(`Insufficient stock for ${product?.title}`);
       }
-    }
-
-    // Create a pending order in database
-    const pendingOrder = new Order({
-      user_id: req.user?.id, // from auth middleware
-      items: orderData.items.map(item => ({
-        product_id: item.product_id,
-        seller_id: item.seller_id,
-        variant: item.variant,
+      return {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: product.title,
+            images: [product.images[0]],
+          },
+          unit_amount: Math.round(product.price * 100), // Stripe expects cents
+        },
         quantity: item.quantity,
-        price: item.price,
-        status: 'placed'
-      })),
-      address: orderData.address,
-      delivery_speed: orderData.deliverySpeed,
-      payment_method: 'stripe',
-      payment_status: 'pending',
-      subtotal: orderData.subtotal,
-      discount: orderData.discount || 0,
-      coupon_code: orderData.couponCode,
-      delivery_charge: orderData.deliveryCharge || 0,
-      total: orderData.total,
-      status: 'placed'
+      };
     });
 
-    await pendingOrder.save();
+    // Calculate delivery price
+    const deliveryPrices = {
+      standard: 0,
+      express: 999, // cents
+      same_day: 1999, // cents
+    };
+    const deliveryPrice = deliveryPrices[deliverySpeed] || 0;
+
+    // Apply coupon if valid
+    let discount = 0;
+    if (couponCode) {
+      const coupon = await db.collection('app_d8d4_coupons').findOne({
+        code: couponCode.toUpperCase(),
+        is_active: true,
+        valid_from: { $lte: new Date() },
+        valid_until: { $gte: new Date() },
+        used_count: { $lt: '$usage_limit' },
+      });
+
+      if (coupon) {
+        const subtotal = lineItems.reduce((sum, item) => sum + (item.price_data.unit_amount * item.quantity), 0);
+        if (subtotal >= coupon.min_order_value) {
+          if (coupon.type === 'percentage') {
+            discount = Math.min(
+              Math.round(subtotal * (coupon.value / 100)),
+              coupon.max_discount ? coupon.max_discount * 100 : Infinity
+            );
+          } else {
+            discount = coupon.value * 100;
+          }
+        }
+      }
+    }
 
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: orderData.items.map(item => ({
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: item.name,
-            images: [item.image],
-          },
-          unit_amount: Math.round(item.price * 100), // in cents
-        },
-        quantity: item.quantity,
-      })),
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL}/order-confirmation?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/checkout`,
+      line_items: lineItems,
+      shipping_options: [
+        {
+          shipping_rate_data: {
+            type: 'fixed_amount',
+            fixed_amount: { amount: deliveryPrice, currency: 'usd' },
+            display_name: deliverySpeed === 'standard' ? 'Standard Delivery' : deliverySpeed === 'express' ? 'Express Delivery' : 'Same Day Delivery',
+          },
+        },
+      ],
       metadata: {
-        order_id: pendingOrder._id.toString(),
-        user_id: req.user?.id
+        userId,
+        address: JSON.stringify(address),
+        deliverySpeed,
+        couponCode: couponCode || '',
+        discountAmount: discount,
       },
-      customer_email: req.user?.email,
-      billing_address_collection: 'required',
-      shipping_address_collection: {
-        allowed_countries: ['US', 'CA', 'GB', 'AU', 'IN', 'DE', 'FR', 'JP']
-      },
-      payment_intent_data: {
-        description: `Order ${pendingOrder.order_number}`,
-        metadata: {
-          order_id: pendingOrder._id.toString(),
-          user_id: req.user?.id
-        }
-      }
+      success_url: `${process.env.FRONTEND_URL}/order-confirmation/{CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/checkout`,
     });
 
-    // Return session ID to frontend
-    res.status(200).json({ 
-      id: session.id,
-      sessionId: session.id // backward compatibility
+    // Store session in database for webhook verification
+    await db.collection('app_d8d4_checkout_sessions').insertOne({
+      sessionId: session.id,
+      userId,
+      cartItems,
+      address,
+      deliverySpeed,
+      couponCode,
+      discountAmount: discount,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
     });
 
+    res.status(200).json({ sessionId: session.id });
   } catch (error) {
-    console.error('Stripe session creation error:', error);
-    
-    // Clean up: delete pending order if session creation failed
-    if (error.orderId) {
-      await Order.findByIdAndDelete(error.orderId);
-    }
-
-    res.status(500).json({ 
-      error: 'Failed to create payment session',
-      message: error.message 
-    });
+    console.error('Error creating checkout session:', error);
+    res.status(500).json({ error: error.message });
   }
-});
-
-export default router;
+}

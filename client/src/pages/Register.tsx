@@ -1,49 +1,50 @@
 import React from 'react';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
-import AuthForm from '../components/auth/AuthForm';
-import { trackAuthEvent, trackCTAClick } from '../lib/analytics';
+import { trackAuthEvent } from '../lib/analytics';
 
-const RegisterPage: React.FC = () => {
+export default function Register() {
+  const [name, setName] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
   const navigate = useNavigate();
 
-  const handleAuthSuccess = () => {
-    trackAuthEvent('register');
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // In real app: call register API, redirect to verify email
+    trackAuthEvent('registration_started', 'email');
+    navigate('/verify-email');
+  };
+
+  const handleGoogleRegister = () => {
+    trackAuthEvent('registration_started', 'google');
+    // In real app: initiate Google OAuth flow
   };
 
   return (
-    <main id="main-content" className="container mx-auto px-4 py-12 flex items-center justify-center">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
-          <CardDescription className="text-center">
-            Join ShopSphere and start shopping today
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AuthForm mode="register" onSuccess={handleAuthSuccess} />
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <div className="text-sm text-center text-text-dim">
-            Already have an account?{' '}
-            <button
-              onClick={() => {
-                trackCTAClick('sign_in', 'register_page');
-                navigate('/login');
-              }}
-              className="text-accent hover:underline font-medium"
-              aria-label="Sign in to your account"
-            >
-              Sign in
-            </button>
-          </div>
-        </CardFooter>
-      </Card>
-    </main>
+    <div className="container mx-auto px-4 py-8 max-w-md">
+      <h1 className="text-3xl font-bold mb-6">Create Account</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2">Name</label>
+          <Input value={name} onChange={e => setName(e.target.value)} required />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Email</label>
+          <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Password</label>
+          <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+        </div>
+        <Button type="submit" className="w-full">Create Account</Button>
+      </form>
+      <div className="mt-6">
+        <Button variant="outline" className="w-full" onClick={handleGoogleRegister}>
+          Continue with Google
+        </Button>
+      </div>
+    </div>
   );
-};
-
-export default RegisterPage;
-```
-
-```typescript
+}

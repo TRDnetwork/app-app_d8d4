@@ -8,72 +8,72 @@ const deliveryOptions = [
   {
     id: 'standard',
     label: 'Standard Delivery',
-    description: '3-5 business days',
+    description: '5-7 business days',
     price: 0,
   },
   {
     id: 'express',
     label: 'Express Delivery',
-    description: '1-2 business days',
+    description: '2-3 business days',
     price: 9.99,
   },
   {
-    id: 'same-day',
+    id: 'same_day',
     label: 'Same Day Delivery',
-    description: 'Delivery today',
+    description: 'Order within 3 hours',
     price: 19.99,
   },
 ];
 
-export const DeliveryStep: React.FC<{ onNext: () => void; onBack: () => void }> = ({ onNext, onBack }) => {
-  const { deliveryOption, setDeliveryOption } = useCheckoutStore();
+const DeliveryStep = ({ onBack, onNext }: { onBack: () => void; onNext: () => void }) => {
+  const { deliverySpeed, setDeliverySpeed } = useCheckoutStore();
 
-  const handleSelect = (value: string) => {
-    const option = deliveryOptions.find(opt => opt.id === value);
-    if (option) {
-      setDeliveryOption(option);
-    }
+  const handleContinue = (speed: 'standard' | 'express' | 'same_day') => {
+    setDeliverySpeed(speed);
+    onNext();
   };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Delivery Method</h2>
-      
+      <h2 className="text-2xl font-bold">Delivery Options</h2>
       <RadioGroup
-        value={deliveryOption?.id}
-        onValueChange={handleSelect}
+        defaultValue={deliverySpeed}
+        onValueChange={(value) => setDeliverySpeed(value as any)}
         className="space-y-4"
       >
         {deliveryOptions.map((option) => (
           <div
             key={option.id}
-            className={`flex items-start space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-              deliveryOption?.id === option.id ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/50'
-            }`}
-            onClick={() => handleSelect(option.id)}
+            className="flex items-start justify-between p-4 border border-border rounded-lg hover:bg-surface cursor-pointer"
+            onClick={() => handleContinue(option.id as any)}
           >
-            <RadioGroupItem value={option.id} id={option.id} className="mt-1" />
-            <div className="flex-1">
-              <Label htmlFor={option.id} className="font-medium cursor-pointer">
-                {option.label}
-              </Label>
-              <p className="text-text_dim text-sm">{option.description}</p>
-              <p className="text-text font-medium mt-1">
-                {option.price === 0 ? 'Free' : `₹${option.price.toFixed(2)}`}
+            <div className="flex items-center space-x-3">
+              <RadioGroupItem value={option.id} id={option.id} />
+              <div className="space-y-1">
+                <Label htmlFor={option.id} className="font-medium">
+                  {option.label}
+                </Label>
+                <p className="text-text_dim text-sm">{option.description}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-medium">
+                {option.price === 0 ? 'Free' : `$${option.price.toFixed(2)}`}
               </p>
             </div>
           </div>
         ))}
       </RadioGroup>
-
-      <div className="flex justify-between pt-6">
+      <div className="flex justify-between">
         <Button variant="outline" onClick={onBack}>
-          Back
+          Back to Address
         </Button>
-        <Button onClick={onNext} disabled={!deliveryOption}>
+        <Button onClick={() => handleContinue(deliverySpeed)}>
           Continue to Payment
         </Button>
       </div>
     </div>
   );
 };
+
+export default DeliveryStep;

@@ -3,6 +3,7 @@ import { Button } from '../ui/button';
 import { useCartStore } from '../../stores/cartStore';
 import { useCheckoutStore } from '../../stores/checkoutStore';
 import { formatCurrency } from '../../lib/formatters';
+import { trackEvent, trackPurchase } from '../../lib/analytics';
 
 const ReviewStep = ({ onBack, onPlaceOrder }: { onBack: () => void; onPlaceOrder: () => void }) => {
   const { items, coupon } = useCartStore();
@@ -18,6 +19,25 @@ const ReviewStep = ({ onBack, onPlaceOrder }: { onBack: () => void; onPlaceOrder
   const deliveryCharge = deliveryOption.price;
   const discount = coupon ? coupon.discount : 0;
   const total = subtotal + deliveryCharge - discount;
+
+  const handlePlaceOrder = () => {
+    // Generate a mock order ID
+    const orderId = `ORD-${Date.now()}`;
+    
+    // Track the purchase
+    trackPurchase(orderId, total, items.map(item => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity
+    })));
+    
+    // Track the CTA click
+    trackCTAClick('place_order', 'review_step');
+    
+    // Call the original onPlaceOrder function
+    onPlaceOrder();
+  };
 
   return (
     <div className="space-y-6">
@@ -98,7 +118,7 @@ const ReviewStep = ({ onBack, onPlaceOrder }: { onBack: () => void; onPlaceOrder
             <span>Total</span>
             <span>{formatCurrency(total)}</span>
           </div>
-          <Button className="w-full" onClick={onPlaceOrder}>
+          <Button className="w-full" onClick={handlePlaceOrder}>
             Place Order
           </Button>
           <p className="text-xs text-text_dim text-center mt-2">

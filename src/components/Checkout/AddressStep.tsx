@@ -1,142 +1,93 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { useAuth } from '../../lib/auth';
+import { useAuthStore } from '../../stores/authStore';
 import { useCheckoutStore } from '../../stores/checkoutStore';
 
-export const AddressStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
-  const { user } = useAuth();
+const AddressStep = ({ onNext }: { onNext: () => void }) => {
+  const { user } = useAuthStore();
   const { address, setAddress } = useCheckoutStore();
-  const [isAddingNew, setIsAddingNew] = useState(!address);
-  const [formData, setFormData] = useState(address || {
-    street: '',
-    city: '',
-    state: '',
-    zip: '',
-    country: 'India',
-    phone: '',
-  });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSave = () => {
-    setAddress(formData);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const data = new FormData(form);
+    const newAddress = {
+      id: 'temp-' + Date.now(),
+      type: data.get('type') as 'home' | 'work' | 'other',
+      line1: data.get('line1') as string,
+      line2: data.get('line2') as string,
+      city: data.get('city') as string,
+      state: data.get('state') as string,
+      postalCode: data.get('postalCode') as string,
+      country: data.get('country') as string,
+      isDefault: !!data.get('isDefault'),
+    };
+    setAddress(newAddress);
     onNext();
   };
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Shipping Address</h2>
-      
-      {user?.addresses?.length > 0 && !isAddingNew ? (
-        <div className="space-y-4">
-          {user.addresses.map((addr) => (
-            <div
-              key={addr._id}
-              className="border border-border p-4 rounded-lg cursor-pointer hover:bg-surface/50"
-              onClick={() => {
-                setAddress(addr);
-                onNext();
-              }}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="type">Address Type</Label>
+            <select
+              id="type"
+              name="type"
+              defaultValue="home"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-medium">{addr.label || 'Home'}</p>
-                  <p className="text-text_dim">{addr.street}, {addr.city}, {addr.state} {addr.zip}</p>
-                  <p className="text-text_dim">{addr.country}</p>
-                  <p className="text-text_dim">Phone: {addr.phone}</p>
-                </div>
-                {address?._id === addr._id && (
-                  <div className="text-accent">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          <Button variant="outline" onClick={() => setIsAddingNew(true)}>
-            Add New Address
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="street">Street Address</Label>
-              <Input
-                id="street"
-                name="street"
-                value={formData.street}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Input
-                id="state"
-                name="state"
-                value={formData.state}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="zip">ZIP Code</Label>
-              <Input
-                id="zip"
-                name="zip"
-                value={formData.zip}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
-              <Input
-                id="country"
-                name="country"
-                value={formData.country}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                required
-              />
-            </div>
+              <option value="home">Home</option>
+              <option value="work">Work</option>
+              <option value="other">Other</option>
+            </select>
           </div>
-          <div className="flex space-x-4">
-            <Button onClick={handleSave}>Save & Continue</Button>
-            {!address && (
-              <Button variant="outline" onClick={() => setIsAddingNew(false)}>
-                Cancel
-              </Button>
-            )}
+          <div className="space-y-2">
+            <Label htmlFor="country">Country</Label>
+            <Input id="country" name="country" defaultValue="United States" required />
           </div>
         </div>
-      )}
+        <div className="space-y-2">
+          <Label htmlFor="line1">Street Address</Label>
+          <Input id="line1" name="line1" placeholder="123 Main St" required />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="line2">Apartment, suite, etc. (optional)</Label>
+          <Input id="line2" name="line2" placeholder="Apt 4B" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="city">City</Label>
+            <Input id="city" name="city" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="state">State</Label>
+            <Input id="state" name="state" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="postalCode">ZIP Code</Label>
+            <Input id="postalCode" name="postalCode" required />
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="isDefault"
+            name="isDefault"
+            className="rounded border-gray-300 text-primary focus:ring-primary"
+          />
+          <Label htmlFor="isDefault">Make this my default address</Label>
+        </div>
+        <Button type="submit" className="w-full">
+          Continue to Delivery
+        </Button>
+      </form>
     </div>
   );
 };
+
+export default AddressStep;

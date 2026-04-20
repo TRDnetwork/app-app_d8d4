@@ -2,7 +2,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 import { User } from '../models/User';
-import { generateAccessToken, generateRefreshToken } from '../utils/token';
+import { generateToken, generateRefreshToken } from '../utils/generateToken';
 
 // Google OAuth configuration
 passport.use(new GoogleStrategy({
@@ -42,7 +42,7 @@ passport.use(new GoogleStrategy({
 
     // Generate tokens
     const payload = { id: user._id, role: user.role };
-    const token = generateAccessToken(payload);
+    const token = generateToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
     return done(null, { user, token, refreshToken });
@@ -89,32 +89,4 @@ passport.use(new FacebookStrategy({
     }
 
     // Generate tokens
-    const payload = { id: user._id, role: user.role };
-    const token = generateAccessToken(payload);
-    const refreshToken = generateRefreshToken(payload);
-
-    return done(null, { user, token, refreshToken });
-  } catch (error) {
-    return done(error as Error, undefined);
-  }
-}));
-
-// Serialize user
-passport.serializeUser((user, done) => {
-  done(null, (user as any).id);
-});
-
-// Deserialize user
-passport.deserializeUser(async (id, done) => {
-  try {
-    const user = await User.findById(id);
-    done(null, user);
-  } catch (error) {
-    done(error as Error, undefined);
-  }
-});
-
-export default passport;
-```
-
-```typescript
+    const payload = { id: user._id, role: user.role

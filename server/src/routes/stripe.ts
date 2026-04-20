@@ -169,4 +169,4 @@ export default router;
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for JWT secrets
+// SECURITY FIX: Use environment variables for OAuth credentials
