@@ -1,6 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
-  <rect width="300" height="200" fill="#F8FAFC"/>
-  <rect x="100" y="60" width="100" height="80" rx="10" fill="#E2E8F0"/>
-  <circle cx="150" cy="100" r="30" fill="#FF9900" opacity="0.2"/>
-  <text x="150" y="160" font-family="Inter, sans-serif" font-size="18" text-anchor="middle" fill="#64748B">No items found</text>
+  <rect width="300" height="200" fill="#0F172A"/>
+  <path d="M50 150 L100 100 L200 100 L250 150" fill="none" stroke="#334155" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="100" cy="150" r="15" fill="none" stroke="#334155" stroke-width="4"/>
+  <circle cx="200" cy="150" r="15" fill="none" stroke="#334155" stroke-width="4"/>
+  <text x="150" y="80" font-family="Playfair Display, serif" font-size="24" fill="#64748B" text-anchor="middle">
+    Empty Cart
+  </text>
+  <text x="150" y="110" font-family="Source Sans Pro, sans-serif" font-size="16" fill="#64748B" text-anchor="middle">
+    Your cart is empty
+  </text>
 </svg>
+```
+
+```svg

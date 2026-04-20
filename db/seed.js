@@ -1,9 +1,10 @@
-/**
- * Seed data for ShopSphere e-commerce platform
- * Populate MongoDB collections with realistic sample data
- */
+// Seed data for ShopSphere (app_d8d4)
+// Realistic sample data with proper references
 
-import {
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const { v4: uuidv4 } = require('uuid');
+const {
   User,
   Address,
   Product,
@@ -16,17 +17,20 @@ import {
   Category,
   Banner,
   SellerApplication
-} from './schema.js';
-import bcrypt from 'bcryptjs';
+} = require('./schema');
 
-// Helper: Hash password
-const hashPassword = async (password) => {
-  const salt = await bcrypt.genSalt(10);
-  return await bcrypt.hash(password, salt);
+const SALT_ROUNDS = 10;
+
+// Helper: Generate random date between two dates
+const randomDate = (start, end) => {
+  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 };
 
+// Helper: Generate order number
+const generateOrderNumber = () => `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
 // Seed function
-const seedData = async () => {
+const seed = async () => {
   try {
     // Clear existing data
     await User.deleteMany({});
@@ -42,362 +46,306 @@ const seedData = async () => {
     await Banner.deleteMany({});
     await SellerApplication.deleteMany({});
 
-    console.log('🗑️  Existing data cleared');
+    console.log('🗑️  Cleared existing data');
 
-    // ==================== CATEGORIES ====================
+    // Create categories
     const categories = [
-      await Category.create({
-        name: 'Electronics',
-        slug: 'electronics',
-        order: 1
-      }),
-      await Category.create({
-        name: 'Clothing',
-        slug: 'clothing',
-        order: 2
-      }),
-      await Category.create({
-        name: 'Home & Kitchen',
-        slug: 'home-kitchen',
-        order: 3
-      }),
-      await Category.create({
-        name: 'Books',
-        slug: 'books',
-        order: 4
-      }),
-      await Category.create({
-        name: 'Sports & Outdoors',
-        slug: 'sports-outdoors',
-        order: 5
-      })
+      { name: 'Electronics', slug: 'electronics' },
+      { name: 'Clothing', slug: 'clothing' },
+      { name: 'Home & Kitchen', slug: 'home-kitchen' },
+      { name: 'Books', slug: 'books' },
+      { name: 'Sports', slug: 'sports' }
     ];
+    const createdCategories = await Category.insertMany(categories);
+    console.log(`✅ Created ${createdCategories.length} categories`);
 
-    // ==================== USERS ====================
-    const [adminUser, sellerUser, customerUser] = await Promise.all([
-      User.create({
-        email: 'admin@shopsphere.com',
-        password_hash: await hashPassword('admin123'),
-        name: 'Admin User',
-        role: 'admin',
-        email_verified: true
-      }),
-      User.create({
-        email: 'seller@shopsphere.com',
-        password_hash: await hashPassword('seller123'),
-        name: 'Seller User',
-        role: 'seller',
-        email_verified: true
-      }),
-      User.create({
-        email: 'customer@shopsphere.com',
-        password_hash: await hashPassword('customer123'),
-        name: 'Customer User',
+    // Create users
+    const passwordHash = await bcrypt.hash('password123', SALT_ROUNDS);
+    const users = [
+      {
+        email: 'customer@example.com',
+        password_hash: passwordHash,
+        name: 'John Doe',
         phone: '+1234567890',
-        profile_picture_url: 'https://via.placeholder.com/150',
         role: 'customer',
-        email_verified: true
-      })
-    ]);
+        email_verified: true,
+        created_at: randomDate(new Date(2023, 0, 1), new Date())
+      },
+      {
+        email: 'seller@example.com',
+        password_hash: passwordHash,
+        name: 'Jane Smith',
+        phone: '+1987654321',
+        role: 'seller',
+        email_verified: true,
+        created_at: randomDate(new Date(2023, 0, 1), new Date())
+      },
+      {
+        email: 'admin@example.com',
+        password_hash: passwordHash,
+        name: 'Admin User',
+        phone: '+1112223333',
+        role: 'admin',
+        email_verified: true,
+        created_at: new Date()
+      }
+    ];
+    const createdUsers = await User.insertMany(users);
+    const [customer, seller, admin] = createdUsers;
+    console.log(`✅ Created ${createdUsers.length} users`);
 
-    console.log('👥 Users created');
+    // Create addresses
+    const addresses = [
+      {
+        user_id: customer._id,
+        label: 'Home',
+        street: '123 Main St',
+        city: 'New York',
+        state: 'NY',
+        zip: '10001',
+        country: 'USA',
+        is_default: true,
+        created_at: new Date()
+      },
+      {
+        user_id: customer._id,
+        label: 'Work',
+        street: '456 Office Ave',
+        city: 'New York',
+        state: 'NY',
+        zip: '10002',
+        country: 'USA',
+        is_default: false,
+        created_at: new Date()
+      }
+    ];
+    await Address.insertMany(addresses);
+    console.log(`✅ Created ${addresses.length} addresses`);
 
-    // ==================== ADDRESSES ====================
-    const address = await Address.create({
-      user_id: customerUser._id,
-      label: 'Home',
-      street: '123 Main St',
-      city: 'San Francisco',
-      state: 'CA',
-      zip: '94107',
-      country: 'USA',
-      is_default: true
-    });
-
-    console.log('🏠 Addresses created');
-
-    // ==================== PRODUCTS ====================
+    // Create products
     const products = [
-      await Product.create({
-        seller_id: sellerUser._id,
-        title: 'Wireless Noise-Canceling Headphones',
-        description: 'Premium over-ear headphones with active noise cancellation, 30-hour battery life, and crystal-clear sound quality.',
+      {
+        seller_id: seller._id,
+        title: 'Wireless Noise-Cancelling Headphones',
+        description: 'Premium over-ear headphones with active noise cancellation, 30-hour battery life, and crystal-clear audio.',
         category: 'Electronics',
         brand: 'SoundMax',
         price: 199.99,
         original_price: 299.99,
-        discount_percent: 33,
         images: [
-          'https://via.placeholder.com/500x500?text=Headphones+Front',
-          'https://via.placeholder.com/500x500?text=Headphones+Side',
-          'https://via.placeholder.com/500x500?text=Headphones+Box'
+          'https://example.s3.amazonaws.com/headphones-1.jpg',
+          'https://example.s3.amazonaws.com/headphones-2.jpg',
+          'https://example.s3.amazonaws.com/headphones-3.jpg'
         ],
         variants: [
-          { size: null, color: 'Black', sku: 'HP-BLK-001', stock: 50 },
-          { size: null, color: 'Silver', sku: 'HP-SLV-001', stock: 30 }
+          { size: '', color: 'Black', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 50 },
+          { size: '', color: 'Silver', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 30 }
         ],
-        stock_total: 80,
         status: 'active',
-        tags: ['audio', 'wireless', 'premium']
-      }),
-      await Product.create({
-        seller_id: sellerUser._id,
+        tags: ['audio', 'wireless', 'premium'],
+        created_at: randomDate(new Date(2023, 0, 1), new Date())
+      },
+      {
+        seller_id: seller._id,
         title: 'Organic Cotton T-Shirt',
-        description: 'Soft, breathable 100% organic cotton t-shirt, available in multiple colors. Ethically made and sustainable.',
+        description: 'Soft, breathable 100% organic cotton t-shirt, available in multiple colors and sizes.',
         category: 'Clothing',
         brand: 'EcoWear',
-        price: 29.99,
-        original_price: 39.99,
-        discount_percent: 25,
+        price: 24.99,
+        original_price: 34.99,
         images: [
-          'https://via.placeholder.com/500x500?text=T-Shirt+Black',
-          'https://via.placeholder.com/500x500?text=T-Shirt+White',
-          'https://via.placeholder.com/500x500?text=T-Shirt+Model'
+          'https://example.s3.amazonaws.com/tshirt-1.jpg',
+          'https://example.s3.amazonaws.com/tshirt-2.jpg'
         ],
         variants: [
-          { size: 'S', color: 'Black', sku: 'TS-S-BLK', stock: 100 },
-          { size: 'M', color: 'Black', sku: 'TS-M-BLK', stock: 150 },
-          { size: 'L', color: 'White', sku: 'TS-L-WHT', stock: 80 }
+          { size: 'S', color: 'White', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 100 },
+          { size: 'M', color: 'White', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 150 },
+          { size: 'L', color: 'White', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 80 },
+          { size: 'M', color: 'Navy', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 60 }
         ],
-        stock_total: 330,
         status: 'active',
-        tags: ['cotton', 'sustainable', 'basic']
-      }),
-      await Product.create({
-        seller_id: sellerUser._id,
+        tags: ['cotton', 'eco-friendly', 'basic'],
+        created_at: randomDate(new Date(2023, 0, 1), new Date())
+      },
+      {
+        seller_id: seller._id,
         title: 'Stainless Steel Water Bottle',
-        description: 'Double-wall insulated 24oz water bottle keeps drinks cold for 24 hours or hot for 12 hours. Leak-proof lid.',
+        description: 'Double-walled vacuum insulated water bottle keeps drinks cold for 24 hours or hot for 12 hours.',
         category: 'Home & Kitchen',
         brand: 'AquaVita',
-        price: 24.99,
-        original_price: 29.99,
-        discount_percent: 17,
+        price: 29.99,
+        original_price: 39.99,
         images: [
-          'https://via.placeholder.com/500x500?text=Bottle+Blue',
-          'https://via.placeholder.com/500x500?text=Bottle+Red',
-          'https://via.placeholder.com/500x500?text=Bottle+Open'
+          'https://example.s3.amazonaws.com/bottle-1.jpg'
         ],
         variants: [
-          { size: '24oz', color: 'Blue', sku: 'WB-24-BLU', stock: 200 },
-          { size: '24oz', color: 'Red', sku: 'WB-24-RED', stock: 180 }
+          { size: '20oz', color: 'Matte Black', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 200 },
+          { size: '32oz', color: 'Matte Black', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 120 },
+          { size: '32oz', color: 'Rose Gold', sku: `SKU-${uuidv4().slice(0,8)}`, stock: 75 }
         ],
-        stock_total: 380,
         status: 'active',
-        tags: ['water', 'insulated', 'eco-friendly']
-      }),
-      await Product.create({
-        seller_id: sellerUser._id,
-        title: 'The Great Gatsby',
-        description: 'F. Scott Fitzgerald\'s classic novel of the Jazz Age, a masterpiece of American literature.',
-        category: 'Books',
-        brand: null,
-        price: 12.99,
-        original_price: 14.99,
-        discount_percent: 13,
-        images: [
-          'https://via.placeholder.com/500x500?text=Great+Gatsby+Cover'
-        ],
-        variants: [
-          { size: null, color: null, sku: 'BK-GG-001', stock: 1000 }
-        ],
-        stock_total: 1000,
-        status: 'active',
-        tags: ['fiction', 'classic', 'literature']
-      }),
-      await Product.create({
-        seller_id: sellerUser._id,
-        title: 'Yoga Mat',
-        description: 'Non-slip, extra thick 6mm yoga mat with alignment markers. Perfect for all types of yoga and floor exercises.',
-        category: 'Sports & Outdoors',
-        brand: 'ZenFit',
-        price: 39.99,
-        original_price: 49.99,
-        discount_percent: 20,
-        images: [
-          'https://via.placeholder.com/500x500?text=Yoga+Mat+Unrolled',
-          'https://via.placeholder.com/500x500?text=Yoga+Mat+Rolled'
-        ],
-        variants: [
-          { size: 'Standard', color: 'Purple', sku: 'YM-PUR-STD', stock: 75 },
-          { size: 'Standard', color: 'Black', sku: 'YM-BLK-STD', stock: 60 },
-          { size: 'Long', color: 'Blue', sku: 'YM-BLU-LNG', stock: 40 }
-        ],
-        stock_total: 175,
-        status: 'active',
-        tags: ['yoga', 'fitness', 'mat']
-      })
+        tags: ['water', 'insulated', 'eco'],
+        created_at: randomDate(new Date(2023, 0, 1), new Date())
+      }
     ];
+    const createdProducts = await Product.insertMany(products);
+    console.log(`✅ Created ${createdProducts.length} products`);
 
-    console.log('🛍️  Products created');
-
-    // ==================== CART ====================
+    // Create cart
     await Cart.create({
-      user_id: customerUser._id,
+      user_id: customer._id,
       items: [
         {
-          product_id: products[0]._id,
-          variant_id: 'HP-BLK-001',
+          product_id: createdProducts[0]._id,
+          variant_id: createdProducts[0].variants[0].sku,
           quantity: 1,
-          price_snapshot: 199.99
+          price_snapshot: createdProducts[0].price
         },
         {
-          product_id: products[1]._id,
-          variant_id: 'TS-M-BLK',
+          product_id: createdProducts[1]._id,
+          variant_id: createdProducts[1].variants[1].sku,
           quantity: 2,
-          price_snapshot: 29.99
+          price_snapshot: createdProducts[1].price
         }
-      ]
+      ],
+      created_at: new Date(),
+      updated_at: new Date()
     });
+    console.log('✅ Created cart');
 
-    console.log('🛒 Cart created');
-
-    // ==================== WISHLIST ====================
+    // Create wishlist
     await Wishlist.create({
-      user_id: customerUser._id,
-      product_ids: [products[2]._id, products[4]._id]
+      user_id: customer._id,
+      product_ids: [createdProducts[0]._id, createdProducts[2]._id],
+      created_at: new Date()
     });
+    console.log('✅ Created wishlist');
 
-    console.log('❤️  Wishlist created');
-
-    // ==================== COUPONS ====================
+    // Create coupon
     await Coupon.create({
       code: 'WELCOME10',
       discount_type: 'percent',
       discount_value: 10,
       min_order_value: 50,
-      max_uses: 1000,
-      used_count: 0,
-      valid_from: new Date(),
-      valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      active: true
-    });
-
-    await Coupon.create({
-      code: 'FLASH25',
-      discount_type: 'percent',
-      discount_value: 25,
-      min_order_value: 100,
       max_uses: 100,
-      used_count: 0,
-      valid_from: new Date(),
-      valid_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      active: true
+      used_count: 5,
+      valid_from: new Date(Date.now() - 86400000), // yesterday
+      valid_until: new Date(Date.now() + 2592000000), // 30 days
+      active: true,
+      created_at: new Date()
     });
+    console.log('✅ Created coupon');
 
-    console.log('🎟️  Coupons created');
-
-    // ==================== BANNERS ====================
+    // Create banners
     await Banner.create({
-      title: 'Summer Sale is Live!',
-      image_url: 'https://via.placeholder.com/1200x400?text=Summer+Sale',
-      link_url: '/search?sale=true',
+      title: 'Summer Sale - Up to 50% Off',
+      image_url: 'https://example.s3.amazonaws.com/banner-summer.jpg',
+      link_url: '/deals/summer',
       position: 'hero',
       order: 1,
       active: true,
-      start_date: new Date(),
-      end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      start_date: new Date(Date.now() - 86400000),
+      end_date: new Date(Date.now() + 2592000000)
     });
+    console.log('✅ Created banner');
 
-    await Banner.create({
-      title: 'New Arrivals',
-      image_url: 'https://via.placeholder.com/300x200?text=New+Arrivals',
-      link_url: '/new-arrivals',
-      position: 'sidebar',
-      order: 1,
-      active: true
-    });
+    // Create reviews
+    const reviews = [
+      {
+        product_id: createdProducts[0]._id,
+        user_id: customer._id,
+        order_id: new mongoose.Types.ObjectId(), // mock
+        rating: 5,
+        title: 'Amazing sound quality!',
+        comment: 'These headphones are incredible. The noise cancellation is top-notch and the battery lasts forever.',
+        images: ['https://example.s3.amazonaws.com/review-headphones.jpg'],
+        helpful_votes: 12,
+        verified_purchase: true,
+        created_at: randomDate(new Date(2023, 0, 1), new Date())
+      },
+      {
+        product_id: createdProducts[1]._id,
+        user_id: customer._id,
+        order_id: new mongoose.Types.ObjectId(),
+        rating: 4,
+        title: 'Comfortable and soft',
+        comment: 'Great t-shirt, fits well and feels very comfortable. Color is accurate.',
+        helpful_votes: 5,
+        verified_purchase: true,
+        created_at: randomDate(new Date(2023, 0, 1), new Date())
+      }
+    ];
+    await Review.insertMany(reviews);
+    console.log(`✅ Created ${reviews.length} reviews`);
 
-    console.log('🖼️  Banners created');
+    // Update product avg ratings
+    for (const product of createdProducts) {
+      const reviews = await Review.find({ product_id: product._id });
+      if (reviews.length > 0) {
+        const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+        await Product.findByIdAndUpdate(product._id, {
+          avg_rating: Number(avg.toFixed(1)),
+          review_count: reviews.length
+        });
+      }
+    }
+    console.log('✅ Updated product ratings');
 
-    // ==================== REVIEWS ====================
-    await Review.create({
-      product_id: products[0]._id,
-      user_id: customerUser._id,
-      order_id: null, // Will be linked after order creation
-      rating: 5,
-      title: 'Outstanding Sound Quality',
-      comment: 'These headphones are amazing! The noise cancellation works perfectly on my daily commute.',
-      images: [],
-      helpful_votes: 12,
-      verified_purchase: true
-    });
-
-    await Review.create({
-      product_id: products[1]._id,
-      user_id: customerUser._id,
-      order_id: null,
-      rating: 4,
-      title: 'Comfortable and Soft',
-      comment: 'Great t-shirt, fits well and feels very comfortable. Color is true to picture.',
-      helpful_votes: 5,
-      verified_purchase: true
-    });
-
-    console.log('⭐ Reviews created');
-
-    // ==================== QUESTIONS ====================
+    // Create questions
     await Question.create({
-      product_id: products[0]._id,
-      user_id: customerUser._id,
-      question: 'Does this come with a carrying case?',
-      answer: 'Yes, a soft zippered case is included in the box.',
-      answered_by: sellerUser._id,
+      product_id: createdProducts[0]._id,
+      user_id: customer._id,
+      question: 'Does this work with Android phones?',
+      answer: 'Yes, these headphones work with all Bluetooth-enabled devices including Android, iOS, and Windows.',
+      answered_by: seller._id,
+      created_at: new Date(Date.now() - 3600000),
       answered_at: new Date()
     });
+    console.log('✅ Created question');
 
-    await Question.create({
-      product_id: products[2]._id,
-      user_id: customerUser._id,
-      question: 'Is this dishwasher safe?',
-      answer: 'The bottle is top-rack dishwasher safe, but we recommend hand washing for longevity.',
-      answered_by: sellerUser._id,
-      answered_at: new Date()
-    });
-
-    console.log('❓ Questions created');
-
-    // ==================== ORDER ====================
+    // Create order
     const order = await Order.create({
-      user_id: customerUser._id,
-      order_number: 'ORD-1001',
+      user_id: customer._id,
+      order_number: generateOrderNumber(),
       items: [
         {
-          product_id: products[0]._id,
-          variant: { size: null, color: 'Black', sku: 'HP-BLK-001' },
+          product_id: createdProducts[0]._id,
+          variant: 'Black',
           quantity: 1,
-          price: 199.99,
-          seller_id: sellerUser._id
+          price: createdProducts[0].price,
+          seller_id: seller._id
         },
         {
-          product_id: products[1]._id,
-          variant: { size: 'M', color: 'Black', sku: 'TS-M-BLK' },
+          product_id: createdProducts[1]._id,
+          variant: 'M / White',
           quantity: 1,
-          price: 29.99,
-          seller_id: sellerUser._id
+          price: createdProducts[1].price,
+          seller_id: seller._id
         }
       ],
-      total_amount: 229.98,
+      total_amount: createdProducts[0].price + createdProducts[1].price,
       delivery_fee: 5.99,
-      tax_amount: 18.40,
+      tax_amount: 15.20,
       payment_method: 'card',
       payment_status: 'completed',
       order_status: 'delivered',
-      address: address.toObject(),
+      address: {
+        label: 'Home',
+        street: '123 Main St',
+        city: 'New York',
+        state: 'NY',
+        zip: '10001',
+        country: 'USA'
+      },
       tracking_number: 'TRK123456789',
-      delivered_at: new Date(),
-      coupon_code: 'WELCOME10'
+      delivery_speed: 'standard',
+      coupon_code: 'WELCOME10',
+      created_at: new Date(Date.now() - 86400000),
+      delivered_at: new Date()
     });
+    console.log('✅ Created order');
 
-    // Link reviews to order
-    await Review.updateMany(
-      { user_id: customerUser._id, order_id: null },
-      { order_id: order._id }
-    );
-
-    console.log('📦 Order created and reviews linked');
-
-    console.log('✅ Database seeding completed successfully!');
-    process.exit(0);
+    console.log('🎉 Seeding completed successfully');
   } catch (error) {
     console.error('❌ Seeding failed:', error);
     process.exit(1);
@@ -405,8 +353,16 @@ const seedData = async () => {
 };
 
 // Run seed if called directly
-if (process.argv[2] === '--seed') {
-  seedData();
+if (require.main === module) {
+  mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/shopsphere', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  }).then(() => {
+    console.log('📦 Connected to MongoDB');
+    return seed();
+  }).then(() => {
+    mongoose.connection.close();
+  });
 }
 
-export default seedData;
+module.exports = seed;

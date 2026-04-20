@@ -1,4 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
-  <circle cx="90" cy="90" r="90" fill="#FF9900"/>
-  <text x="90" y="125" font-family="Inter, sans-serif" font-weight="bold" font-size="100" text-anchor="middle" fill="white">S</text>
+  <rect width="180" height="180" fill="#0F172A" rx="36"/>
+  <text x="90" y="130" font-family="Playfair Display, serif" font-size="100" font-weight="700" fill="#FF9900" text-anchor="middle">
+    S
+  </text>
 </svg>
+```
+
+```svg
