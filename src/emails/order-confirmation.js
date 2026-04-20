@@ -1,76 +1,177 @@
-export default function OrderConfirmationEmail({ userName, orderNumber, totalAmount, items }) {
-  const formattedItems = items.map(item => `
-    <tr>
-      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: left;">${item.title}</td>
-      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">×${item.quantity}</td>
-      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${(item.price * item.quantity).toFixed(2)}</td>
-    </tr>
-  `).join('');
+/**
+ * Order Confirmation Email Template
+ * Sent to customer after successful payment
+ */
+export default function OrderConfirmationEmail(data) {
+  const { orderNumber, customerName, items, total, estimatedDelivery } = data;
 
   return `
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
       <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Order Confirmation</title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>Your Order is Confirmed</title>
+        <style>
+          body {
+            font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            color: #0f172a;
+          }
+          .container {
+            max-width: 600px;
+            margin: 30px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            background-color: #1e293b;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+          }
+          .logo {
+            font-size: 28px;
+            font-weight: 700;
+            font-family: 'Playfair Display', Georgia, serif;
+            color: #ff9900;
+            margin: 0;
+          }
+          .content {
+            padding: 30px;
+            line-height: 1.6;
+          }
+          h1 {
+            font-size: 24px;
+            margin-top: 0;
+            color: #1e40af;
+          }
+          .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+          }
+          .order-info {
+            background-color: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+          }
+          .items {
+            margin: 25px 0;
+          }
+          .item {
+            display: flex;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+          }
+          .item-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-right: 15px;
+          }
+          .item-details {
+            flex: 1;
+          }
+          .item-name {
+            font-weight: 600;
+            margin: 0 0 4px 0;
+          }
+          .item-price {
+            color: #10b981;
+            font-weight: 600;
+          }
+          .total {
+            text-align: right;
+            font-size: 18px;
+            font-weight: 700;
+            margin: 20px 0;
+          }
+          .delivery {
+            background-color: #fffbeb;
+            border: 1px solid #fcd34d;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+          }
+          .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+          }
+          .footer a {
+            color: #1e40af;
+            text-decoration: none;
+          }
+          @media (max-width: 600px) {
+            .container {
+              margin: 15px;
+            }
+            .content {
+              padding: 20px;
+            }
+          }
+        </style>
       </head>
-      <body style="margin: 0; padding: 0; font-family: 'Source Sans Pro', sans-serif; background-color: #0F172A; color: #F8FAFC; line-height: 1.6;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #1E293B; border: 1px solid #334155; border-radius: 8px; overflow: hidden;">
-          <!-- Header -->
-          <tr>
-            <td style="padding: 32px 24px; text-align: center; background-color: #1E40AF;">
-              <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #FF9900;">ShopSphere</h1>
-              <p style="margin: 8px 0 0; color: #E2E8F0; font-size: 16px;">Order Confirmation</p>
-            </td>
-          </tr>
-          
-          <!-- Body -->
-          <tr>
-            <td style="padding: 32px 24px;">
-              <h2 style="margin: 0 0 16px; font-size: 20px; color: #F8FAFC;">Hi ${userName},</h2>
-              <p style="margin: 0 0 24px; color: #E2E8F0;">Thank you for your order! We're preparing your items for shipment.</p>
-              
-              <table style="width: 100%; margin: 24px 0; border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 12px; background-color: #0F172A; border-radius: 6px;">
-                    <strong style="color: #FF9900;">Order Number</strong><br>
-                    <span style="color: #F8FAFC; font-size: 18px; font-family: monospace;">${orderNumber}</span>
-                  </td>
-                  <td style="padding: 12px; background-color: #0F172A; border-radius: 6px;">
-                    <strong style="color: #FF9900;">Total Amount</strong><br>
-                    <span style="color: #F8FAFC; font-size: 18px;">$${totalAmount.toFixed(2)}</span>
-                  </td>
-                </tr>
-              </table>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 class="logo">ShopSphere</h1>
+          </div>
+          <div class="content">
+            <h1>Order Confirmed!</h1>
+            <p class="greeting">Hi ${customerName},</p>
+            <p>Thank you for your order. We're getting your items ready to ship.</p>
 
-              <h3 style="margin: 24px 0 12px; font-size: 18px; color: #F8FAFC;">Order Details</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                  <tr style="background-color: #0F172A;">
-                    <th style="padding: 12px; text-align: left; color: #94A3B8;">Item</th>
-                    <th style="padding: 12px; text-align: right; color: #94A3B8;">Qty</th>
-                    <th style="padding: 12px; text-align: right; color: #94A3B8;">Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${formattedItems}
-                </tbody>
-              </table>
-            </td>
-          </tr>
-          
-          <!-- Footer -->
-          <tr>
-            <td style="padding: 24px; text-align: center; background-color: #0F172A; color: #94A3B8; font-size: 14px;">
-              <p style="margin: 0 0 8px;">ShopSphere • Your trusted e-commerce partner</p>
-              <p style="margin: 0;">
-                <a href="https://shopsphere.com" style="color: #FF9900; text-decoration: none;">Visit our site</a> | 
-                <a href="https://shopsphere.com/contact" style="color: #FF9900; text-decoration: none; margin: 0 8px;">Contact Support</a>
-              </p>
-            </td>
-          </tr>
-        </table>
+            <div class="order-info">
+              <strong>Order Number:</strong> ${orderNumber}<br/>
+              <strong>Date:</strong> ${new Date().toLocaleDateString()}<br/>
+              <strong>Total:</strong> ${total}
+            </div>
+
+            <div class="items">
+              ${items
+                .map(
+                  (item) => `
+                <div class="item">
+                  <img src="${item.image}" alt="${item.name}" class="item-image" />
+                  <div class="item-details">
+                    <div class="item-name">${item.name}</div>
+                    <div>Quantity: ${item.quantity}</div>
+                    <div class="item-price">${item.price}</div>
+                  </div>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+
+            <div class="total">Total: ${total}</div>
+
+            <div class="delivery">
+              <strong>Estimated Delivery:</strong> ${estimatedDelivery}
+            </div>
+
+            <p>You can track your order anytime in your <a href="${process.env.FRONTEND_URL}/orders">Order History</a>.</p>
+            <p>Thanks again for shopping with us!</p>
+          </div>
+          <div class="footer">
+            <p>&copy; ${new Date().getFullYear()} ShopSphere. All rights reserved.</p>
+            <p>
+              <a href="${process.env.FRONTEND_URL}/contact">Contact Us</a> | 
+              <a href="${process.env.FRONTEND_URL}/privacy">Privacy Policy</a> | 
+              <a href="${process.env.FRONTEND_URL}/terms">Terms of Service</a>
+            </p>
+          </div>
+        </div>
       </body>
     </html>
   `;
