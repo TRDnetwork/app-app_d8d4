@@ -28,13 +28,21 @@
 }
 
 @layer base {
+  * {
+    @apply border-border;
+  }
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Source Sans Pro', sans-serif;
+    @apply bg-bg text-text;
+    background-color: #0F172A;
+    color: #F8FAFC;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif font-bold;
+    @apply font-display font-bold text-text;
     font-family: 'Playfair Display', serif;
+  }
+  p, span, li, td, th {
+    @apply font-body;
+    font-family: 'Source Sans Pro', sans-serif;
   }
 }
 
@@ -49,9 +57,21 @@
     @apply bg-secondary text-secondary-foreground hover:bg-secondary/90;
   }
   .card {
-    @apply bg-card text-card-foreground rounded-lg border border-border p-6 shadow-sm;
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
+  }
+  .card-header {
+    @apply flex flex-col space-y-1.5 p-6;
+  }
+  .card-title {
+    @apply text-2xl font-semibold leading-none tracking-tight;
+  }
+  .card-content {
+    @apply p-6 pt-0;
+  }
+  .card-footer {
+    @apply flex items-center p-6 pt-0;
   }
   .input {
-    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
   }
 }

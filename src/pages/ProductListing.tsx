@@ -1,55 +1,87 @@
 import React, { useState } from 'react';
-import { ProductCard } from '../components/ProductCard';
+import { useSearchParams } from 'react-router-dom';
 import { FilterSidebar } from '../components/FilterSidebar';
-import { SortDropdown } from '../components/SortDropdown';
+import { ProductCard } from '../components/ProductCard';
+import { Button } from '../components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Skeleton } from '../components/ui/skeleton';
 
-const mockProducts = Array(12).fill(null).map((_, i) => ({
-  _id: `prod-${i}`,
-  title: `Wireless Headphones Model ${i + 1}`,
-  price: 89.99 + i * 5,
-  original_price: 129.99,
-  image: `https://via.placeholder.com/300x300?text=Headphones+${i + 1}`,
-  rating: 4 + Math.random() * 1,
-  review_count: Math.floor(Math.random() * 200),
+const mockProducts = Array.from({ length: 12 }, (_, i) => ({
+  _id: (i + 1).toString(),
+  title: `Product ${i + 1}`,
+  price: Math.floor(Math.random() * 500) + 50,
+  image: `https://via.placeholder.com/300x300?text=Product+${i + 1}`,
+  rating: (Math.random() * 2 + 3).toFixed(1),
 }));
 
-const ProductListing = () => {
-  const [sortBy, setSortBy] = useState('price-low');
-  const [filters, setFilters] = useState({
-    category: '',
-    brand: '',
-    minPrice: 0,
-    maxPrice: 1000,
-    rating: 0,
-  });
+export const ProductListing: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'relevance');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const sortedProducts = [...mockProducts].sort((a, b) => {
-    switch (sortBy) {
-      case 'price-low': return a.price - b.price;
-      case 'price-high': return b.price - a.price;
-      case 'newest': return 0; // mock
-      case 'best-seller': return 0; // mock
-      case 'rating': return b.rating - a.rating;
-      default: return 0;
-    }
-  });
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    setSearchParams({ ...Object.fromEntries(searchParams), sort: value });
+  };
+
+  const handleFilterChange = (filters: Record<string, string>) => {
+    setSearchParams({ ...filters, sort: sortBy });
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Products</h1>
-      
-      <div className="flex flex-col md:flex-row gap-8">
+
+      <div className="flex flex-col md:flex-row gap-6">
         <aside className="md:w-64 flex-shrink-0">
-          <FilterSidebar filters={filters} setFilters={setFilters} />
+          <FilterSidebar onFilterChange={handleFilterChange} />
         </aside>
-        
+
         <main className="flex-1">
           <div className="flex items-center justify-between mb-6">
-            <p className="text-muted-foreground">
-              Showing {sortedProducts.length} products
+            <p className="text-text_dim">
+              Showing <span className="text-text">1-12</span> of <span className="text-text">147</span> products
             </p>
-            <SortDropdown value={sortBy} onChange={setSortBy} />
+            <div className="flex items-center space-x-2">
+              <span className="text-text_dim text-sm">Sort by:</span>
+              <Select value={sortBy} onValueChange={handleSortChange}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="relevance">Relevance</SelectItem>
+                  <SelectItem value="price-low">Price: Low to High</SelectItem>
+                  <SelectItem value="price-high">Price: High to Low</SelectItem>
+                  <SelectItem value="newest">Newest</SelectItem>
+                  <SelectItem value="rating">Avg. Rating</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {sortedProducts.map((
+
+          {isLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-48 w-full rounded-lg" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {mockProducts.map((product) => (
+                <ProductCard
+                  key={product._id}
+                  product={product}
+                  onAddToCart={() => console.log('Added to cart', product._id)}
+                />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+};

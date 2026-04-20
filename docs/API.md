@@ -1,8 +1,8 @@
-# 📡 ShopSphere API Documentation
+# ShopSphere API Documentation
 
-This document details all API endpoints for the ShopSphere e-commerce platform. All endpoints are protected by JWT authentication unless otherwise specified.
+This document details all API endpoints for the ShopSphere e-commerce platform.
 
-## 🔐 Authentication
+## Authentication
 
 ### Register User
 - **Endpoint**: `POST /api/auth/register`
@@ -12,28 +12,60 @@ This document details all API endpoints for the ShopSphere e-commerce platform. 
 {
   "name": "John Doe",
   "email": "john@example.com",
-  "password": "securePassword123"
+  "password": "password123"
 }
 ```
 - **Response**:
 ```json
 {
   "success": true,
-  "message": "User registered. Please check your email to verify your account."
+  "message": "User registered successfully. Please check your email to verify your account."
 }
 ```
-- **Status Codes**:
-  - `201 Created`: User successfully registered
-  - `400 Bad Request`: Invalid input data
-  - `409 Conflict`: User already exists
+- **Example**:
+```bash
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","email":"john@example.com","password":"password123"}'
+```
 
-### Verify Email
-- **Endpoint**: `POST /api/auth/verify-email`
-- **Description**: Verify user email with token
+### Login User
+- **Endpoint**: `POST /api/auth/login`
+- **Description**: Authenticate user and get JWT tokens
 - **Request Body**:
 ```json
 {
-  "token": "verification_token_here"
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
+- **Response**:
+```json
+{
+  "success": true,
+  "accessToken": "jwt-token",
+  "user": {
+    "_id": "user-id",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "customer"
+  }
+}
+```
+- **Example**:
+```bash
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","password":"password123"}'
+```
+
+### Verify Email
+- **Endpoint**: `POST /api/auth/verify-email`
+- **Description**: Verify user's email address using verification token
+- **Request Body**:
+```json
+{
+  "token": "verification-token"
 }
 ```
 - **Response**:
@@ -43,83 +75,10 @@ This document details all API endpoints for the ShopSphere e-commerce platform. 
   "message": "Email verified successfully"
 }
 ```
-- **Status Codes**:
-  - `200 OK`: Email successfully verified
-  - `400 Bad Request`: Invalid or expired token
-  - `404 Not Found`: User not found
-
-### Login
-- **Endpoint**: `POST /api/auth/login`
-- **Description**: Authenticate user and get JWT tokens
-- **Request Body**:
-```json
-{
-  "email": "john@example.com",
-  "password": "securePassword123"
-}
-```
-- **Response**:
-```json
-{
-  "success": true,
-  "token": "jwt_token_here",
-  "user": {
-    "_id": "user_id",
-    "name": "John Doe",
-    "email": "john@example.com",
-    "role": "customer",
-    "profilePictureUrl": "https://example.com/avatar.jpg",
-    "phone": "1234567890",
-    "emailVerified": true
-  }
-}
-```
-- **Status Codes**:
-  - `200 OK`: Successfully authenticated
-  - `401 Unauthorized`: Invalid credentials
-  - `403 Forbidden`: Email not verified
-
-### Refresh Token
-- **Endpoint**: `POST /api/auth/refresh`
-- **Description**: Refresh JWT access token using refresh token cookie
-- **Headers**: None (uses HTTP-only refresh token cookie)
-- **Response**:
-```json
-{
-  "success": true,
-  "token": "new_jwt_token_here",
-  "user": {
-    "_id": "user_id",
-    "name": "John Doe",
-    "email": "john@example.com",
-    "role": "customer",
-    "profilePictureUrl": "https://example.com/avatar.jpg",
-    "phone": "1234567890",
-    "emailVerified": true
-  }
-}
-```
-- **Status Codes**:
-  - `200 OK`: Successfully refreshed token
-  - `401 Unauthorized`: Invalid or missing refresh token
-
-### Logout
-- **Endpoint**: `POST /api/auth/logout`
-- **Description**: Clear refresh token cookie and log out user
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**:
-```json
-{
-  "success": true,
-  "message": "Logged out successfully"
-}
-```
-- **Status Codes**:
-  - `200 OK`: Successfully logged out
 
 ### Forgot Password
 - **Endpoint**: `POST /api/auth/forgot-password`
-- **Description**: Request password reset email
+- **Description**: Request password reset link
 - **Request Body**:
 ```json
 {
@@ -130,12 +89,9 @@ This document details all API endpoints for the ShopSphere e-commerce platform. 
 ```json
 {
   "success": true,
-  "message": "Password reset email sent"
+  "message": "If your email is registered, you will receive a password reset link"
 }
 ```
-- **Status Codes**:
-  - `200 OK`: Password reset email sent
-  - `400 Bad Request`: Invalid email format
 
 ### Reset Password
 - **Endpoint**: `POST /api/auth/reset-password`
@@ -143,8 +99,8 @@ This document details all API endpoints for the ShopSphere e-commerce platform. 
 - **Request Body**:
 ```json
 {
-  "token": "reset_token_here",
-  "password": "newSecurePassword123"
+  "token": "reset-token",
+  "password": "new-password123"
 }
 ```
 - **Response**:
@@ -154,213 +110,201 @@ This document details all API endpoints for the ShopSphere e-commerce platform. 
   "message": "Password reset successful"
 }
 ```
-- **Status Codes**:
-  - `200 OK`: Password successfully reset
-  - `400 Bad Request`: Invalid or expired token
 
-### Google OAuth
-- **Endpoint**: `GET /api/auth/oauth/google`
-- **Description**: Redirect to Google OAuth login
-- **Response**: Redirect to Google OAuth consent screen
-
-### Facebook OAuth
-- **Endpoint**: `GET /api/auth/oauth/facebook`
-- **Description**: Redirect to Facebook OAuth login
-- **Response**: Redirect to Facebook OAuth consent screen
-
-## 👤 Users
-
-### Get Current User
-- **Endpoint**: `GET /api/users/me`
-- **Description**: Get current user profile
-- **Headers**: `Authorization: Bearer <token>`
+### Refresh Token
+- **Endpoint**: `POST /api/auth/refresh`
+- **Description**: Refresh JWT access token using refresh token cookie
 - **Response**:
 ```json
 {
-  "_id": "user_id",
-  "name": "John Doe",
-  "email": "john@example.com",
-  "role": "customer",
-  "profilePictureUrl": "https://example.com/avatar.jpg",
-  "phone": "1234567890",
-  "emailVerified": true,
+  "success": true,
+  "accessToken": "new-jwt-token",
+  "user": {
+    "_id": "user-id",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "customer"
+  }
+}
+```
+
+### Logout User
+- **Endpoint**: `POST /api/auth/logout`
+- **Description**: Clear refresh token cookie
+- **Response**:
+```json
+{
+  "success": true,
+  "message": "Logged out successfully"
+}
+```
+
+## Users
+
+### Get Current User Profile
+- **Endpoint**: `GET /api/users/me`
+- **Description**: Get current authenticated user's profile
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Response**:
+```json
+{
+  "success": true,
+  "user": {
+    "_id": "user-id",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "customer",
+    "profilePictureUrl": "https://example.com/avatar.jpg",
+    "phone": "+1234567890",
+    "emailVerified": true
+  }
+}
+```
+
+### Update User Profile
+- **Endpoint**: `PUT /api/users/me`
+- **Description**: Update current user's profile
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Request Body**:
+```json
+{
+  "name": "John Smith",
+  "phone": "+1987654321"
+}
+```
+- **Response**:
+```json
+{
+  "success": true,
+  "user": {
+    "_id": "user-id",
+    "name": "John Smith",
+    "email": "john@example.com",
+    "role": "customer",
+    "phone": "+1987654321",
+    "emailVerified": true
+  }
+}
+```
+
+### Upload Profile Picture
+- **Endpoint**: `POST /api/users/me/avatar`
+- **Description**: Upload and set user's profile picture
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Request Body**: `multipart/form-data` with file
+- **Response**:
+```json
+{
+  "success": true,
+  "user": {
+    "_id": "user-id",
+    "profilePictureUrl": "https://s3.amazonaws.com/shopsphere-uploads/avatars/user-id.jpg"
+  }
+}
+```
+
+### Get User Addresses
+- **Endpoint**: `GET /api/users/me/addresses`
+- **Description**: Get all saved addresses for current user
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Response**:
+```json
+{
+  "success": true,
   "addresses": [
     {
-      "_id": "address_id",
+      "_id": "address-id",
       "label": "Home",
       "street": "123 Main St",
-      "city": "Mumbai",
-      "state": "Maharashtra",
-      "zip": "400001",
-      "country": "India",
+      "city": "San Francisco",
+      "state": "CA",
+      "zip": "94107",
+      "country": "USA",
       "is_default": true
     }
   ]
 }
 ```
-- **Status Codes**:
-  - `200 OK`: User data returned
-  - `401 Unauthorized`: Invalid or missing token
-
-### Update User Profile
-- **Endpoint**: `PUT /api/users/me`
-- **Description**: Update current user profile
-- **Headers**: `Authorization: Bearer <token>`
-- **Request Body**:
-```json
-{
-  "name": "John Smith",
-  "phone": "9876543210"
-}
-```
-- **Response**:
-```json
-{
-  "_id": "user_id",
-  "name": "John Smith",
-  "email": "john@example.com",
-  "role": "customer",
-  "profilePictureUrl": "https://example.com/avatar.jpg",
-  "phone": "9876543210",
-  "emailVerified": true
-}
-```
-- **Status Codes**:
-  - `200 OK`: Profile successfully updated
-  - `401 Unauthorized`: Invalid or missing token
-  - `400 Bad Request`: Invalid input data
-
-### Upload Profile Picture
-- **Endpoint**: `POST /api/users/me/avatar`
-- **Description**: Upload and update user profile picture
-- **Headers**: `Authorization: Bearer <token>`
-- **Form Data**:
-  - `avatar`: Image file (JPEG/PNG)
-- **Response**:
-```json
-{
-  "success": true,
-  "profilePictureUrl": "https://shopsphere-media.s3.amazonaws.com/avatars/user_id.jpg"
-}
-```
-- **Status Codes**:
-  - `200 OK`: Image uploaded successfully
-  - `401 Unauthorized`: Invalid or missing token
-  - `400 Bad Request`: Invalid file type or size
-
-### Get User Addresses
-- **Endpoint**: `GET /api/users/me/addresses`
-- **Description**: Get all saved addresses for current user
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**:
-```json
-[
-  {
-    "_id": "address_id_1",
-    "label": "Home",
-    "street": "123 Main St",
-    "city": "Mumbai",
-    "state": "Maharashtra",
-    "zip": "400001",
-    "country": "India",
-    "is_default": true
-  },
-  {
-    "_id": "address_id_2",
-    "label": "Office",
-    "street": "456 Business Ave",
-    "city": "Mumbai",
-    "state": "Maharashtra",
-    "zip": "400002",
-    "country": "India",
-    "is_default": false
-  }
-]
-```
-- **Status Codes**:
-  - `200 OK`: Addresses returned
-  - `401 Unauthorized`: Invalid or missing token
 
 ### Add Address
 - **Endpoint**: `POST /api/users/me/addresses`
 - **Description**: Add a new address for current user
-- **Headers**: `Authorization: Bearer <token>`
+- **Headers**: `Authorization: Bearer <access_token>`
 - **Request Body**:
 ```json
 {
-  "label": "Parents' Home",
-  "street": "789 Family St",
-  "city": "Mumbai",
-  "state": "Maharashtra",
-  "zip": "400003",
-  "country": "India",
+  "label": "Work",
+  "street": "456 Market St",
+  "city": "San Francisco",
+  "state": "CA",
+  "zip": "94103",
+  "country": "USA",
   "is_default": false
 }
 ```
 - **Response**:
 ```json
 {
-  "_id": "address_id_3",
-  "label": "Parents' Home",
-  "street": "789 Family St",
-  "city": "Mumbai",
-  "state": "Maharashtra",
-  "zip": "400003",
-  "country": "India",
-  "is_default": false
+  "success": true,
+  "address": {
+    "_id": "new-address-id",
+    "label": "Work",
+    "street": "456 Market St",
+    "city": "San Francisco",
+    "state": "CA",
+    "zip": "94103",
+    "country": "USA",
+    "is_default": false
+  }
 }
 ```
-- **Status Codes**:
-  - `201 Created`: Address successfully added
-  - `401 Unauthorized`: Invalid or missing token
-  - `400 Bad Request`: Invalid input data
 
 ### Update Address
 - **Endpoint**: `PUT /api/users/me/addresses/:id`
 - **Description**: Update an existing address
-- **Headers**: `Authorization: Bearer <token>`
+- **Headers**: `Authorization: Bearer <access_token>`
 - **Request Body**:
 ```json
 {
-  "label": "Parents' Home",
-  "street": "789 Family St",
-  "city": "Mumbai",
-  "state": "Maharashtra",
-  "zip": "400003",
-  "country": "India",
+  "label": "Work",
+  "street": "456 Market St",
+  "city": "San Francisco",
+  "state": "CA",
+  "zip": "94103",
+  "country": "USA",
   "is_default": true
 }
 ```
 - **Response**:
 ```json
 {
-  "_id": "address_id_3",
-  "label": "Parents' Home",
-  "street": "789 Family St",
-  "city": "Mumbai",
-  "state": "Maharashtra",
-  "zip": "400003",
-  "country": "India",
-  "is_default": true
+  "success": true,
+  "address": {
+    "_id": "address-id",
+    "label": "Work",
+    "street": "456 Market St",
+    "city": "San Francisco",
+    "state": "CA",
+    "zip": "94103",
+    "country": "USA",
+    "is_default": true
+  }
 }
 ```
-- **Status Codes**:
-  - `200 OK`: Address successfully updated
-  - `401 Unauthorized`: Invalid or missing token
-  - `404 Not Found`: Address not found
-  - `400 Bad Request`: Invalid input data
 
 ### Delete Address
 - **Endpoint**: `DELETE /api/users/me/addresses/:id`
-- **Description**: Delete an address
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**: `204 No Content`
-- **Status Codes**:
-  - `204 No Content`: Address successfully deleted
-  - `401 Unauthorized`: Invalid or missing token
-  - `404 Not Found`: Address not found
+- **Description**: Delete a saved address
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Response**:
+```json
+{
+  "success": true,
+  "message": "Address deleted successfully"
+}
+```
 
-## 🛍️ Products
+## Products
 
 ### List Products
 - **Endpoint**: `GET /api/products`
@@ -368,60 +312,50 @@ This document details all API endpoints for the ShopSphere e-commerce platform. 
 - **Query Parameters**:
   - `category`: Filter by category
   - `brand`: Filter by brand
-  - `minPrice`: Minimum price
-  - `maxPrice`: Maximum price
-  - `rating`: Minimum average rating
-  - `page`: Page number (default: 1)
-  - `limit`: Items per page (default: 20)
-  - `sort`: Sort by (price-asc, price-desc, newest, best-seller, rating)
+  - `min_price`: Minimum price
+  - `max_price`: Maximum price
+  - `rating`: Minimum rating
+  - `sort`: Sort by (price_asc, price_desc, newest, rating)
+  - `page`: Page number
+  - `limit`: Items per page
 - **Response**:
 ```json
 {
+  "success": true,
   "products": [
     {
-      "_id": "product_id_1",
-      "title": "Wireless Earbuds Pro",
-      "description": "Premium wireless earbuds with noise cancellation",
+      "_id": "product-id",
+      "title": "Wireless Headphones",
+      "description": "Premium noise-canceling headphones",
       "category": "Electronics",
-      "brand": "SoundMaster",
+      "brand": "SoundMax",
       "price": 199.99,
-      "original_price": 249.99,
-      "discount_percent": 20,
-      "images": [
-        "https://shopsphere-media.s3.amazonaws.com/products/product_id_1_1.jpg",
-        "https://shopsphere-media.s3.amazonaws.com/products/product_id_1_2.jpg"
-      ],
+      "original_price": 299.99,
+      "discount_percent": 33,
+      "images": ["https://example.com/image1.jpg"],
       "variants": [
         {
           "size": null,
           "color": "Black",
-          "sku": "SM-WE-001-BLACK",
+          "sku": "HP-BLK-001",
           "stock": 50
-        },
-        {
-          "size": null,
-          "color": "White",
-          "sku": "SM-WE-001-WHITE",
-          "stock": 30
         }
       ],
-      "stock_total": 80,
+      "stock_total": 50,
       "status": "active",
       "avg_rating": 4.5,
       "review_count": 124,
-      "view_count": 2345,
-      "tags": ["wireless", "earbuds", "noise-cancellation"],
-      "created_at": "2023-01-15T10:30:00.000Z",
-      "updated_at": "2023-01-15T10:30:00.000Z"
+      "view_count": 500
     }
   ],
-  "total": 150,
-  "page": 1,
-  "pages": 8
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 100,
+    "pages": 10
+  }
 }
 ```
-- **Status Codes**:
-  - `200 OK`: Products returned successfully
 
 ### Get Product Detail
 - **Endpoint**: `GET /api/products/:id`
@@ -429,189 +363,173 @@ This document details all API endpoints for the ShopSphere e-commerce platform. 
 - **Response**:
 ```json
 {
-  "_id": "product_id_1",
-  "title": "Wireless Earbuds Pro",
-  "description": "Premium wireless earbuds with noise cancellation",
-  "category": "Electronics",
-  "brand": "SoundMaster",
-  "price": 199.99,
-  "original_price": 249.99,
-  "discount_percent": 20,
-  "images": [
-    "https://shopsphere-media.s3.amazonaws.com/products/product_id_1_1.jpg",
-    "https://shopsphere-media.s3.amazonaws.com/products/product_id_1_2.jpg"
-  ],
-  "variants": [
-    {
-      "size": null,
-      "color": "Black",
-      "sku": "SM-WE-001-BLACK",
-      "stock": 50
-    },
-    {
-      "size": null,
-      "color": "White",
-      "sku": "SM-WE-001-WHITE",
-      "stock": 30
-    }
-  ],
-  "stock_total": 80,
-  "status": "active",
-  "avg_rating": 4.5,
-  "review_count": 124,
-  "view_count": 2345,
-  "tags": ["wireless", "earbuds", "noise-cancellation"],
-  "created_at": "2023-01-15T10:30:00.000Z",
-  "updated_at": "2023-01-15T10:30:00.000Z",
-  "seller": {
-    "_id": "seller_id",
-    "name": "SoundMaster Official",
-    "rating": 4.8,
-    "review_count": 567
+  "success": true,
+  "product": {
+    "_id": "product-id",
+    "title": "Wireless Headphones",
+    "description": "Premium noise-canceling headphones",
+    "category": "Electronics",
+    "brand": "SoundMax",
+    "price": 199.99,
+    "original_price": 299.99,
+    "discount_percent": 33,
+    "images": ["https://example.com/image1.jpg"],
+    "variants": [
+      {
+        "size": null,
+        "color": "Black",
+        "sku": "HP-BLK-001",
+        "stock": 50
+      }
+    ],
+    "stock_total": 50,
+    "status": "active",
+    "avg_rating": 4.5,
+    "review_count": 124,
+    "view_count": 500,
+    "tags": ["audio", "wireless", "premium"]
   }
 }
 ```
-- **Status Codes**:
-  - `200 OK`: Product returned successfully
-  - `404 Not Found`: Product not found
 
 ### Get Related Products
 - **Endpoint**: `GET /api/products/:id/related`
 - **Description**: Get products related to the specified product
-- **Query Parameters**:
-  - `limit`: Number of related products to return (default: 4)
 - **Response**:
 ```json
-[
-  {
-    "_id": "product_id_2",
-    "title": "Wireless Earbuds Standard",
-    "price": 99.99,
-    "original_price": 149.99,
-    "discount_percent": 33,
-    "images": [
-      "https://shopsphere-media.s3.amazonaws.com/products/product_id_2_1.jpg"
-    ],
-    "avg_rating": 4.2,
-    "review_count": 89
-  }
-]
+{
+  "success": true,
+  "products": [
+    {
+      "_id": "related-product-id",
+      "title": "Premium Earbuds",
+      "price": 149.99,
+      "images": ["https://example.com/earbuds.jpg"],
+      "avg_rating": 4.3,
+      "review_count": 89
+    }
+  ]
+}
 ```
-- **Status Codes**:
-  - `200 OK`: Related products returned successfully
-  - `404 Not Found`: Product not found
 
 ### Get Product Questions
 - **Endpoint**: `GET /api/products/:id/questions`
 - **Description**: Get all questions and answers for a product
-- **Query Parameters**:
-  - `page`: Page number (default: 1)
-  - `limit`: Items per page (default: 10)
 - **Response**:
 ```json
 {
+  "success": true,
   "questions": [
     {
-      "_id": "question_id_1",
-      "product_id": "product_id_1",
-      "user_id": "user_id_1",
-      "question": "Do these earbuds support wireless charging?",
-      "answer": "Yes, these earbuds come with a wireless charging case.",
-      "answered_by": "seller_id",
-      "created_at": "2023-01-16T14:30:00.000Z",
-  "answered_at": "2023-01-16T15:45:00.000Z",
-      "user": {
-        "name": "Customer1",
-        "role": "customer"
-      },
-      "answered_by_user": {
-        "name": "SoundMaster Official",
-        "role": "seller"
-      }
+      "_id": "question-id",
+      "question": "Does this come with a carrying case?",
+      "answer": "Yes, a soft zippered case is included in the box.",
+      "answered_by": "seller-id",
+      "answered_at": "2023-01-15T10:30:00Z",
+      "created_at": "2023-01-14T15:20:00Z"
     }
-  ],
-  "total": 1,
-  "page": 1,
-  "pages": 1
+  ]
 }
 ```
-- **Status Codes**:
-  - `200 OK`: Questions returned successfully
-  - `404 Not Found`: Product not found
 
 ### Ask Question
 - **Endpoint**: `POST /api/products/:id/questions`
 - **Description**: Ask a question about a product
-- **Headers**: `Authorization: Bearer <token>`
+- **Headers**: `Authorization: Bearer <access_token>`
 - **Request Body**:
 ```json
 {
-  "question": "Do these earbuds support wireless charging?"
+  "question": "Does this come with a carrying case?"
 }
 ```
 - **Response**:
 ```json
 {
-  "_id": "question_id_1",
-  "product_id": "product_id_1",
-  "user_id": "user_id_1",
-  "question": "Do these earbuds support wireless charging?",
-  "created_at": "2023-01-16T14:30:00.000Z",
-  "user": {
-    "name": "Customer1",
-    "role": "customer"
+  "success": true,
+  "question": {
+    "_id": "new-question-id",
+    "question": "Does this come with a carrying case?",
+    "created_at": "2023-01-14T15:20:00Z"
   }
 }
 ```
-- **Status Codes**:
-  - `201 Created`: Question successfully asked
-  - `401 Unauthorized`: Invalid or missing token
-  - `404 Not Found`: Product not found
 
 ### Increment View Count
 - **Endpoint**: `PUT /api/products/:id/view`
 - **Description**: Increment the view count for a product
-- **Response**: `204 No Content`
-- **Status Codes**:
-  - `204 No Content`: View count incremented successfully
-  - `404 Not Found`: Product not found
+- **Response**:
+```json
+{
+  "success": true,
+  "view_count": 501
+}
+```
 
-## 🛒 Cart
+## Cart
 
 ### Get Cart
 - **Endpoint**: `GET /api/cart`
 - **Description**: Get current user's cart
-- **Headers**: `Authorization: Bearer <token>`
+- **Headers**: `Authorization: Bearer <access_token>`
 - **Response**:
 ```json
 {
-  "_id": "cart_id",
-  "user_id": "user_id",
-  "items": [
-    {
-      "product_id": "product_id_1",
-      "variant_id": "variant_id_1",
-      "quantity": 2,
-      "price_snapshot": 199.99
-    }
-  ],
-  "created_at": "2023-01-17T10:00:00.000Z",
-  "updated_at": "2023-01-17T10:00:00.000Z"
+  "success": true,
+  "cart": {
+    "items": [
+      {
+        "product_id": "product-id",
+        "variant_id": "HP-BLK-001",
+        "quantity": 1,
+        "price_snapshot": 199.99,
+        "product": {
+          "title": "Wireless Headphones",
+          "images": ["https://example.com/image1.jpg"]
+        }
+      }
+    ],
+    "subtotal": 199.99,
+    "total_items": 1
+  }
 }
 ```
-- **Status Codes**:
-  - `200 OK`: Cart returned successfully
-  - `401 Unauthorized`: Invalid or missing token
 
-### Add Item to Cart
+### Add to Cart
 - **Endpoint**: `POST /api/cart/items`
 - **Description**: Add an item to the cart
-- **Headers**: `Authorization: Bearer <token>`
+- **Headers**: `Authorization: Bearer <access_token>`
 - **Request Body**:
 ```json
 {
-  "product_id": "product_id_1",
-  "variant_id": "variant_id_1",
+  "product_id": "product-id",
+  "variant_id": "HP-BLK-001",
+  "quantity": 1
+}
+```
+- **Response**:
+```json
+{
+  "success": true,
+  "cart": {
+    "items": [
+      {
+        "product_id": "product-id",
+        "variant_id": "HP-BLK-001",
+        "quantity": 1,
+        "price_snapshot": 199.99
+      }
+    ]
+  }
+}
+```
+
+### Update Cart Item
+- **Endpoint**: `PUT /api/cart/items/:id`
+- **Description**: Update the quantity of a cart item
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Request Body**:
+```json
+{
   "quantity": 2
 }
 ```
@@ -619,51 +537,37 @@ This document details all API endpoints for the ShopSphere e-commerce platform. 
 ```json
 {
   "success": true,
-  "message": "Item added to cart"
+  "cart": {
+    "items": [
+      {
+        "product_id": "product-id",
+        "variant_id": "HP-BLK-001",
+        "quantity": 2,
+        "price_snapshot": 199.99
+      }
+    ]
+  }
 }
 ```
-- **Status Codes**:
-  - `200 OK`: Item successfully added
-  - `400 Bad Request`: Invalid product or variant ID, insufficient stock
-  - `401 Unauthorized`: Invalid or missing token
 
-### Update Cart Item
-- **Endpoint**: `PUT /api/cart/items/:id`
-- **Description**: Update quantity of a cart item
-- **Headers**: `Authorization: Bearer <token>`
-- **Request Body**:
-```json
-{
-  "quantity": 3
-}
-```
+### Remove from Cart
+- **Endpoint**: `DELETE /api/cart/items/:id`
+- **Description**: Remove an item from the cart
+- **Headers**: `Authorization: Bearer <access_token>`
 - **Response**:
 ```json
 {
   "success": true,
-  "message": "Cart item updated"
+  "cart": {
+    "items": []
+  }
 }
 ```
-- **Status Codes**:
-  - `200 OK`: Cart item successfully updated
-  - `400 Bad Request`: Invalid quantity, insufficient stock
-  - `401 Unauthorized`: Invalid or missing token
-  - `404 Not Found`: Cart item not found
-
-### Remove Cart Item
-- **Endpoint**: `DELETE /api/cart/items/:id`
-- **Description**: Remove an item from the cart
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**: `204 No Content`
-- **Status Codes**:
-  - `204 No Content`: Item successfully removed
-  - `401 Unauthorized`: Invalid or missing token
-  - `404 Not Found`: Cart item not found
 
 ### Apply Coupon
 - **Endpoint**: `POST /api/cart/apply-coupon`
 - **Description**: Apply a coupon code to the cart
-- **Headers**: `Authorization: Bearer <token>`
+- **Headers**: `Authorization: Bearer <access_token>`
 - **Request Body**:
 ```json
 {
@@ -674,38 +578,35 @@ This document details all API endpoints for the ShopSphere e-commerce platform. 
 ```json
 {
   "success": true,
-  "discount_amount": 19.99,
-  "total_amount": 379.99
+  "cart": {
+    "items": [...],
+    "subtotal": 199.99,
+    "discount_amount": 19.99,
+    "total": 180.00
+  }
 }
 ```
-- **Status Codes**:
-  - `200 OK`: Coupon successfully applied
-  - `400 Bad Request`: Invalid or expired coupon, minimum order value not met
-  - `401 Unauthorized`: Invalid or missing token
 
-## 🎁 Wishlist
+## Wishlist
 
 ### Get Wishlist
 - **Endpoint**: `GET /api/wishlist`
 - **Description**: Get current user's wishlist
-- **Headers**: `Authorization: Bearer <token>`
+- **Headers**: `Authorization: Bearer <access_token>`
 - **Response**:
 ```json
 {
-  "product_ids": [
-    "product_id_1",
-    "product_id_2"
-  ]
+  "success": true,
+  "wishlist": {
+    "product_ids": ["product-id-1", "product-id-2"]
+  }
 }
 ```
-- **Status Codes**:
-  - `200 OK`: Wishlist returned successfully
-  - `401 Unauthorized`: Invalid or missing token
 
 ### Add to Wishlist
 - **Endpoint**: `POST /api/wishlist/:productId`
 - **Description**: Add a product to wishlist
-- **Headers**: `Authorization: Bearer <token>`
+- **Headers**: `Authorization: Bearer <access_token>`
 - **Response**:
 ```json
 {
@@ -713,62 +614,570 @@ This document details all API endpoints for the ShopSphere e-commerce platform. 
   "message": "Product added to wishlist"
 }
 ```
-- **Status Codes**:
-  - `200 OK`: Product successfully added
-  - `401 Unauthorized`: Invalid or missing token
-  - `404 Not Found`: Product not found
 
 ### Remove from Wishlist
 - **Endpoint**: `DELETE /api/wishlist/:productId`
 - **Description**: Remove a product from wishlist
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**: `204 No Content`
-- **Status Codes**:
-  - `204 No Content`: Product successfully removed
-  - `401 Unauthorized`: Invalid or missing token
-  - `404 Not Found`: Product not found
-
-## 📦 Orders
-
-### List Orders
-- **Endpoint**: `GET /api/orders`
-- **Description**: Get current user's order history
-- **Headers**: `Authorization: Bearer <token>`
-- **Query Parameters**:
-  - `page`: Page number (default: 1)
-  - `limit`: Items per page (default: 10)
-  - `status`: Filter by order status
+- **Headers**: `Authorization: Bearer <access_token>`
 - **Response**:
 ```json
 {
+  "success": true,
+  "message": "Product removed from wishlist"
+}
+```
+
+## Orders
+
+### Get Order History
+- **Endpoint**: `GET /api/orders`
+- **Description**: Get current user's order history
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Query Parameters**:
+  - `status`: Filter by order status
+  - `page`: Page number
+  - `limit`: Items per page
+- **Response**:
+```json
+{
+  "success": true,
   "orders": [
     {
-      "_id": "order_id_1",
-      "order_number": "ORD-1234567890-123",
+      "_id": "order-id",
+      "order_number": "ORD-1001",
       "items": [
         {
-          "product_id": "product_id_1",
-          "variant": "variant_id_1",
-          "quantity": 2,
+          "product_id": "product-id",
+          "title": "Wireless Headphones",
           "price": 199.99,
-          "seller_id": "seller_id"
+          "quantity": 1,
+          "seller_id": "seller-id"
         }
       ],
-      "total_amount": 399.98,
-      "discount_amount": 0,
-      "delivery_fee": 0,
-      "tax_amount": 0,
+      "total_amount": 229.98,
       "payment_method": "card",
       "payment_status": "completed",
       "order_status": "delivered",
       "address": {
         "label": "Home",
         "street": "123 Main St",
-        "city": "Mumbai",
-        "state": "Maharashtra",
-        "zip": "400001",
-        "country": "India"
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94107",
+        "country": "USA"
       },
-      "tracking_number": "TN123456789IN",
-      "delivery_speed": "standard",
-      "coupon
+      "tracking_number": "TRK123456789",
+      "delivered_at": "2023-01-15T10:30:00Z",
+      "created_at": "2023-01-10T09:15:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 5,
+    "pages": 1
+  }
+}
+```
+
+### Create Order
+- **Endpoint**: `POST /api/orders`
+- **Description**: Create a new order from cart
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Request Body**:
+```json
+{
+  "address_id": "address-id",
+  "delivery_speed": "standard",
+  "payment_method": "card",
+  "coupon_code": "WELCOME10"
+}
+```
+- **Response**:
+```json
+{
+  "success": true,
+  "order": {
+    "_id": "new-order-id",
+    "order_number": "ORD-1002",
+    "items": [...],
+    "total_amount": 229.98,
+    "order_status": "placed",
+    "created_at": "2023-01-16T14:20:00Z"
+  }
+}
+```
+
+### Get Order Detail
+- **Endpoint**: `GET /api/orders/:id`
+- **Description**: Get detailed information about a specific order
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Response**:
+```json
+{
+  "success": true,
+  "order": {
+    "_id": "order-id",
+    "order_number": "ORD-1001",
+    "items": [
+      {
+        "product_id": "product-id",
+        "title": "Wireless Headphones",
+        "price": 199.99,
+        "quantity": 1,
+        "seller_id": "seller-id",
+        "product": {
+          "images": ["https://example.com/image1.jpg"]
+        }
+      }
+    ],
+    "total_amount": 229.98,
+    "discount_amount": 19.99,
+    "delivery_fee": 5.99,
+    "tax_amount": 18.40,
+    "payment_method": "card",
+    "payment_status": "completed",
+    "order_status": "delivered",
+    "address": {
+      "label": "Home",
+      "street": "123 Main St",
+      "city": "San Francisco",
+      "state": "CA",
+      "zip": "94107",
+      "country": "USA"
+    },
+    "tracking_number": "TRK123456789",
+    "delivery_speed": "standard",
+    "coupon_code": "WELCOME10",
+    "delivered_at": "2023-01-15T10:30:00Z",
+    "created_at": "2023-01-10T09:15:00Z",
+    "updated_at": "2023-01-15T10:30:00Z"
+  }
+}
+```
+
+### Cancel Order
+- **Endpoint**: `PUT /api/orders/:id/cancel`
+- **Description**: Cancel an order (before dispatch)
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Response**:
+```json
+{
+  "success": true,
+  "order": {
+    "_id": "order-id",
+    "order_status": "cancelled",
+    "cancelled_at": "2023-01-11T11:00:00Z"
+  }
+}
+```
+
+### Request Return
+- **Endpoint**: `POST /api/orders/:id/return`
+- **Description**: Request a return for an order
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Request Body**:
+```json
+{
+  "reason": "Item damaged",
+  "comments": "Box was crushed during shipping"
+}
+```
+- **Response**:
+```json
+{
+  "success": true,
+  "message": "Return request submitted successfully"
+}
+```
+
+## Reviews
+
+### Get Reviews
+- **Endpoint**: `GET /api/reviews`
+- **Description**: Get reviews for a product
+- **Query Parameters**:
+  - `product_id`: Product ID
+  - `page`: Page number
+  - `limit`: Items per page
+  - `sort`: Sort by (newest, oldest, helpful)
+- **Response**:
+```json
+{
+  "success": true,
+  "reviews": [
+    {
+      "_id": "review-id",
+      "product_id": "product-id",
+      "user_id": "user-id",
+      "rating": 5,
+      "title": "Outstanding Sound Quality",
+      "comment": "These headphones are amazing!",
+      "images": [],
+      "helpful_votes": 12,
+      "verified_purchase": true,
+      "created_at": "2023-01-12T14:30:00Z",
+      "user": {
+        "name": "John Doe"
+      }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 124,
+    "pages": 13
+  }
+}
+```
+
+### Create Review
+- **Endpoint**: `POST /api/reviews`
+- **Description**: Create a review for a product
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Request Body**:
+```json
+{
+  "product_id": "product-id",
+  "order_id": "order-id",
+  "rating": 5,
+  "title": "Outstanding Sound Quality",
+  "comment": "These headphones are amazing!"
+}
+```
+- **Response**:
+```json
+{
+  "success": true,
+  "review": {
+    "_id": "new-review-id",
+    "product_id": "product-id",
+    "user_id": "user-id",
+    "rating": 5,
+    "title": "Outstanding Sound Quality",
+    "comment": "These headphones are amazing!",
+    "helpful_votes": 0,
+    "verified_purchase": true,
+    "created_at": "2023-01-12T14:30:00Z"
+  }
+}
+```
+
+### Update Review
+- **Endpoint**: `PUT /api/reviews/:id`
+- **Description**: Update an existing review
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Request Body**:
+```json
+{
+  "rating": 5,
+  "title": "Outstanding Sound Quality",
+  "comment": "These headphones are even better than I thought!"
+}
+```
+- **Response**:
+```json
+{
+  "success": true,
+  "review": {
+    "_id": "review-id",
+    "rating": 5,
+    "title": "Outstanding Sound Quality",
+    "comment": "These headphones are even better than I thought!",
+    "updated_at": "2023-01-13T09:15:00Z"
+  }
+}
+```
+
+### Delete Review
+- **Endpoint**: `DELETE /api/reviews/:id`
+- **Description**: Delete a review
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Response**:
+```json
+{
+  "success": true,
+  "message": "Review deleted successfully"
+}
+```
+
+### Mark Review Helpful
+- **Endpoint**: `POST /api/reviews/:id/helpful`
+- **Description**: Mark a review as helpful
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Response**:
+```json
+{
+  "success": true,
+  "helpful_votes": 13
+}
+```
+
+## Search
+
+### Search Products
+- **Endpoint**: `GET /api/search`
+- **Description**: Search products with Algolia/Elasticsearch
+- **Query Parameters**:
+  - `q`: Search query
+  - `category`: Filter by category
+  - `brand`: Filter by brand
+  - `min_price`: Minimum price
+  - `max_price`: Maximum price
+  - `rating`: Minimum rating
+  - `sort`: Sort by (price_asc, price_desc, newest, rating)
+  - `page`: Page number
+  - `limit`: Items per page
+- **Response**:
+```json
+{
+  "success": true,
+  "products": [
+    {
+      "_id": "product-id",
+      "title": "Wireless Headphones",
+      "description": "Premium noise-canceling headphones",
+      "category": "Electronics",
+      "brand": "SoundMax",
+      "price": 199.99,
+      "original_price": 299.99,
+      "discount_percent": 33,
+      "images": ["https://example.com/image1.jpg"],
+      "avg_rating": 4.5,
+      "review_count": 124
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 25,
+    "pages": 3
+  },
+  "query": "wireless headphones",
+  "filters": {
+    "category": "Electronics"
+  }
+}
+```
+
+### Search Suggestions
+- **Endpoint**: `GET /api/search/suggestions`
+- **Description**: Get autocomplete suggestions for search
+- **Query Parameters**:
+  - `q`: Search query
+- **Response**:
+```json
+{
+  "success": true,
+  "suggestions": [
+    "wireless headphones",
+    "wireless earbuds",
+    "wireless speaker",
+    "wireless charger"
+  ]
+}
+```
+
+## Seller Dashboard
+
+### Create Product
+- **Endpoint**: `POST /api/seller/products`
+- **Description**: Create a new product (seller only)
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Request Body**:
+```json
+{
+  "title": "Wireless Headphones",
+  "description": "Premium noise-canceling headphones",
+  "category": "Electronics",
+  "brand": "SoundMax",
+  "price": 199.99,
+  "original_price": 299.99,
+  "images": ["https://example.com/image1.jpg"],
+  "variants": [
+    {
+      "size": null,
+      "color": "Black",
+      "sku": "HP-BLK-001",
+      "stock": 50
+    }
+  ],
+  "stock_total": 50,
+  "status": "active"
+}
+```
+- **Response**:
+```json
+{
+  "success": true,
+  "product": {
+    "_id": "new-product-id",
+    "title": "Wireless Headphones",
+    "description": "Premium noise-canceling headphones",
+    "category": "Electronics",
+    "brand": "SoundMax",
+    "price": 199.99,
+    "original_price": 299.99,
+    "discount_percent": 33,
+    "images": ["https://example.com/image1.jpg"],
+    "variants": [
+      {
+        "size": null,
+        "color": "Black",
+        "sku": "HP-BLK-001",
+        "stock": 50
+      }
+    ],
+    "stock_total": 50,
+    "status": "active",
+    "avg_rating": 0,
+    "review_count": 0,
+    "view_count": 0
+  }
+}
+```
+
+### Update Product
+- **Endpoint**: `PUT /api/seller/products/:id`
+- **Description**: Update an existing product (seller only)
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Request Body**:
+```json
+{
+  "price": 179.99,
+  "variants": [
+    {
+      "size": null,
+      "color": "Black",
+      "sku": "HP-BLK-001",
+      "stock": 45
+    }
+  ],
+  "stock_total": 45
+}
+```
+- **Response**:
+```json
+{
+  "success": true,
+  "product": {
+    "_id": "product-id",
+    "title": "Wireless Headphones",
+    "price": 179.99,
+    "variants": [
+      {
+        "size": null,
+        "color": "Black",
+        "sku": "HP-BLK-001",
+        "stock": 45
+      }
+    ],
+    "stock_total": 45,
+    "updated_at": "2023-01-14T16:20:00Z"
+  }
+}
+```
+
+### Archive Product
+- **Endpoint**: `DELETE /api/seller/products/:id`
+- **Description**: Archive a product (seller only)
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Response**:
+```json
+{
+  "success": true,
+  "message": "Product archived successfully"
+}
+```
+
+### Get Seller Orders
+- **Endpoint**: `GET /api/seller/orders`
+- **Description**: Get orders for seller's products
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Query Parameters**:
+  - `status`: Filter by order status
+  - `page`: Page number
+  - `limit`: Items per page
+- **Response**:
+```json
+{
+  "success": true,
+  "orders": [
+    {
+      "_id": "order-id",
+      "order_number": "ORD-1001",
+      "items": [
+        {
+          "product_id": "product-id",
+          "title": "Wireless Headphones",
+          "price": 199.99,
+          "quantity": 1,
+          "seller_id": "seller-id"
+        }
+      ],
+      "total_amount": 229.98,
+      "payment_status": "completed",
+      "order_status": "delivered",
+      "address": {
+        "label": "Home",
+        "street": "123 Main St",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94107",
+        "country": "USA"
+      },
+      "tracking_number": "TRK123456789",
+      "delivered_at": "2023-01-15T10:30:00Z",
+      "created_at": "2023-01-10T09:15:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 25,
+    "pages": 3
+  }
+}
+```
+
+### Update Order Status
+- **Endpoint**: `PUT /api/seller/orders/:id/status`
+- **Description**: Update order status (seller only)
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Request Body**:
+```json
+{
+  "status": "shipped",
+  "tracking_number": "TRK987654321"
+}
+```
+- **Response**:
+```json
+{
+  "success": true,
+  "order": {
+    "_id": "order-id",
+    "order_status": "shipped",
+    "tracking_number": "TRK987654321",
+    "updated_at": "2023-01-11T10:00:00Z"
+  }
+}
+```
+
+### Get Seller Analytics
+- **Endpoint**: `GET /api/seller/analytics`
+- **Description**: Get sales analytics for seller
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Query Parameters**:
+  - `period`: Time period (day, week, month, year)
+  - `start_date`: Start date
+  - `end_date`: End date
+- **Response**:
+```json
+{
+  "success": true,
+  "analytics": {
+    "total_sales": 25000,
+    "total_orders": 150,
+    "average_order_value": 166.67,
+    "top_products": [

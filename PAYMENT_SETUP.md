@@ -1,8 +1,11 @@
-# ShopSphere Payment Integration Setup
+# ShopSphere Payment Setup Guide
 
-## Stripe Configuration
+## Stripe Integration
+
+ShopSphere uses Stripe for secure payment processing. Follow these steps to set up payment functionality.
 
 ### 1. Environment Variables
+
 Add the following to your `.env` file:
 
 ```env
@@ -11,65 +14,51 @@ STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 
-# Frontend URL for redirects
-FRONTEND_URL=http://localhost:3000
+# Frontend URL (for redirect after payment)
+FRONTEND_URL=http://localhost:5173
 ```
+
+> **Never commit API keys to version control.** Use `.env` and add to `.gitignore`.
 
 ### 2. Webhook Setup
-1. Install Stripe CLI: `npm install -g stripe-cli`
-2. Login: `stripe login`
-3. Start webhook forwarding:
-```bash
-stripe listen --forward-to localhost:5000/api/stripe/webhook
-```
-4. Copy the webhook signing secret and add it to `.env` as `STRIPE_WEBHOOK_SECRET`
 
-### 3. Payment Flow
-1. **Checkout Session Creation**:
-   - POST `/api/stripe/create-checkout-session`
-   - Requires authentication
-   - Expects: `{ deliverySpeed, addressId }`
-   - Returns: `{ sessionId }`
+1. Install Stripe CLI: https://stripe.com/docs/stripe-cli
+2. Run `stripe listen --forward-to localhost:5000/api/stripe/webhook`
+3. Copy the webhook signing secret and add to `.env` as `STRIPE_WEBHOOK_SECRET`
+4. In Stripe Dashboard, add webhook endpoint:
+   - URL: `https://your-domain.com/api/stripe/webhook`
+   - Events: `checkout.session.completed`, `invoice.paid`
 
-2. **Webhook Events**:
-   - `checkout.session.completed`: Payment succeeded
-   - `payment_intent.payment_failed`: Payment failed
-   - Updates order status accordingly
+### 3. Testing Payments
 
-### 4. Frontend Integration
-1. Load Stripe.js in `index.html`:
-```html
-<script src="https://js.stripe.com/v3/"></script>
-```
-
-2. Use in components:
-```javascript
-const stripe = Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-```
-
-### 5. Testing
 Use Stripe test cards:
-- Successful payment: `4242 4242 4242 4242`
+
+- Success: `4242 4242 4242 4242`
 - Requires SCA: `4000 0025 0000 3155`
-- Declined: `4000 0000 0000 0002`
+- Decline: `4000 0000 0000 9995`
 
-### 6. Production Deployment
-1. Replace test keys with live keys
-2. Update webhook URL in Stripe Dashboard
-3. Enable monitoring for:
-   - Failed webhook deliveries
-   - High payment failure rates
-   - Unusual transaction patterns
+### 4. Production Checklist
 
-### 7. Security
-- Webhook signature verification is enforced
-- Idempotency keys prevent duplicate processing
-- All API keys stored in environment variables
-- HTTPS required in production
+- ✅ Replace test keys with live keys
+- ✅ Set `FRONTEND_URL` to production domain
+- ✅ Enable webhook in Stripe Dashboard
+- ✅ Monitor failed webhooks and payments
+- ✅ Implement alerting for payment failures
 
-### 8. Error Handling
-Common errors and solutions:
-- `401 Unauthorized`: User not authenticated
-- `400 Bad Request`: Invalid address or empty cart
-- `500 Server Error`: Check server logs for details
-- Webhook verification failed: Verify `STRIPE_WEBHOOK_SECRET`
+### 5. Security Notes
+
+- Webhook signatures are verified using `STRIPE_WEBHOOK_SECRET`
+- Idempotency keys prevent duplicate order creation
+- All sensitive data handled server-side
+- No secrets exposed in frontend code
+
+### 6. Troubleshooting
+
+| Issue | Solution |
+|------|----------|
+| "Stripe has not loaded" | Ensure `VITE_STRIPE_PUBLISHABLE_KEY` is set |
+| Webhook 400 errors | Verify signature and `STRIPE_WEBHOOK_SECRET` |
+| Session not found | Check `FRONTEND_URL` and redirect URIs |
+| Payment fails silently | Check browser console and network tab |
+
+For more details, see [Stripe Docs](https://stripe.com/docs).

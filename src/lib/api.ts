@@ -1,28 +1,21 @@
-import { toast } from '@/components/ui/use-toast';
+import axios from 'axios';
 
-const API_BASE = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-export const apiClient = async (endpoint: string, options: RequestInit = {}) => {
-  const url = `${API_BASE}${endpoint}`;
-  const config = {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  };
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-  const response = await fetch(url, config);
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    toast({
-      variant: 'destructive',
-      title: 'Error',
-      description: error.message || 'Something went wrong',
-    });
-    throw new Error(error.message || 'Request failed');
+// Add auth token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
 
-  return response.json();
-};
+export default api;

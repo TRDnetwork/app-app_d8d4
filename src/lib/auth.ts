@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiClient } from './api';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import api from './api';
 
 interface User {
   _id: string;
@@ -23,58 +23,56 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const data = await apiClient('/auth/me');
-        setUser(data.user);
-      } catch (err) {
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadUser();
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      refresh();
+    } else {
+      setIsLoading(false);
+    }
   }, []);
-
-  const login = async (email: string, password: string) => {
-    const data = await apiClient('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-    setUser(data.user);
-  };
-
-  const register = async (email: string, password: string, name: string) => {
-    const data = await apiClient('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ email, password, name }),
-    });
-    setUser(data.user);
-  };
-
-  const logout = () => {
-    localStorage.removeItem('shopSphereToken');
-    setUser(null);
-  };
 
   const refresh = async () => {
     try {
-      const data = await apiClient('/auth/refresh', {
-        method: 'POST',
-      });
-      setUser(data.user);
-    } catch (err) {
+      const res = await api.get('/auth/refresh');
+      const { user, accessToken } = res.data;
+      localStorage.setItem('accessToken', accessToken);
+      setUser(user);
+      setIsAuthenticated(true);
+    } catch (error) {
       logout();
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const login = async (email: string, password: string) => {
+    const res = await api.post('/auth/login', { email, password });
+    const { user, accessToken } = res.data;
+    localStorage.setItem('accessToken', accessToken);
+    setUser(user);
+    setIsAuthenticated(true);
+  };
+
+  const register = async (email: string, password: string, name: string) => {
+    const res = await api.post('/auth/register', { email, password, name });
+    const { user, accessToken } = res.data;
+    localStorage.setItem('accessToken', accessToken);
+    setUser(user);
+    setIsAuthenticated(true);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('accessToken');
+    setUser(null);
+    setIsAuthenticated(false);
+  };
+
   return (
-    <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, isLoading, login, register, logout, refresh }}
-    >
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, register, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );
