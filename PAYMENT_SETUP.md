@@ -1,12 +1,12 @@
-# ShopSphere Payment Setup Guide
+# 🛢️ ShopSphere Payment Setup Guide
 
 ## Stripe Integration
 
-ShopSphere uses Stripe for secure payment processing. Follow these steps to set up payment functionality.
+ShopSphere uses Stripe for secure, reliable payment processing. This guide covers setup, configuration, and best practices.
 
 ### 1. Environment Variables
 
-Add the following to your `.env` file:
+Add these to your `.env` file:
 
 ```env
 # Stripe API Keys
@@ -14,51 +14,72 @@ STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 
-# Frontend URL (for redirect after payment)
-FRONTEND_URL=http://localhost:5173
+# Frontend URL for redirects
+FRONTEND_URL=https://shopsphere.vercel.app
+
+# Backend URL for webhooks
+BACKEND_URL=https://shopsphere-api.onrender.com
 ```
 
-> **Never commit API keys to version control.** Use `.env` and add to `.gitignore`.
+> **Never commit these keys to version control.** Use Vercel/Railway environment variables.
 
-### 2. Webhook Setup
+### 2. Stripe Dashboard Setup
 
-1. Install Stripe CLI: https://stripe.com/docs/stripe-cli
-2. Run `stripe listen --forward-to localhost:5000/api/stripe/webhook`
-3. Copy the webhook signing secret and add to `.env` as `STRIPE_WEBHOOK_SECRET`
-4. In Stripe Dashboard, add webhook endpoint:
-   - URL: `https://your-domain.com/api/stripe/webhook`
-   - Events: `checkout.session.completed`, `invoice.paid`
+1. **Create Account**: [stripe.com](https://stripe.com)
+2. **Get API Keys**:
+   - Developers → API Keys → Copy `Secret Key` and `Publishable Key`
+3. **Configure Webhooks**:
+   - Developers → Webhooks → Add Endpoint
+   - URL: `https://shopsphere-api.onrender.com/api/stripe/webhook`
+   - Events: `checkout.session.completed`, `payment_intent.succeeded`, `payment_intent.payment_failed`
+   - Copy the **Signing Secret** and add to `.env`
 
 ### 3. Testing Payments
 
 Use Stripe test cards:
 
-- Success: `4242 4242 4242 4242`
-- Requires SCA: `4000 0025 0000 3155`
-- Decline: `4000 0000 0000 9995`
+| Card | Purpose |
+|------|--------|
+| `4242 4242 4242 4242` | Successful payment |
+| `4000 0025 0000 3155` | Requires SCA (3D Secure) |
+| `4000 0000 0000 9995` | Payment declined |
 
-### 4. Production Checklist
+### 4. Webhook Security
 
-- ✅ Replace test keys with live keys
-- ✅ Set `FRONTEND_URL` to production domain
-- ✅ Enable webhook in Stripe Dashboard
-- ✅ Monitor failed webhooks and payments
-- ✅ Implement alerting for payment failures
+- **Signature Verification**: All webhook requests are verified using `STRIPE_WEBHOOK_SECRET`
+- **Idempotency**: Processed event IDs are stored with TTL to prevent replay attacks
+- **HTTPS Required**: Webhooks only accept HTTPS endpoints
 
-### 5. Security Notes
+### 5. Production Checklist
 
-- Webhook signatures are verified using `STRIPE_WEBHOOK_SECRET`
-- Idempotency keys prevent duplicate order creation
-- All sensitive data handled server-side
-- No secrets exposed in frontend code
+- [ ] Replace test keys with live keys
+- [ ] Verify webhook endpoint is publicly accessible
+- [ ] Enable fraud detection (Radar)
+- [ ] Set up payout schedule
+- [ ] Monitor failed payments in Stripe Dashboard
+- [ ] Implement refund workflow
 
-### 6. Troubleshooting
+### 6. Error Handling
 
-| Issue | Solution |
+Common issues and solutions:
+
+| Error | Solution |
 |------|----------|
-| "Stripe has not loaded" | Ensure `VITE_STRIPE_PUBLISHABLE_KEY` is set |
-| Webhook 400 errors | Verify signature and `STRIPE_WEBHOOK_SECRET` |
-| Session not found | Check `FRONTEND_URL` and redirect URIs |
-| Payment fails silently | Check browser console and network tab |
+| `Webhook signature verification failed` | Verify `STRIPE_WEBHOOK_SECRET` matches dashboard |
+| `Invalid API Key` | Check `STRIPE_SECRET_KEY` format and permissions |
+| `401 Unauthorized` | Ensure `verifyToken` middleware passes JWT |
+| `Order not found` | Check `stripe_session_id` is saved to Order model |
 
-For more details, see [Stripe Docs](https://stripe.com/docs).
+### 7. Monitoring
+
+- **Stripe Dashboard**: Monitor payments, disputes, and payouts
+- **Application Logs**: Watch for webhook processing errors
+- **Sentry/LogRocket**: Track frontend payment errors
+- **Alerts**: Set up email/SMS alerts for failed payments
+
+### 8. Compliance
+
+- PCI DSS Level 1 compliant (handled by Stripe)
+- GDPR-compliant data handling
+- No sensitive data stored in MongoDB
+- All payment data transmitted over HTTPS
