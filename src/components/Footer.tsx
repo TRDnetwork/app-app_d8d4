@@ -1,74 +1,45 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-const Footer: React.FC = () => {
+const Footer = () => {
   return (
-    <footer className="border-t border-border bg-surface">
-      <div className="container px-4 py-12">
+    <footer className="bg-card border-t border-border mt-12">
+      <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-lg font-bold text-accent mb-4">ShopSphere</h3>
-            <p className="text-text-dim text-sm mb-4">
-              Premium e-commerce platform with a focus on quality, service, and value.
-            </p>
-            <div className="flex space-x-4">
-              <Button variant="ghost" size="icon" className="text-text-dim hover:text-accent">
-                <Facebook className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-text-dim hover:text-accent">
-                <Twitter className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-text-dim hover:text-accent">
-                <Instagram className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-text-dim hover:text-accent">
-                <Youtube className="h-5 w-5" />
-              </Button>
-            </div>
+            <h3 className="text-lg font-bold text-primary mb-4">ShopSphere</h3>
+            <p className="text-muted-foreground">Premium e-commerce platform with trust and quality.</p>
           </div>
-
           <div>
-            <h4 className="font-medium text-text mb-4">Shop</h4>
-            <ul className="space-y-2 text-sm text-text-dim">
-              <li><a href="#" className="hover:text-accent">All Products</a></li>
-              <li><a href="#" className="hover:text-accent">Deals & Promotions</a></li>
-              <li><a href="#" className="hover:text-accent">New Arrivals</a></li>
-              <li><a href="#" className="hover:text-accent">Best Sellers</a></li>
+            <h4 className="font-semibold mb-4">Quick Links</h4>
+            <ul className="space-y-2 text-muted-foreground">
+              <li><Link to="/" className="hover:text-primary">Home</Link></li>
+              <li><Link to="/products" className="hover:text-primary">Products</Link></li>
+              <li><Link to="/cart" className="hover:text-primary">Cart</Link></li>
+              <li><Link to="/orders" className="hover:text-primary">Orders</Link></li>
             </ul>
           </div>
-
           <div>
-            <h4 className="font-medium text-text mb-4">Support</h4>
-            <ul className="space-y-2 text-sm text-text-dim">
-              <li><a href="#" className="hover:text-accent">Help Center</a></li>
-              <li><a href="#" className="hover:text-accent">Contact Us</a></li>
-              <li><a href="#" className="hover:text-accent">Returns & Refunds</a></li>
-              <li><a href="#" className="hover:text-accent">Shipping Info</a></li>
+            <h4 className="font-semibold mb-4">Support</h4>
+            <ul className="space-y-2 text-muted-foreground">
+              <li><Link to="/help" className="hover:text-primary">Help Center</Link></li>
+              <li><Link to="/contact" className="hover:text-primary">Contact Us</Link></li>
+              <li><Link to="/returns" className="hover:text-primary">Returns</Link></li>
+              <li><Link to="/faq" className="hover:text-primary">FAQ</Link></li>
             </ul>
           </div>
-
           <div>
-            <h4 className="font-medium text-text mb-4">Stay Updated</h4>
-            <p className="text-text-dim text-sm mb-2">Subscribe to our newsletter</p>
-            <div className="flex space-x-2">
-              <Input type="email" placeholder="Your email" className="h-9" />
-              <Button size="sm">Subscribe</Button>
-            </div>
+            <h4 className="font-semibold mb-4">Legal</h4>
+            <ul className="space-y-2 text-muted-foreground">
+              <li><Link to="/privacy" className="hover:text-primary">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="hover:text-primary">Terms of Service</Link></li>
+              <li><Link to="/shipping" className="hover:text-primary">Shipping Policy</Link></li>
+              <li><Link to="/cookies" className="hover:text-primary">Cookie Policy</Link></li>
+            </ul>
           </div>
         </div>
-
-        <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
-          <p className="text-text-dim text-sm">
-            &copy; {new Date().getFullYear()} ShopSphere. All rights reserved.
-          </p>
-          <div className="flex space-x-4 mt-4 md:mt-0">
-            <a href="#" className="text-text-dim hover:text-accent text-sm">Privacy Policy</a>
-            <a href="#" className="text-text-dim hover:text-accent text-sm">Terms of Service</a>
-            <a href="#" className="text-text-dim hover:text-accent text-sm">Cookie Policy</a>
-          </div>
+        <div className="border-t border-border mt-8 pt-6 text-center text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} ShopSphere. All rights reserved.</p>
         </div>
       </div>
     </footer>
