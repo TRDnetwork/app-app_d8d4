@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { cn } from "../lib/utils"
+import { cn } from "@/lib/utils"
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {}
@@ -22,52 +22,4 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 )
 Input.displayName = "Input"
 
-// Enhanced Input with analytics tracking
-const TrackedInput = React.forwardRef<HTMLInputElement, InputProps & { 
-  fieldName?: string;
-  formName?: string;
-}>(({ className, type, fieldName, formName, ...props }, ref) => {
-  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    import('../lib/analytics').then(({ analytics }) => {
-      analytics.track('form_field_focus', {
-        field: fieldName || e.target.name,
-        form: formName,
-        fieldType: type,
-      });
-    });
-    
-    if (props.onFocus) {
-      props.onFocus(e);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    import('../lib/analytics').then(({ analytics }) => {
-      analytics.track('form_field_change', {
-        field: fieldName || e.target.name,
-        form: formName,
-        fieldType: type,
-        valueLength: e.target.value.length,
-      });
-    });
-    
-    if (props.onChange) {
-      props.onChange(e);
-    }
-  };
-
-  return (
-    <Input
-      ref={ref}
-      type={type}
-      className={className}
-      {...props}
-      onFocus={handleFocus}
-      onChange={handleChange}
-    />
-  );
-});
-
-TrackedInput.displayName = "TrackedInput";
-
-export { Input, TrackedInput }
+export { Input }

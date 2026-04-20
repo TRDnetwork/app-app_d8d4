@@ -5,15 +5,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Mobile-specific utility functions
-export const isMobile = () => {
-  return window.innerWidth < 768;
-};
+// Format currency
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2,
+  }).format(amount);
+}
 
-export const isIOS = () => {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent);
-};
-
-export const isAndroid = () => {
-  return /Android/.test(navigator.userAgent);
-};
+// Generate a unique ID
+export function generateId(): string {
+  return Math.random().toString(36).substring(
