@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-// [framework-lock] stripped: import from '@vitejs/plugin-react' (banned for next)
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],

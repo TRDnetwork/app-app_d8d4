@@ -1,35 +1,37 @@
 # ShopSphere Deployment Guide
 
 ## Deploy to Vercel
-
-1. Push code to a GitHub repository.
-2. Log in to [Vercel](https://vercel.com) and click "New Project".
-3. Import your GitHub repository.
-4. Set the project name and ensure the root directory is correct.
-5. Click "Deploy".
+1. Push code to a GitHub repository
+2. Log in to Vercel and click "New Project"
+3. Import the GitHub repository
+4. Set build command: `cd client && npm run build`
+5. Set output directory: `client/dist`
+6. Add environment variables (see below)
+7. Click "Deploy"
 
 ## Environment Variables
+Required environment variables (add in Vercel project settings > Environment Variables):
 
-Add the following environment variables in the Vercel project settings under "Environment Variables":
-
-| Key | Value |
-|-----|-------|
-| `VITE_STRIPE_PUBLISHABLE_KEY` | From Stripe Dashboard |
-| `VITE_ALGOLIA_APP_ID` | From Algolia Dashboard |
-| `VITE_ALGOLIA_SEARCH_KEY` | From Algolia Dashboard |
+- `NODE_ENV` - Application environment (development/production)
+- `BASE_URL` - Frontend URL (e.g., https://shopsphere.vercel.app)
+- `API_BASE_URL` - Backend API URL (e.g., https://shopsphere-api.onrender.com/api)
+- `STRIPE_PUBLISHABLE_KEY` - Stripe publishable key
+- `ALGOLIA_SEARCH_KEY` - Algolia search-only API key
+- `GOOGLE_CLIENT_ID` - Google OAuth client ID
+- `FACEBOOK_APP_ID` - Facebook OAuth app ID
 
 ## First-time Setup
-
-1. Deploy the Express backend to Railway or Render using the same GitHub repo and `server/` directory.
-2. Set backend environment variables on Railway/Render:
-   - All keys from `.env.example` except the `VITE_` prefixed ones
-   - Ensure `MONGODB_URI` points to your MongoDB instance
-3. Run database migrations and seed data:
+1. Deploy backend to Railway/Render first
+2. Run database migrations and seed data:
    ```bash
+   # After backend deployment
    node server/src/db/seed.js
    ```
-4. Configure Stripe:
-   - Set webhook endpoint to `https://your-backend.onrender.com/api/stripe/webhook`
-   - Verify and copy the webhook signing secret
-5. Enable CORS in backend to allow your Vercel frontend URL.
-6. Start the backend and ensure health check at `/api/health` returns 200.
+3. Set up Stripe webhook endpoint:
+   - In Stripe Dashboard, create webhook endpoint pointing to your backend URL
+   - Endpoint URL: `https://your-backend-url.com/api/stripe/webhook`
+   - Events to enable: `checkout.session.completed`, `payment_intent.succeeded`
+4. Configure CORS in backend to allow your Vercel deployment URL
+5. Enable OAuth redirect URIs in Google/Facebook developer consoles:
+   - Google: `https://shopsphere.vercel.app/api/auth/oauth/google/callback`
+   - Facebook: `https://shopsphere.vercel.app/api/auth/oauth/facebook/callback`

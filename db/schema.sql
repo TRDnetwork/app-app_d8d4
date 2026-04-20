@@ -1,3 +1,4 @@
--- No database required — ShopSphere uses MongoDB (Mongoose) for data persistence.
--- All collections are managed via Mongoose in the Express backend (server/src/models).
--- Supabase services (PostgreSQL, Auth, Storage, Realtime, Edge Functions) are not used.
+-- No database required — data layer is MongoDB (Mongoose) as specified in user prompt and architect plan.
+-- Supabase PostgreSQL, RLS, Auth, Storage, and Realtime are not used in this project.
+-- File upload handled via AWS S3 with pre-signed URLs; payments via Stripe API; search via Algolia/Elasticsearch.
+-- All data persistence and business logic managed by Express.js backend with MongoDB.

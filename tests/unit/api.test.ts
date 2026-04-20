@@ -1,74 +1,118 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { api } from '../../src/lib/api';
+import { describe, it, expect, vi } from 'vitest';
+import { apiClient } from '../../src/lib/api';
+
+// Mock authStore
+vi.mock('../../src/stores/authStore', () => ({
+  authStore: {
+    getState: vi.fn().mockReturnValue({
+      user: { token: 'mock-token' },
+      logout: vi.fn(),
+    }),
+  },
+}));
+
+// Mock window.location
+const mockLocation = { href: '' };
+Object.defineProperty(window, 'location', {
+  value: mockLocation,
+  writable: true,
+});
 
 // Mock fetch
-global.fetch = vi.fn();
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
 
-describe('API Client', () => {
-  const mockToken = 'mock-jwt-token';
-  
+describe('apiClient', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    localStorage.setItem('accessToken', mockToken);
+    mockFetch.mockClear();
+    mockLocation.href = '';
   });
 
-  it('includes authorization header when token is present', async () => {
-    (global.fetch as any).mockResolvedValueOnce({
+  it('makes GET request with proper headers and auth token', async () => {
+    mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({ data: 'test' })
+      json: vi.fn().mockResolvedValue({ data: 'test' }),
     });
 
-    await api.auth.me();
-    
-    expect(global.fetch).toHaveBeenCalledWith(
-      '/api/auth/me',
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          'Authorization': `Bearer ${mockToken}`
-        })
-      })
-    );
-  });
+    const result = await apiClient('/test-endpoint');
 
-  it('handles successful responses', async () => {
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ success: true, data: 'test' })
+    expect(mockFetch).toHaveBeenCalledWith('/api/test-endpoint', {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer mock-token',
+      },
     });
 
-    const result = await api.auth.me();
-    expect(result).toEqual({ success: true, data: 'test' });
+    expect(result).toEqual({ data: 'test' });
   });
 
-  it('throws error for failed responses', async () => {
-    (global.fetch as any).mockResolvedValueOnce({
+  it('makes POST request with body and proper headers', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ success: true }),
+    });
+
+    const body = { name: 'test', value: 123 };
+    await apiClient('/test-endpoint', { method: 'POST', body: JSON.stringify(body) });
+
+    expect(mockFetch).toHaveBeenCalledWith('/api/test-endpoint', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer mock-token',
+      },
+      body: JSON.stringify(body),
+    });
+  });
+
+  it('handles 401 error by logging out user', async () => {
+    const mockLogout = vi.fn();
+    vi.mock('../../src/stores/authStore', () => ({
+      authStore: {
+        getState: vi.fn().mockReturnValue({
+          user: { token: 'mock-token' },
+          logout: mockLogout,
+        }),
+      },
+    }));
+
+    mockFetch.mockResolvedValueOnce({
       ok: false,
-      json: () => Promise.resolve({ message: 'Server error' })
+      status: 401,
+      json: vi.fn().mockResolvedValue({ message: 'Unauthorized' }),
     });
 
-    await expect(api.auth.me()).rejects.toThrow('Server error');
+    await expect(apiClient('/test-endpoint')).rejects.toThrow();
+
+    expect(mockLogout).toHaveBeenCalled();
+    expect(mockLocation.href).toBe('/login');
   });
 
-  it('handles network errors', async () => {
-    (global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
-    
-    await expect(api.auth.me()).rejects.toThrow('Network error');
+  it('handles network error', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+    await expect(apiClient('/test-endpoint')).rejects.toThrow('Network error');
   });
 
-  it('sends correct payload for login', async () => {
-    (global.fetch as any).mockResolvedValueOnce({
+  it('handles server error', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: vi.fn().mockResolvedValue({ message: 'Server error' }),
+    });
+
+    await expect(apiClient('/test-endpoint')).rejects.toThrow('Server error');
+  });
+
+  it('includes content-type header in all requests', async () => {
+    mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({ success: true, token: 'new-token' })
+      json: vi.fn().mockResolvedValue({}),
     });
 
-    await api.auth.login('test@example.com', 'password123');
-    
-    expect(global.fetch).toHaveBeenCalledWith(
-      '/api/auth/login',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ email: 'test@example.com', password: 'password123' })
-      })
-    );
+    await apiClient('/test-endpoint', { method: 'POST', body: '{}' });
+
+    const headers = mockFetch.mock.calls[0][1].headers;
+    expect(headers['Content-Type']).toBe('application/json');
   });
 });
