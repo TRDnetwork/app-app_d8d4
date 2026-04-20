@@ -34,17 +34,4 @@ export const colors = {
   },
   success: {
     DEFAULT: "#10B981",
-    foreground: "#F8FAFC",
-  },
-  warning: {
-    DEFAULT: "#F59E0B",
-    foreground: "#F8FAFC",
-  },
-  primaryAlt: {
-    DEFAULT: "#1E40AF",
-    foreground: "#F8FAFC",
-  },
-} as const
-```
-
-```typescript
+    foreground:

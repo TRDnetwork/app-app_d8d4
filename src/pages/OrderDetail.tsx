@@ -4,87 +4,83 @@ import { InvoiceDownload } from '../components/order/InvoiceDownload';
 
 const OrderDetail = () => {
   const order = {
-    number: 'ORD-12345678',
-    date: 'October 15, 2023',
+    id: 'ORD-7X8K2M9N',
+    date: '2023-10-15',
     status: 'delivered',
     items: [
-      {
-        name: 'Wireless Headphones',
-        price: 99.99,
-        quantity: 1,
-        image: 'https://via.placeholder.com/80',
-      },
-      {
-        name: 'Phone Case',
-        price: 29.99,
-        quantity: 1,
-        image: 'https://via.placeholder.com/80',
-      },
+      { name: 'Wireless Headphones', quantity: 1, price: 199.99, image: '/placeholder.svg' },
+      { name: 'Phone Case', quantity: 2, price: 29.99, image: '/placeholder.svg' },
     ],
+    subtotal: 259.97,
+    delivery: 0,
+    total: 259.97,
     address: {
       line1: '123 Main St',
-      city: 'San Francisco',
-      state: 'CA',
-      postal_code: '94105',
+      city: 'New York',
+      state: 'NY',
+      postalCode: '10001',
       country: 'USA',
     },
-    subtotal: 129.98,
-    delivery: 5.0,
-    total: 134.98,
+    deliverySpeed: 'Standard',
+    paymentMethod: 'Visa •••• 4242',
+    trackingNumber: 'TRK789012345',
+    deliveredAt: '2023-10-20',
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold">Order {order.number}</h1>
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-        <div className="md:col-span-2">
-          <div className="card mb-6">
-            <h2 className="mb-4 text-xl font-bold">Order Status</h2>
-            <OrderTimeline status={order.status} />
+      <h1 className="text-display text-4xl font-bold mb-8">Order #{order.id}</h1>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <div className="card">
+            <h2 className="text-xl font-bold mb-4">Order Status</h2>
+            <OrderTimeline status={order.status} deliveredAt={order.deliveredAt} />
           </div>
           <div className="card">
-            <h2 className="mb-4 text-xl font-bold">Items</h2>
-            <ul className="divide-y">
-              {order.items.map((item, i) => (
-                <li key={i} className="flex items-center gap-4 py-4">
-                  <img src={item.image} alt={item.name} className="h-20 w-20 rounded object-cover" />
-                  <div className="flex-1">
-                    <h3 className="font-medium">{item.name}</h3>
-                    <p className="text-text_dim">Qty: {item.quantity}</p>
-                  </div>
-                  <p className="font-medium">{item.price}</p>
-                </li>
-              ))}
-            </ul>
+            <h2 className="text-xl font-bold mb-4">Items</h2>
+            {order.items.map((item, i) => (
+              <div key={i} className="flex gap-4 py-4 border-b border-border last:border-b-0">
+                <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
+                <div className="flex-1">
+                  <h3 className="font-medium">{item.name}</h3>
+                  <p>Qty: {item.quantity}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-        <div>
-          <div className="card mb-6">
-            <h2 className="mb-4 text-xl font-bold">Shipping Address</h2>
-            <address className="not-italic">
-              <p>{order.address.line1}</p>
-              <p>{order.address.city}, {order.address.state} {order.address.postal_code}</p>
-              <p>{order.address.country}</p>
-            </address>
+        <div className="space-y-8">
+          <div className="card">
+            <h2 className="text-xl font-bold mb-4">Order Summary</h2>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>${order.subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Delivery</span>
+                <span>${order.delivery.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                <span>Total</span>
+                <span>${order.total.toFixed(2)}</span>
+              </div>
+            </div>
           </div>
           <div className="card">
-            <h2 className="mb-4 text-xl font-bold">Order Summary</h2>
-            <dl className="space-y-2">
-              <div className="flex justify-between">
-                <dt>Subtotal</dt>
-                <dd>{order.subtotal}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt>Delivery</dt>
-                <dd>{order.delivery}</dd>
-              </div>
-              <div className="flex justify-between border-t pt-2 font-bold">
-                <dt>Total</dt>
-                <dd>{order.total}</dd>
-              </div>
-            </dl>
-            <InvoiceDownload orderId="123" className="mt-4 w-full" />
+            <h2 className="text-xl font-bold mb-4">Delivery Address</h2>
+            <p>{order.address.line1}</p>
+            <p>{order.address.city}, {order.address.state} {order.address.postalCode}</p>
+            <p>{order.address.country}</p>
           </div>
+          <div className="card">
+            <h2 className="text-xl font-bold mb-4">Payment Method</h2>
+            <p>{order.paymentMethod}</p>
+          </div>
+          <InvoiceDownload orderId={order.id} />
         </div>
       </div>
     </div>

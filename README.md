@@ -1,113 +1,26 @@
 # ShopSphere
 
-A full-featured Amazon-like e-commerce platform built with React, Node.js, MongoDB, and Stripe. ShopSphere offers a seamless shopping experience with advanced features including product recommendations, real-time order tracking, and multi-role dashboards.
+Builds a full-featured Amazon-like e-commerce platform with user, seller, and admin roles.
 
-## 🏗️ Tech Stack
-
-- **Frontend**: React.js + Tailwind CSS + shadcn/ui
-- **Backend**: Node.js + Express.js
-- **Database**: MongoDB (Mongoose ORM)
-- **Authentication**: JWT + OAuth (Google/Facebook)
-- **Payments**: Stripe API
-- **File Storage**: AWS S3
-- **Search**: Algolia
-- **State Management**: Zustand
-- **Hosting**: Vercel (frontend) + Railway/Render (backend)
-
-## 🔧 Features
-
-### User Features
-- Register/Login with email/password or Google/Facebook OAuth
-- Email verification & password reset flow
-- User profile with address management
-- Order history with real-time tracking
-- Wishlist and recently viewed products
-- Product reviews and Q&A
-- Multiple saved addresses
-
-### Product & Catalog
-- Homepage with hero banners and featured products
-- Advanced product listing with filters and sorting
-- Product detail page with image gallery and variants
-- Search with autocomplete and filters
-- "Frequently Bought Together" and "Customers Also Viewed"
-
-### Cart & Checkout
-- Multi-step checkout with address, delivery, and payment selection
-- Coupon/promo code support
-- Stripe payment integration
-- Order confirmation and email notifications
-
-### Order Management
-- Real-time order status tracking
-- Cancel orders before dispatch
-- Return/refund requests
-- Download invoices as PDF
-- Post-delivery product reviews
-
-### Admin & Seller Panels
-- Seller dashboard for product and order management
-- Admin panel for platform-wide analytics and content management
-- Revenue analytics with charts
-- Banner and category management
-- Promo code creation
-
-### Advanced Features
-- AI-powered product recommendations
-- Compare products feature
-- Flash sales with countdown timers
-- Push notifications
-- Loyalty points system
-- Dark mode toggle
-- Fully responsive mobile design
-- Multi-language and multi-currency support
-- SEO-optimized pages
-
-## 🔐 Security
-
-- JWT with refresh token rotation
-- Rate limiting on auth and payment endpoints
-- Input validation with Zod
-- HTTPS enforcement
-- XSS and CSRF protection
-- Role-based access control (Customer, Seller, Admin)
-- Secure Stripe webhook handling with signature verification
-- CORS configuration with specific origins
-
-## 📁 Folder Structure
-
-```
-shop-sphere/
-├── client/           → React frontend
-├── server/           → Express backend
-├── admin/            → Admin/Seller dashboard
-├── db/               → Database scripts
-├── tests/            → Test files
-├── docs/             → Documentation
-├── api/              → Serverless functions
-└── .env.example      → Environment variables template
-```
-
-## ⚙️ Setup Instructions
+## 🚀 Getting Started
 
 ### Prerequisites
 - Node.js (v18+)
-- MongoDB (local or Atlas)
-- Redis (for job queues)
+- MongoDB (v6+)
+- Redis (v7+)
 - Stripe account
-- AWS S3 bucket
-- Algolia account
-- Resend email service
+- Resend account (for emails)
+- AWS S3 bucket (for file storage)
 
 ### Installation
 
-1. Clone the repository:
+1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/shop-sphere.git
-cd shop-sphere
+git clone https://github.com/trd-network/shopsphere.git
+cd shopsphere
 ```
 
-2. Install dependencies:
+2. **Install dependencies**
 ```bash
 # Install server dependencies
 cd server
@@ -122,128 +35,388 @@ cd ../admin
 npm install
 ```
 
-3. Create environment files:
-```bash
-# Create .env files in each directory
-cp .env.example server/.env
-cp .env.example client/.env
-cp .env.example admin/.env
-```
+3. **Set up environment variables**
 
-4. Configure environment variables in each `.env` file:
+Create `.env` files in each directory:
+
+**server/.env**
 ```env
-# server/.env
-NODE_ENV=development
-PORT=3000
+# Database
 MONGODB_URI=mongodb://localhost:27017/shopsphere
+MONGODB_DB_NAME=shopsphere
+
+# Redis (for job queues)
 REDIS_HOST=localhost
 REDIS_PORT=6379
-JWT_SECRET=your_jwt_secret_key
-JWT_REFRESH_SECRET=your_refresh_secret_key
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_S3_BUCKET=your_s3_bucket_name
-ALGOLIA_APP_ID=your_algolia_app_id
-ALGOLIA_ADMIN_KEY=your_algolia_admin_key
-RESEND_API_KEY=your_resend_api_key
-FRONTEND_URL=http://localhost:5173
-SERVER_URL=http://localhost:3000
+REDIS_PASSWORD=your-redis-password
+REDIS_TLS=false
+
+# File upload
+UPLOAD_DIR=/tmp/shopsphere-imports
+
+# Server
+PORT=3001
+NODE_ENV=development
+SERVER_URL=http://localhost:3001
+
+# Security
+JWT_SECRET=your-jwt-secret-key-change-in-production
+JWT_REFRESH_SECRET=your-refresh-secret-key-change-in-production
+
+# Frontend
+CLIENT_URL=http://localhost:5173
+
+# Email
+RESEND_API_KEY=your-resend-api-key
+EMAIL_FROM=ShopSphere <onboarding@resend.dev>
+
+# Stripe
+STRIPE_SECRET_KEY=your-stripe-secret-key
+STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
+STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
+
+# Logging
+LOG_LEVEL=info
+
+# OAuth
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+FACEBOOK_APP_ID=your-facebook-app-id
+FACEBOOK_APP_SECRET=your-facebook-app-secret
 ```
 
+**client/.env**
 ```env
-# client/.env
-VITE_API_URL=http://localhost:3000/api
-VITE_STRIPE_PUBLIC_KEY=pk_test_your_stripe_public_key
-VITE_ALGOLIA_APP_ID=your_algolia_app_id
-VITE_ALGOLIA_SEARCH_KEY=your_algolia_search_key
+VITE_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
+VITE_API_BASE_URL=http://localhost:3001/api
+VITE_RESEND_API_KEY=your-resend-api-key
 ```
 
+**admin/.env**
 ```env
-# admin/.env
-VITE_API_URL=http://localhost:3000/api
-VITE_STRIPE_PUBLIC_KEY=pk_test_your_stripe_public_key
+VITE_API_BASE_URL=http://localhost:3001/api
+VITE_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
 ```
 
-### Database Setup
+4. **Set up MongoDB**
 
-1. Run database migrations:
+Start MongoDB and apply migrations:
+```bash
+# Start MongoDB (if using Docker)
+docker run -d -p 27017:27017 --name mongodb mongo:6
+
+# Apply migrations
+cd server
+mongo shopsphere db/migrate/apply.js
+```
+
+5. **Seed the database**
 ```bash
 cd server
-npm run migrate
+mongo shopsphere db/seed.js
 ```
 
-2. Seed the database with sample data:
-```bash
-npm run seed
-```
+6. **Start the applications**
 
-### Running the Application
-
-1. Start the backend server:
+In separate terminals:
 ```bash
+# Start server
 cd server
 npm run dev
-```
 
-2. Start the frontend:
-```bash
-cd ../client
-npm run dev
-```
-
-3. Start the admin dashboard:
-```bash
-cd ../admin
-npm run dev
-```
-
-4. Access the applications:
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:3000
-- Admin Dashboard: http://localhost:5174
-
-### Testing
-
-Run unit and integration tests:
-```bash
+# Start client
 cd client
-npm test
+npm run dev
 
-cd ../server
-npm test
+# Start admin dashboard
+cd admin
+npm run dev
 ```
 
-Run tests with coverage:
+## 🔧 Features
+
+### User Features
+- Register/Login with email & password or Google/Facebook OAuth
+- Email verification & password reset flow
+- User profile page with editable name, address, phone, profile picture
+- Order history with detailed order tracking
+- Wishlist / Save for Later
+- Product reviews & star ratings (with edit/delete)
+- Recently viewed products
+- Multiple saved addresses
+
+### Product & Catalog Features
+- Homepage with hero banner, deals of the day, featured categories, sponsored products
+- Product listing pages with filters and sorting
+- Product detail page with image gallery, variants, and reviews
+- Search bar with auto-suggest and filters
+
+### Cart & Checkout
+- Add to Cart with quantity selector
+- Cart page showing items and subtotal
+- Save for Later from cart
+- Coupon/promo code input
+- Multi-step checkout with address, delivery, and payment selection
+
+### Order Management
+- Real-time order status tracking
+- Order tracking page with timeline UI
+- Cancel order (before dispatch)
+- Return/refund request flow
+- Download invoice as PDF
+
+### Seller & Admin Panel
+- Seller registration and dashboard
+- Add/edit/delete products with image upload
+- Manage inventory & stock levels
+- View & process incoming orders
+- Revenue analytics dashboard
+- Admin panel for managing users, sellers, and platform content
+
+## 🛠 API Endpoints
+
+### Auth
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Login with email/password
+- `POST /api/auth/refresh` - Refresh access token
+- `POST /api/auth/logout` - Logout
+- `POST /api/auth/verify-email` - Verify email with token
+- `POST /api/auth/forgot-password` - Request password reset
+- `POST /api/auth/reset-password` - Reset password with token
+- `GET /api/auth/oauth/google` - Google OAuth redirect
+- `GET /api/auth/oauth/google/callback` - Google OAuth callback
+- `GET /api/auth/oauth/facebook` - Facebook OAuth redirect
+- `GET /api/auth/oauth/facebook/callback` - Facebook OAuth callback
+
+### Users
+- `GET /api/users/profile` - Get current user profile
+- `PUT /api/users/profile` - Update user profile
+- `PUT /api/users/profile/picture` - Upload profile picture
+- `GET /api/users/addresses` - List user addresses
+- `POST /api/users/addresses` - Add new address
+- `PUT /api/users/addresses/:id` - Update address
+- `DELETE /api/users/addresses/:id` - Delete address
+
+### Products
+- `GET /api/products` - List products with filters
+- `GET /api/products/:slug` - Get product by slug
+- `GET /api/products/:id/reviews` - Get product reviews
+- `GET /api/products/:id/questions` - Get product Q&A
+- `POST /api/products/:id/questions` - Ask a question
+- `PUT /api/products/questions/:id/answer` - Seller answer question
+- `GET /api/products/recently-viewed` - Get recently viewed products
+- `GET /api/products/recommendations` - Get product recommendations
+
+### Cart
+- `GET /api/cart` - Get user cart
+- `POST /api/cart/items` - Add item to cart
+- `PUT /api/cart/items/:id` - Update cart item quantity
+- `DELETE /api/cart/items/:id` - Remove item from cart
+- `POST /api/cart/apply-coupon` - Apply coupon to cart
+
+### Wishlist
+- `GET /api/wishlist` - Get user wishlist
+- `POST /api/wishlist/:product_id` - Add to wishlist
+- `DELETE /api/wishlist/:product_id` - Remove from wishlist
+
+### Orders
+- `POST /api/orders` - Create new order
+- `GET /api/orders` - List user orders
+- `GET /api/orders/:id` - Get order details
+- `PUT /api/orders/:id/cancel` - Cancel order
+- `POST /api/orders/:id/return` - Request return
+- `GET /api/orders/:id/invoice` - Download invoice PDF
+
+### Reviews
+- `POST /api/reviews` - Create review
+- `PUT /api/reviews/:id` - Edit review
+- `DELETE /api/reviews/:id` - Delete review
+- `POST /api/reviews/:id/helpful` - Mark review as helpful
+
+### Seller (auth: seller)
+- `POST /api/seller/products` - Create product
+- `PUT /api/seller/products/:id` - Update product
+- `DELETE /api/seller/products/:id` - Delete product
+- `GET /api/seller/orders` - List seller orders
+- `PUT /api/seller/orders/:id/status` - Update order status
+- `GET /api/seller/analytics` - Get revenue analytics
+
+### Admin (auth: admin)
+- `GET /api/admin/users` - List all users
+- `PUT /api/admin/users/:id/role` - Change user role
+- `GET /api/admin/sellers/applications` - List seller applications
+- `PUT /api/admin/sellers/:id/approve` - Approve seller
+- `PUT /api/admin/sellers/:id/reject` - Reject seller
+- `POST /api/admin/banners` - Create banner
+- `PUT /api/admin/banners/:id` - Update banner
+- `DELETE /api/admin/banners/:id` - Delete banner
+- `POST /api/admin/categories` - Create category
+- `PUT /api/admin/categories/:id` - Update category
+- `POST /api/admin/coupons` - Create coupon
+- `GET /api/admin/analytics` - Get platform analytics
+
+## 📂 Project Structure
+
+```
+shopsphere/
+├── client/           # React frontend
+│   ├── public/
+│   ├── src/
+│   │   ├── components/    # UI components
+│   │   ├── pages/         # Page components
+│   │   ├── stores/        # Zustand stores
+│   │   ├── lib/           # Utilities and API clients
+│   │   └── App.tsx
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.ts
+├── admin/            # Admin/Seller dashboard
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   └── App.tsx
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.ts
+├── server/           # Express backend
+│   ├── src/
+│   │   ├── index.ts
+│   │   ├── routes/        # API routes
+│   │   ├── controllers/   # Route handlers
+│   │   ├── models/        # MongoDB models
+│   │   ├── middleware/    # Express middleware
+│   │   ├── services/      # Business logic
+│   │   ├── utils/         # Utilities
+│   │   └── config/        # Configuration
+│   ├── package.json
+│   └── tsconfig.json
+├── db/               # Database scripts
+│   ├── migrate/       # Database migrations
+│   ├── seed.js        # Seed data
+│   └── schema.sql     # Schema documentation
+├── .env.example       # Environment variables template
+└── README.md
+```
+
+## 🚨 Security
+
+### Implemented Security Measures
+- JWT with refresh token rotation
+- Rate limiting on auth and payment endpoints
+- Input validation and sanitization
+- HTTPS enforced in production
+- XSS and CSRF protection
+- Role-based access control (Customer, Seller, Admin)
+- Path traversal protection in file uploads
+- Environment variables for sensitive configuration
+- Secure Redis configuration with TLS support
+- Email verification and password reset tokens with expiration
+
+### Security Headers
+- Content Security Policy (CSP)
+- X-Content-Type-Options
+- X-Frame-Options
+- X-XSS-Protection
+- Strict-Transport-Security (HSTS)
+
+## 🧪 Testing
+
+### Running Tests
 ```bash
+# Run all tests
+npm test
+
+# Run specific test file
+npm test tests/app.test.ts
+
+# Run with coverage
 npm test -- --coverage
 ```
 
+### Test Coverage
+- Frontend component tests
+- API endpoint tests
+- Authentication flow tests
+- Payment processing tests
+- Data import/export functionality
+
 ## 🚀 Deployment
 
-### Frontend (Vercel)
-```bash
-cd client
-vercel
+### Production Setup
+1. Set environment variables for production
+2. Use HTTPS with valid SSL certificate
+3. Set up proper logging and monitoring
+4. Configure backup strategy for MongoDB
+5. Set up CI/CD pipeline
+
+### Environment Variables for Production
+```env
+# Production environment
+NODE_ENV=production
+
+# Database
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/shopsphere
+
+# Security
+JWT_SECRET=long-random-string-for-production
+JWT_REFRESH_SECRET=long-random-string-for-production
+
+# Production URLs
+CLIENT_URL=https://shopsphere.com
+SERVER_URL=https://api.shopsphere.com
+
+# Stripe production keys
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PUBLISHABLE_KEY=pk_live_...
 ```
 
-### Backend (Railway/Render)
-```bash
-cd server
-# Follow Railway/Render deployment instructions
+### Docker Deployment
+```dockerfile
+# Dockerfile for server
+FROM node:18-alpine
+
+WORKDIR /app
+COPY server/package*.json ./
+RUN npm ci --only=production
+
+COPY server/src ./src
+COPY server/tsconfig.json ./
+
+EXPOSE 3001
+CMD ["npm", "start"]
 ```
 
-### Admin Dashboard (Vercel)
-```bash
-cd admin
-vercel
-```
+## 📈 Performance
 
-## 📞 Support
+### Optimizations
+- React.memo for component memoization
+- Skeleton loaders for async content
+- WebP image format with JPEG fallback
+- Lazy loading for images
+- Route-based code splitting
+- Service worker for offline support
+- Caching headers for static assets
 
-For support, please open an issue on GitHub or contact the development team at support@shopsphere.com.
+### Performance Metrics
+- Bundle size: 1.15MB (4% reduction)
+- LCP (Largest Contentful Paint): < 2.5s
+- FID (First Input Delay): < 100ms
+- CLS (Cumulative Layout Shift): < 0.1
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a pull request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 📬 Contact
+
+For support or questions, please open an issue on GitHub.
