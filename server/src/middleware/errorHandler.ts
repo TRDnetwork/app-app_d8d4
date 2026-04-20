@@ -35,12 +35,13 @@ export const errorHandler = (
   // Prepare error response
   const errorResponse: ErrorResponse = {
     success: false,
-    message: err.message || 'Internal Server Error',
+    message: 'An error occurred while processing your request',
   };
 
   // Add error details in development
   if (process.env.NODE_ENV === 'development') {
     errorResponse.error = err.name;
+    errorResponse.message = err.message;
     errorResponse.stack = err.stack;
   }
 
@@ -58,8 +59,16 @@ export const errorHandler = (
     case 'ENOENT':
       errorResponse.message = 'Resource not found.';
       break;
+    case 'ValidationError':
+      errorResponse.message = 'Invalid input data';
+      break;
     default:
-      // Keep the original message for other errors
+      // Keep generic message for production
+      if (process.env.NODE_ENV === 'production') {
+        errorResponse.message = 'An error occurred while processing your request';
+      } else {
+        errorResponse.message = err.message || 'Internal Server Error';
+      }
       break;
   }
 
@@ -69,4 +78,4 @@ export const errorHandler = (
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for user roles
+// SECURITY FIX: Use environment variables for rate limiting

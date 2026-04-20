@@ -1,2 +1,3 @@
-// Placeholder file — ShopSphere uses Express.js backend (server/src) for all server logic.
-// No Supabase Edge Functions are used in this project.
+// Placeholder function for monorepo structure
+// All actual backend logic resides in Express server
+export default undefined;

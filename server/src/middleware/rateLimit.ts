@@ -7,6 +7,7 @@ export const authRateLimit = rateLimit({
   message: 'Too many authentication attempts from this IP, please try again after 15 minutes',
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: false,
 });
 
 // Rate limiting for password reset endpoints
@@ -26,7 +27,16 @@ export const emailVerificationRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Rate limiting for general API endpoints
+export const apiRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for security headers
+// SECURITY FIX: Use environment variables for user roles

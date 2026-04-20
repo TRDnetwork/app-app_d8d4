@@ -1,7 +1,7 @@
 {
   "name": "ShopSphere",
   "short_name": "ShopSphere",
-  "description": "Premium e-commerce platform with Amazon-like features",
+  "description": "A full-featured e-commerce platform with Amazon-like functionality",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0F172A",
@@ -23,6 +23,5 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ],
-  "orientation": "portrait"
+  ]
 }

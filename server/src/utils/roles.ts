@@ -17,7 +17,7 @@ export const hasRole = (userRole: UserRole, requiredRole: UserRole): boolean => 
 };
 
 // Default role
-export const DEFAULT_ROLE = UserRole.CUSTOMER;
+export const DEFAULT_ROLE = process.env.DEFAULT_USER_ROLE as UserRole || UserRole.CUSTOMER;
 ```
 
 ```typescript

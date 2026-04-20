@@ -1,5 +1,3 @@
-import { supabase } from './supabase';
-import { User, Session } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { toast } from '../components/ui/use-toast';
 import { trackAuthEvent } from './analytics';
@@ -16,8 +14,8 @@ const passwordSchema = z
 
 // Auth state interface
 interface AuthState {
-  user: User | null;
-  session: Session | null;
+  user: any | null;
+  session: any | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -34,7 +32,7 @@ interface AuthActions {
   updateProfile: (name: string, phone: string, avatarUrl: string) => Promise<void>;
   verifyEmail: (token: string) => Promise<void>;
   resendVerificationEmail: () => Promise<void>;
-  getCurrentUser: () => Promise<User | null>;
+  getCurrentUser: () => Promise<any | null>;
   refreshSession: () => Promise<void>;
 }
 
@@ -53,31 +51,27 @@ const useAuthStore = create<AuthState & AuthActions>()(
       // Initialize auth state
       async init() {
         try {
-          const { data: { session }, error } = await supabase.auth.getSession();
-          
-          if (error) {
-            throw error;
+          // Mock implementation - in a real app, this would connect to your Express backend
+          const token = localStorage.getItem('auth_token');
+          if (token) {
+            // Validate token and get user data from your API
+            const response = await fetch('/api/users/profile', {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (response.ok) {
+              const userData = await response.json();
+              set({ 
+                user: userData, 
+                session: { access_token: token },
+                isLoading: false 
+              });
+            }
           }
           
-          set({ session, user: session?.user || null, isLoading: false });
-          
-          // Listen for auth changes
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-              set({ session, user: session?.user || null, isLoading: false });
-              
-              // Track auth events
-              if (event === 'SIGNED_IN') {
-                trackAuthEvent('login', session?.user?.app_metadata?.provider || 'email');
-              } else if (event === 'SIGNED_OUT') {
-                trackAuthEvent('logout');
-              }
-            }
-          );
-          
-          return () => {
-            subscription.unsubscribe();
-          };
+          set({ isLoading: false });
         } catch (error: any) {
           set({ error: error.message, isLoading: false });
           toast({
@@ -97,27 +91,29 @@ const useAuthStore = create<AuthState & AuthActions>()(
           emailSchema.parse(email);
           passwordSchema.parse(password);
           
-          const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                name,
-                email_verified: false,
-                role: 'customer',
-                loyalty_points: 0,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              },
-              emailRedirectTo: `${window.location.origin}/verify-email`
-            }
+          const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password, name })
           });
           
-          if (error) {
-            throw error;
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Registration failed');
           }
           
-          set({ user: data.user, session: data.session, isLoading: false });
+          const data = await response.json();
+          
+          // Store token and user data
+          localStorage.setItem('auth_token', data.token);
+          set({ 
+            user: data.user, 
+            session: { access_token: data.token },
+            isLoading: false 
+          });
+          
           trackAuthEvent('register', 'email');
           
           toast({
@@ -143,20 +139,32 @@ const useAuthStore = create<AuthState & AuthActions>()(
           // Validate input
           emailSchema.parse(email);
           
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password })
           });
           
-          if (error) {
-            throw error;
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Login failed');
           }
           
-          set({ user: data.user, session: data.session, isLoading: false });
+          const data = await response.json();
+          
+          // Store token and user data
+          localStorage.setItem('auth_token', data.token);
+          set({ 
+            user: data.user, 
+            session: { access_token: data.token },
+            isLoading: false 
+          });
           
           toast({
             title: 'Signed in successfully!',
-            description: `Welcome back, ${data.user.user_metadata.name}!`,
+            description: `Welcome back, ${data.user.name}!`,
           });
         } catch (error: any) {
           set({ error: error.message, isLoading: false });
@@ -174,22 +182,8 @@ const useAuthStore = create<AuthState & AuthActions>()(
         set({ isLoading: true, error: null });
         
         try {
-          const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-              redirectTo: `${window.location.origin}/auth/callback`,
-              queryParams: {
-                access_type: 'offline',
-                prompt: 'consent'
-              }
-            }
-          });
-          
-          if (error) {
-            throw error;
-          }
-          
-          trackAuthEvent('login', 'google');
+          // Redirect to backend Google OAuth endpoint
+          window.location.href = '/api/auth/oauth/google';
         } catch (error: any) {
           set({ error: error.message, isLoading: false });
           toast({
@@ -206,18 +200,8 @@ const useAuthStore = create<AuthState & AuthActions>()(
         set({ isLoading: true, error: null });
         
         try {
-          const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'facebook',
-            options: {
-              redirectTo: `${window.location.origin}/auth/callback`
-            }
-          });
-          
-          if (error) {
-            throw error;
-          }
-          
-          trackAuthEvent('login', 'facebook');
+          // Redirect to backend Facebook OAuth endpoint
+          window.location.href = '/api/auth/oauth/facebook';
         } catch (error: any) {
           set({ error: error.message, isLoading: false });
           toast({
@@ -234,12 +218,13 @@ const useAuthStore = create<AuthState & AuthActions>()(
         set({ isLoading: true, error: null });
         
         try {
-          const { error } = await supabase.auth.signOut();
+          await fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'include'
+          });
           
-          if (error) {
-            throw error;
-          }
-          
+          // Clear local storage
+          localStorage.removeItem('auth_token');
           set({ user: null, session: null, isLoading: false });
           
           toast({
@@ -265,12 +250,17 @@ const useAuthStore = create<AuthState & AuthActions>()(
           // Validate input
           emailSchema.parse(email);
           
-          const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/reset-password`
+          const response = await fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email })
           });
           
-          if (error) {
-            throw error;
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Password reset request failed');
           }
           
           set({ isLoading: false });
@@ -298,12 +288,19 @@ const useAuthStore = create<AuthState & AuthActions>()(
           // Validate input
           passwordSchema.parse(newPassword);
           
-          const { error } = await supabase.auth.updateUser({
-            password: newPassword
+          const token = localStorage.getItem('auth_token');
+          const response = await fetch('/api/auth/reset-password', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ password: newPassword })
           });
           
-          if (error) {
-            throw error;
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Password update failed');
           }
           
           set({ isLoading: false });
@@ -328,20 +325,23 @@ const useAuthStore = create<AuthState & AuthActions>()(
         set({ isLoading: true, error: null });
         
         try {
-          const { data, error } = await supabase.auth.updateUser({
-            data: {
-              name,
-              phone,
-              avatar_url: avatarUrl,
-              updated_at: new Date().toISOString()
-            }
+          const token = localStorage.getItem('auth_token');
+          const response = await fetch('/api/users/profile', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ name, phone, profile_picture_url: avatarUrl })
           });
           
-          if (error) {
-            throw error;
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Profile update failed');
           }
           
-          set({ user: data.user, isLoading: false });
+          const userData = await response.json();
+          set({ user: userData, isLoading: false });
           
           toast({
             title: 'Profile updated',
@@ -363,18 +363,21 @@ const useAuthStore = create<AuthState & AuthActions>()(
         set({ isLoading: true, error: null });
         
         try {
-          const { error } = await supabase.auth.verifyOtp({
-            token_hash: token,
-            type: 'email'
+          const response = await fetch('/api/auth/verify-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token })
           });
           
-          if (error) {
-            throw error;
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Email verification failed');
           }
           
-          const { data: { user } } = await supabase.auth.getUser();
-          
-          set({ user, isLoading: false });
+          const userData = await response.json();
+          set({ user: userData, isLoading: false });
           
           toast({
             title: 'Email verified',
@@ -396,22 +399,17 @@ const useAuthStore = create<AuthState & AuthActions>()(
         set({ isLoading: true, error: null });
         
         try {
-          const { data: { user } } = await supabase.auth.getUser();
-          
-          if (!user) {
-            throw new Error('No user found');
-          }
-          
-          const { error } = await supabase.auth.resend({
-            type: 'signup',
-            email: user.email!,
-            options: {
-              emailRedirectTo: `${window.location.origin}/verify-email`
+          const token = localStorage.getItem('auth_token');
+          const response = await fetch('/api/auth/resend-verification', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
             }
           });
           
-          if (error) {
-            throw error;
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to resend verification email');
           }
           
           set({ isLoading: false });
@@ -434,13 +432,18 @@ const useAuthStore = create<AuthState & AuthActions>()(
       // Get current user
       async getCurrentUser() {
         try {
-          const { data: { user }, error } = await supabase.auth.getUser();
+          const token = localStorage.getItem('auth_token');
+          if (!token) return null;
           
-          if (error) {
-            throw error;
-          }
+          const response = await fetch('/api/users/profile', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
           
-          return user;
+          if (!response.ok) return null;
+          
+          return await response.json();
         } catch (error: any) {
           console.error('Error getting current user:', error);
           return null;
@@ -452,13 +455,18 @@ const useAuthStore = create<AuthState & AuthActions>()(
         set({ isLoading: true, error: null });
         
         try {
-          const { data, error } = await supabase.auth.refreshSession();
+          const response = await fetch('/api/auth/refresh', {
+            method: 'POST',
+            credentials: 'include'
+          });
           
-          if (error) {
-            throw error;
+          if (!response.ok) {
+            throw new Error('Session refresh failed');
           }
           
-          set({ session: data.session, user: data.session?.user || null, isLoading: false });
+          const data = await response.json();
+          localStorage.setItem('auth_token', data.token);
+          set({ session: { access_token: data.token }, isLoading: false });
         } catch (error: any) {
           set({ error: error.message, isLoading: false });
           console.error('Error refreshing session:', error);
@@ -522,4 +530,3 @@ export const useAuth = () => {
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for rate limiting
