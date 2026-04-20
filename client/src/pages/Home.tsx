@@ -1,82 +1,102 @@
-import React, { useEffect, useState } from 'react';
-import { ProductCard } from '../components/product/ProductCard';
-import { fetchWithAuth } from '../lib/api';
-import { Skeleton } from '../components/ui/skeleton';
+import React from 'react';
+import { Button } from '../components/ui/button';
+import ProductGrid from '../components/product/ProductGrid';
 
-const Home = () => {
-  const [products, setProducts] = useState<any[]>([]);
-  const [banners, setBanners] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadHomeData = async () => {
-      setLoading(true);
-      try {
-        const [productRes, bannerRes] = await Promise.all([
-          fetchWithAuth('/api/products?limit=8'),
-          fetchWithAuth('/api/banners?active=true'),
-        ]);
-        setProducts(productRes.data || []);
-        setBanners(bannerRes.data || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadHomeData();
-  }, []);
+const Home: React.FC = () => {
+  const featuredProducts = [
+    {
+      id: '1',
+      title: 'Wireless Earbuds Pro',
+      price: 129.99,
+      originalPrice: 179.99,
+      image: 'https://via.placeholder.com/300',
+      rating: 4.5,
+      reviews: 128,
+    },
+    {
+      id: '2',
+      title: 'Smart Watch Series 5',
+      price: 299.99,
+      originalPrice: 399.99,
+      image: 'https://via.placeholder.com/300',
+      rating: 4.7,
+      reviews: 256,
+    },
+    {
+      id: '3',
+      title: 'Ultra HD 4K Monitor',
+      price: 349.99,
+      originalPrice: 449.99,
+      image: 'https://via.placeholder.com/300',
+      rating: 4.8,
+      reviews: 89,
+    },
+  ];
 
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Hero Banner */}
-      {banners.length > 0 && (
-        <div className="mb-12 rounded-lg overflow-hidden">
-          <img
-            src={banners[0].image_url}
-            alt={banners[0].title}
-            className="w-full h-64 object-cover"
-          />
+      <div className="relative h-64 md:h-80 rounded-lg overflow-hidden mb-8">
+        <img
+          src="https://via.placeholder.com/1200x400"
+          alt="Hero Banner"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-black/20 flex items-center">
+          <div className="container mx-auto px-4">
+            <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
+              Summer Sale Up to 60% Off
+            </h1>
+            <Button size="lg" className="bg-orange-500 hover:bg-orange-600">
+              Shop Now
+            </Button>
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* Deals Section */}
+      {/* Deals of the Day */}
       <section className="mb-12">
-        <h2 className="text-3xl font-bold mb-6">Deals of the Day</h2>
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-48 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {products.map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))}
-          </div>
-        )}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Deals of the Day</h2>
+          <Button variant="link" className="text-orange-500">
+            View All
+          </Button>
+        </div>
+        <ProductGrid products={featuredProducts} />
       </section>
 
       {/* Featured Categories */}
       <section className="mb-12">
-        <h2 className="text-3xl font-bold mb-6">Shop by Category</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {['Electronics', 'Fashion', 'Home & Kitchen', 'Books', 'Sports'].map((cat) => (
-            <div key={cat} className="relative group">
-              <div className="aspect-square bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                <span className="text-xl font-semibold">{cat}</span>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Featured Categories</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {['Electronics', 'Fashion', 'Home & Kitchen', 'Sports'].map((category) => (
+            <div
+              key={category}
+              className="relative h-32 rounded-lg overflow-hidden cursor-pointer group"
+            >
+              <img
+                src={`https://via.placeholder.com/300?text=${category}`}
+                alt={category}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+              />
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <span className="text-white font-medium">{category}</span>
               </div>
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Sponsored Products */}
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Sponsored Products</h2>
+        <ProductGrid products={featuredProducts} />
       </section>
     </div>
   );
 };
 
 export default Home;
+```
+
+```typescript

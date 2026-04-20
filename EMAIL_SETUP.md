@@ -1,73 +1,71 @@
-# 📨 ShopSphere Email Setup Guide
-
-This guide explains how to configure transactional emails for ShopSphere using Resend.
+# ShopSphere Email Setup Guide
 
 ## 1. Get Your Resend API Key
+1. Sign up at [resend.com](https://resend.com) if you don't have an account
+2. Navigate to the dashboard and create a new API key
+3. Copy the API key (it starts with `re_`)
 
-1. Go to [resend.com](https://resend.com) and sign up or log in.
-2. Navigate to **Dashboard > API Keys**.
-3. Click **Create API Key** and give it a name like `shop-sphere-production`.
-4. Copy the generated key (it starts with `re_...`).
+## 2. Configure Environment Variables
+Add the following environment variable to your Vercel project:
 
-> 🔐 **Never commit this key to version control.**
-
-## 2. Set Environment Variables
-
-Add the following to your **Vercel project environment variables** (NOT in `.env` file):
-
-```env
-RESEND_API_KEY=re_XXXXXXXXXXXXXXXX
-EMAIL_FROM=hello@shopsphere.com
+```bash
+RESEND_API_KEY=re_your_api_key_here
 ```
 
-> ⚠️ **Important**: Do NOT use `VITE_RESEND_API_KEY` — that would expose the key to the browser. The API key is only used server-side in `api/send-email.ts`.
+**Important Security Notes:**
+- Never use `VITE_RESEND_API_KEY` or any `VITE_*` prefix - this would expose your API key to the client
+- The API key is only used server-side in `api/send-email.ts`
+- Use Vercel's environment variable management for production
 
-## 3. Verify Your Sending Domain (Recommended)
-
-1. In Resend dashboard, go to **Domains**.
-2. Click **Add Domain** and enter your domain (e.g., `shopsphere.com`).
-3. Add the DNS records (TXT and CNAME) to your domain provider.
-4. Once verified, update `EMAIL_FROM` to `hello@shopsphere.com`.
-
-This improves email deliverability and brand trust.
+## 3. Verify Your Sending Domain (Production)
+For better deliverability in production:
+1. Go to Resend Dashboard → Domains
+2. Add and verify your domain (e.g., `shopsphere.com`)
+3. Update the `TO_EMAIL` in `api/send-email.ts` to use your verified domain
+4. Update the `FROM_EMAIL` to a verified sender (e.g., `hello@shopsphere.com`)
 
 ## 4. Frontend Integration
+The frontend sends email requests to the serverless function:
 
-The frontend sends email requests via `fetch` to the serverless function:
-
-```ts
+```javascript
+// Example: Send order confirmation
 await fetch('/api/send-email', {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+  },
   body: JSON.stringify({
-    to: 'customer@example.com',
-    template: 'order-confirmation',
+    type: 'order_confirmation',
     data: {
-      orderNumber: 'ORD-123456',
       customerName: 'John Doe',
-      total: '$199.99',
-    },
-  }),
+      orderNumber: 'ORD-12345678',
+      // ... other order data
+    }
+  })
 });
 ```
 
-> ✅ **Rule**: Never import `resend` or email templates in frontend code. All email logic is server-side.
-
-## 5. Available Templates
-
-- `order-confirmation` — Sent after successful order
-- `password-reset` — Sent when user requests password reset
-- `welcome` — Sent after user registration
-- `seller-application-received` — Sent when seller applies
+## 5. Available Email Types
+- `order_confirmation` - Sent after successful order placement
+- `password_reset` - Sent when user requests password reset
+- `welcome` - Sent to new users after registration
+- `seller_application_received` - Sent to admin when seller applies
 
 ## 6. Testing
-
-1. Run locally with `vercel dev` or deploy to Vercel.
-2. Trigger an email (e.g., register a user).
-3. Check the **Resend dashboard** for delivery status and logs.
+1. Use `delivered@resend.dev` as the recipient for testing
+2. Check the Resend dashboard for sent emails and delivery status
+3. Test all email types with sample data
+4. Verify responsive design on mobile devices
 
 ## 7. Monitoring
+- Monitor email delivery in the Resend dashboard
+- Set up alerts for failed deliveries
+- Check spam folder during testing
+- Review bounce rates and adjust content as needed
 
-- Use Resend dashboard to monitor delivery rates, opens, and errors.
-- Set up alerts for failed deliveries.
-- Log email events in your analytics system.
+## 8. Best Practices
+- Always test with real email providers (Gmail, Outlook, etc.)
+- Keep email content concise and scannable
+- Use clear call-to-action buttons
+- Include unsubscribe links for marketing emails (not needed for transactional)
+- Respect user privacy - never include sensitive information
