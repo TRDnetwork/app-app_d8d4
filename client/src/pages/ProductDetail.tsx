@@ -1,66 +1,46 @@
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
+import { useCartStore } from '../stores/cartStore';
+import { analytics } from '../lib/analytics';
 import ImageGallery from '../components/product/ImageGallery';
 import VariantSelector from '../components/product/VariantSelector';
-import ReviewList from '../components/product/ReviewList';
-import QASection from '../components/product/QASection';
-import { useCart } from '../context/CartContext';
 
-const ProductDetail: React.FC = () => {
-  const [selectedVariant, setSelectedVariant] = useState('');
+const mockProduct = {
+  id: '1',
+  title: 'Premium Wireless Headphones',
+  price: 199.99,
+  originalPrice: 299.99,
+  description: 'High-quality wireless headphones with noise cancellation and 30-hour battery life.',
+  images: [
+    'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&h=600&fit=crop',
+    'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=600&h=600&fit=crop',
+    'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=600&h=600&fit=crop'
+  ],
+  variants: [
+    { name: 'Color', values: ['Black', 'White', 'Blue'] },
+    { name: 'Size', values: ['Regular', 'Large'] }
+  ],
+  rating: 4.5,
+  reviewCount: 124,
+  inStock: true
+};
+
+const ProductDetail = () => {
+  const { slug } = useParams();
+  const [selected, setSelected] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
-  const { addToCart } = useCart();
+  const { addToCart } = useCartStore();
 
-  const mockProduct = {
-    id: 'p1',
-    title: 'Premium Wireless Headphones',
-    description: 'Experience crystal-clear audio with our premium wireless headphones. Featuring active noise cancellation, 30-hour battery life, and comfortable over-ear design.',
-    price: 199.99,
-    originalPrice: 299.99,
-    discountPercent: 33,
-    brand: 'AudioPro',
-    category: 'Electronics',
-    images: [
-      'https://via.placeholder.com/600x600?text=Main+Image',
-      'https://via.placeholder.com/600x600?text=Side+View',
-      'https://via.placeholder.com/600x600?text=Detail+Shot',
-      'https://via.placeholder.com/600x600?text=In+Use',
-    ],
-    variants: [
-      { name: 'Color', values: ['Black', 'White', 'Blue'] },
-      { name: 'Size', values: ['Small', 'Medium', 'Large'] },
-    ],
-    stockQuantity: 15,
-    rating: 4.5,
-    reviewCount: 125,
-    frequentlyBoughtTogether: [
-      { id: 'p2', title: 'AudioPro Case', price: 29.99, image: 'https://via.placeholder.com/300' },
-      { id: 'p3', title: 'Cleaning Kit', price: 19.99, image: 'https://via.placeholder.com/300' },
-    ],
-    customersAlsoViewed: [
-      { id: 'p4', title: 'Wireless Earbuds', price: 149.99, image: 'https://via.placeholder.com/300' },
-      { id: 'p5', title: 'Bluetooth Speaker', price: 89.99, image: 'https://via.placeholder.com/300' },
-    ],
+  // Track product view
+  React.useEffect(() => {
+    analytics.viewProduct(mockProduct.id, mockProduct.price);
+  }, []);
+
+  const handleVariantChange = (name: string, value: string) => {
+    setSelected(prev => ({ ...prev, [name]: value }));
+    analytics.ctaClick(`variant_${name}_${value}`, 'product_detail');
   };
-
-  const mockReviews = Array(5).fill(null).map((_, i) => ({
-    id: `r${i}`,
-    rating: 5 - (i % 3),
-    title: `Great product! ${i + 1}`,
-    comment: 'This product exceeded my expectations. The quality is excellent and it arrived quickly.',
-    author: `User ${i + 1}`,
-    date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
-    helpfulVotes: Math.floor(Math.random() * 10),
-    images: i % 2 === 0 ? [`https://via.placeholder.com/200?text=Review+${i+1}`] : [],
-  }));
-
-  const mockQuestions = Array(3).fill(null).map((_, i) => ({
-    id: `q${i}`,
-    question: `Does this work with Android devices? ${i + 1}`,
-    answer: 'Yes, this product is compatible with all Android devices running version 8.0 and above.',
-    author: `User ${i + 1}`,
-    date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
-  }));
 
   const handleAddToCart = () => {
     addToCart({
@@ -69,154 +49,112 @@ const ProductDetail: React.FC = () => {
       price: mockProduct.price,
       image: mockProduct.images[0],
       quantity,
-      variant: selectedVariant,
+      selectedVariants: selected
     });
+    
+    analytics.addToCart(mockProduct.id, mockProduct.price, quantity);
+    analytics.ctaClick('add_to_cart', 'product_detail');
   };
+
+  const handleWishlistClick = () => {
+    analytics.addWishlist(mockProduct.id);
+    analytics.ctaClick('add_to_wishlist', 'product_detail');
+  };
+
+  const discountPercent = Math.round(((mockProduct.originalPrice - mockProduct.price) / mockProduct.originalPrice) * 100);
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* Image Gallery */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <ImageGallery images={mockProduct.images} />
+        
         <div>
-          <ImageGallery images={mockProduct.images} />
-        </div>
+          <h1 className="text-3xl font-bold text-text mb-2">{mockProduct.title}</h1>
+          <p className="text-text_dim mb-4">{mockProduct.description}</p>
+          
+          <div className="flex items-center mb-4">
+            <span className="text-primary text-2xl font-bold">{mockProduct.price.toFixed(2)}</span>
+            {mockProduct.originalPrice && (
+              <span className="text-text_dim line-through ml-2">
+                {mockProduct.originalPrice.toFixed(2)}
+              </span>
+            )}
+            {discountPercent > 0 && (
+              <span className="ml-2 bg-accent text-primary-foreground text-xs px-2 py-1 rounded">
+                Save {discountPercent}%
+              </span>
+            )}
+          </div>
 
-        {/* Product Info */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">{mockProduct.title}</h1>
-
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex text-orange-500">
-              {'★'.repeat(Math.floor(mockProduct.rating))}{'☆'.repeat(5 - Math.floor(mockProduct.rating))}
+          <div className="flex items-center mb-6">
+            <div className="flex">
+              {[...Array(5)].map((_, i) => (
+                <span key={i} className={i < Math.round(mockProduct.rating) ? 'text-warning' : 'text-text_dim'}>
+                  ★
+                </span>
+              ))}
             </div>
-            <span className="text-gray-600">
-              {mockProduct.rating} ({mockProduct.reviewCount} reviews)
-            </span>
+            <span className="ml-2 text-text_dim">({mockProduct.reviewCount} reviews)</span>
           </div>
 
-          <div className="flex items-center gap-4 mb-6">
-            <span className="text-3xl font-bold text-orange-500">${mockProduct.price}</span>
-            {mockProduct.originalPrice > mockProduct.price && (
-              <span className="text-xl text-gray-500 line-through">${mockProduct.originalPrice}</span>
-            )}
-            {mockProduct.discountPercent > 0 && (
-              <span className="text-lg text-green-600 font-medium">Save {mockProduct.discountPercent}%</span>
-            )}
-          </div>
+          <VariantSelector 
+            variants={mockProduct.variants} 
+            selected={selected} 
+            onChange={handleVariantChange} 
+          />
 
-          <div className="mb-6">
-            <p className={`mb-4 ${mockProduct.stockQuantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {mockProduct.stockQuantity > 0 
-                ? `In stock (${mockProduct.stockQuantity} available)`
-                : 'Out of stock'
-              }
-            </p>
-            
-            {mockProduct.variants && mockProduct.variants.length > 0 && (
-              <VariantSelector 
-                variants={mockProduct.variants} 
-                selected={selectedVariant}
-                onSelect={setSelectedVariant}
-              />
-            )}
-          </div>
-
-          <div className="flex items-center gap-4 mb-8">
-            <div className="flex items-center border border-gray-300 rounded">
-              <Button 
-                variant="ghost" 
-                size="icon"
+          <div className="flex items-center space-x-4 my-6">
+            <label className="text-text_dim">Quantity:</label>
+            <div className="flex border border-border rounded">
+              <button 
+                className="px-3 py-1 border-r border-border"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                disabled={mockProduct.stockQuantity === 0}
               >
                 -
-              </Button>
-              <span className="w-12 text-center">{quantity}</span>
-              <Button 
-                variant="ghost" 
-                size="icon"
+              </button>
+              <span className="px-4 py-1">{quantity}</span>
+              <button 
+                className="px-3 py-1 border-l border-border"
                 onClick={() => setQuantity(quantity + 1)}
-                disabled={mockProduct.stockQuantity === 0}
               >
                 +
-              </Button>
+              </button>
             </div>
-            
+          </div>
+
+          <div className="flex space-x-4 mb-6">
             <Button 
+              className="flex-1 bg-accent hover:bg-accent/90 text-primary-foreground"
               onClick={handleAddToCart}
-              disabled={mockProduct.stockQuantity === 0}
-              className="flex-1 bg-orange-500 hover:bg-orange-600"
+              disabled={!mockProduct.inStock}
             >
-              Add to Cart
+              {mockProduct.inStock ? 'Add to Cart' : 'Out of Stock'}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={handleWishlistClick}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <Button variant="outline">
-              Share
-            </Button>
-            <Button variant="outline">
-              Compare
-            </Button>
-          </div>
-
-          <div className="prose prose-sm max-w-none">
-            <h3 className="text-lg font-medium mb-2">Product Description</h3>
-            <p className="text-gray-600">{mockProduct.description}</p>
+          <div className="border-t border-border pt-6">
+            <h3 className="font-semibold mb-2">Product Features</h3>
+            <ul className="text-text_dim text-sm space-y-1">
+              <li>• 30-hour battery life</li>
+              <li>• Active noise cancellation</li>
+              <li>• Bluetooth 5.0 connectivity</li>
+              <li>• Built-in microphone</li>
+              <li>• 1-year warranty</li>
+            </ul>
           </div>
         </div>
       </div>
-
-      {/* Frequently Bought Together */}
-      <section className="mt-16">
-        <h2 className="text-2xl font-bold mb-6">Frequently Bought Together</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {mockProduct.frequentlyBoughtTogether.map((product) => (
-            <div key={product.id} className="border border-gray-200 rounded-lg p-4">
-              <img
-                src={product.image}
-                alt={product.title}
-                className="w-full h-40 object-cover rounded mb-4"
-              />
-              <h3 className="font-medium mb-2">{product.title}</h3>
-              <p className="text-orange-500 font-bold">${product.price}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Customers Also Viewed */}
-      <section className="mt-16">
-        <h2 className="text-2xl font-bold mb-6">Customers Also Viewed</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {mockProduct.customersAlsoViewed.map((product) => (
-            <div key={product.id} className="border border-gray-200 rounded-lg p-4">
-              <img
-                src={product.image}
-                alt={product.title}
-                className="w-full h-40 object-cover rounded mb-4"
-              />
-              <h3 className="font-medium mb-2">{product.title}</h3>
-              <p className="text-orange-500 font-bold">${product.price}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Reviews */}
-      <section className="mt-16">
-        <ReviewList reviews={mockReviews} />
-      </section>
-
-      {/* Q&A */}
-      <section className="mt-16">
-        <QASection questions={mockQuestions} />
-      </section>
     </div>
   );
 };
 
 export default ProductDetail;
-```
-
-```typescript

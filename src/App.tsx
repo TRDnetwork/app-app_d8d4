@@ -6,7 +6,7 @@ import Router from './router';
 function App() {
   return (
     <BrowserRouter>
-      <div className="flex min-h-screen flex-col">
+      <div className="min-h-screen flex flex-col bg-background text-foreground">
         <Router />
         <Toaster />
       </div>

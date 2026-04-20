@@ -1,5 +1,17 @@
 import { create } from 'zustand';
-import { Address } from '../types';
+import { persist } from 'zustand/middleware';
+
+interface Address {
+  id: string;
+  type: 'home' | 'work' | 'other';
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+}
 
 interface CheckoutState {
   address: Address | null;
@@ -11,12 +23,19 @@ interface CheckoutState {
   reset: () => void;
 }
 
-export const checkoutStore = create<CheckoutState>((set) => ({
-  address: null,
-  deliverySpeed: 'standard',
-  paymentMethod: 'stripe',
-  setAddress: (address) => set({ address }),
-  setDeliverySpeed: (speed) => set({ deliverySpeed: speed }),
-  setPaymentMethod: (method) => set({ paymentMethod: method }),
-  reset: () => set({ address: null, deliverySpeed: 'standard', paymentMethod: 'stripe' }),
-}));
+export const useCheckoutStore = create<CheckoutState>()(
+  persist(
+    (set) => ({
+      address: null,
+      deliverySpeed: 'standard',
+      paymentMethod: 'stripe',
+      setAddress: (address) => set({ address }),
+      setDeliverySpeed: (speed) => set({ deliverySpeed: speed }),
+      setPaymentMethod: (method) => set({ paymentMethod: method }),
+      reset: () => set({ address: null, deliverySpeed: 'standard', paymentMethod: 'stripe' }),
+    }),
+    {
+      name: 'checkout-storage',
+    }
+  )
+);

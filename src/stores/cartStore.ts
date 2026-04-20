@@ -1,79 +1,59 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product } from '../types';
 
 interface CartItem {
-  product: Product;
-  variant_id?: string;
-  quantity: number;
+  id: string;
+  productId: string;
+  name: string;
   price: number;
+  quantity: number;
+  image: string;
+  variant?: string;
 }
 
 interface CartState {
   items: CartItem[];
-  couponCode: string | null;
-  discount: number;
-  add: (product: Product, variant_id?: string, quantity?: number) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  remove: (productId: string) => void;
-  clear: () => void;
+  addItem: (item: Omit<CartItem, 'id'>) => void;
+  updateQuantity: (id: string, quantity: number) => void;
+  removeItem: (id: string) => void;
+  clearCart: () => void;
+  getTotalItems: () => number;
+  getSubtotal: () => number;
+  coupon: { code: string; discount: number } | null;
   applyCoupon: (code: string, discount: number) => void;
-  getTotal: () => number;
-  getItemCount: () => number;
+  removeCoupon: () => void;
 }
 
-export const cartStore = create<CartState>()(
+export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
-      couponCode: null,
-      discount: 0,
-      add: (product, variant_id, quantity = 1) => {
-        const currentItems = get().items;
-        const existing = currentItems.find(
-          (item) => item.product._id === product._id && item.variant_id === variant_id
-        );
-
-        if (existing) {
-          set({
-            items: currentItems.map((item) =>
-              item.product._id === product._id && item.variant_id === variant_id
-                ? { ...item, quantity: item.quantity + quantity }
-                : item
-            ),
-          });
-        } else {
-          set({
-            items: [
-              ...currentItems,
-              {
-                product,
-                variant_id,
-                quantity,
-                price: product.price,
-              },
-            ],
-          });
-        }
-      },
-      updateQuantity: (productId, quantity) =>
-        set({
-          items: get().items.map((item) =>
-            item.product._id === productId ? { ...item, quantity } : item
-          ),
+      coupon: null,
+      addItem: (item) =>
+        set((state) => {
+          const existing = state.items.find((i) => i.productId === item.productId && i.variant === item.variant);
+          if (existing) {
+            return {
+              items: state.items.map((i) =>
+                i.id === existing.id ? { ...i, quantity: i.quantity + item.quantity } : i
+              ),
+            };
+          }
+          const id = `${item.productId}-${item.variant || 'default'}`;
+          return { items: [...state.items, { ...item, id }] };
         }),
-      remove: (productId) =>
-        set({
-          items: get().items.filter((item) => item.product._id !== productId),
-        }),
-      clear: () => set({ items: [], couponCode: null, discount: 0 }),
-      applyCoupon: (code, discount) => set({ couponCode: code, discount }),
-      getTotal: () => {
-        const { items, discount } = get();
-        const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        return subtotal - discount;
-      },
-      getItemCount: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
+      updateQuantity: (id, quantity) =>
+        set((state) => ({
+          items: state.items.map((item) => (item.id === id ? { ...item, quantity } : item)),
+        })),
+      removeItem: (id) =>
+        set((state) => ({ items: state.items.filter((item) => item.id !== id) })),
+      clearCart: () => set({ items: [], coupon: null }),
+      getTotalItems: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
+      getSubtotal: () =>
+        get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      applyCoupon: (code, discount) => set({ coupon: { code, discount } }),
+      removeCoupon: () => set({ coupon: null }),
     }),
     {
       name: 'cart-storage',

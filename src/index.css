@@ -28,21 +28,17 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
   body {
-    @apply bg-bg text-text;
+    @apply bg-background text-foreground;
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-bold text-foreground;
+    font-family: 'Playfair Display', serif;
   }
 }
 
 @layer components {
-  .text-display {
-    @apply font-display text-base leading-none tracking-tight;
-  }
-  .text-body {
-    @apply font-body text-sm leading-normal;
-  }
   .btn {
     @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50;
   }
@@ -53,9 +49,15 @@
     @apply bg-secondary text-secondary-foreground hover:bg-secondary/90;
   }
   .card {
-    @apply rounded-lg border bg-card p-6 shadow-sm;
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
+  }
+  .card-header {
+    @apply p-6 pb-4 font-semibold leading-none tracking-tight;
+  }
+  .card-content {
+    @apply p-6 pt-0;
   }
   .skeleton {
-    @apply animate-pulse rounded bg-muted;
+    @apply bg-muted animate-pulse;
   }
 }
