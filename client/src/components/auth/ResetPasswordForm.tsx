@@ -1,118 +1,48 @@
-'use client';
+import React, { useState } from 'react';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { useAuth } from '../../lib/auth';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useSearchParams } from 'next/navigation';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-
-interface ResetPasswordFormProps {
-  onPasswordReset: () => void;
-}
-
-export default function ResetPasswordForm({ onPasswordReset }: ResetPasswordFormProps) {
-  const searchParams = useSearchParams();
+export function ResetPasswordForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const { updatePassword } = useAuth();
-
-  // Get the token from URL parameters
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-
-  const validateForm = () => {
-    if (!password) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Please enter a new password',
-      });
-      return false;
-    }
-
-    if (password.length < 8) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Password must be at least 8 characters long',
-      });
-      return false;
-    }
-
-    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Password must contain at least one uppercase letter, one lowercase letter, and one number',
-      });
-      return false;
-    }
-
-    if (password !== confirmPassword) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Passwords do not match',
-      });
-      return false;
-    }
-
-    if (!token) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Invalid or expired reset token',
-      });
-      return false;
-    }
-
-    return true;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (password !== confirmPassword) {
+      // In a real app, you'd show a toast or error message
+      console.error('Passwords do not match');
       return;
     }
-
-    setLoading(true);
-
+    
+    setIsLoading(true);
+    
     try {
-      const result = await updatePassword({ token: token!, password });
-      
-      if (result.error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: result.error,
-        });
-      } else {
-        toast({
-          title: 'Success',
-          description: 'Password reset successfully. You can now sign in with your new password.',
-        });
-        onPasswordReset();
-      }
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'An unexpected error occurred',
-      });
+      await updatePassword(password);
+      navigate('/login');
+    } catch (error) {
+      // Error is handled by the useAuth hook
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md space-y-6">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold">Reset Password</h1>
-        <p className="text-text_dim">Enter your new password</p>
+    <div className="w-full space-y-6">
+      <div className="flex flex-col space-y-2 text-center">
+        <h1 className="text-2xl font-bold tracking-tight">Set new password</h1>
+        <p className="text-sm text-muted-foreground">
+          Enter your new password below
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -123,26 +53,24 @@ export default function ResetPasswordForm({ onPasswordReset }: ResetPasswordForm
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
+            disabled={isLoading}
           />
-          <p className="text-xs text-text_dim">
-            Must be at least 8 characters with uppercase, lowercase, and number
-          </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm New Password</Label>
+          <Label htmlFor="confirmPassword">Confirm Password</Label>
           <Input
             id="confirmPassword"
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            required
+            disabled={isLoading}
           />
         </div>
 
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? 'Resetting password...' : 'Reset Password'}
+        <Button className="w-full" type="submit" disabled={isLoading}>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Update Password
         </Button>
       </form>
     </div>

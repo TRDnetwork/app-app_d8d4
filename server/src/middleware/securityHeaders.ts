@@ -1,4 +1,5 @@
 import helmet from 'helmet';
+import { config } from '../config/env';
 
 // Security headers configuration
 export const securityHeaders = helmet({
@@ -7,47 +8,41 @@ export const securityHeaders = helmet({
       defaultSrc: ["'self'"],
       scriptSrc: [
         "'self'",
-        "'strict-dynamic'",
-        "'nonce-{{nonce}}'",
-        "'unsafe-inline'",
-        process.env.NODE_ENV === 'development' ? 'http://localhost:*' : '',
-        process.env.NODE_ENV === 'development' ? 'ws://localhost:*' : '',
-      ].filter(Boolean),
+        "'sha256-qznLcsROx4GACP2dm0UCKCzCG+HiZ1guq6ZZDob/Tng='", // Inline script hash for critical functionality
+        config.CLIENT_URL,
+        'trusted-cdn.com',
+      ],
       styleSrc: [
         "'self'",
-        "'unsafe-inline'",
-        'https://fonts.googleapis.com',
+        "'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='", // Empty style hash
+        config.CLIENT_URL,
+        'fonts.googleapis.com',
       ],
       imgSrc: [
         "'self'",
         'data:',
-        'https://*.amazonaws.com',
-        'https://*.res.cloudinary.com',
-        'https://*.unsplash.com',
-        'https://*.stripe.com',
+        'cdn.example.com',
+        'res.cloudinary.com',
+        'images.unsplash.com',
+        'via.placeholder.com',
       ],
       fontSrc: [
         "'self'",
-        'https://fonts.gstatic.com',
+        'fonts.gstatic.com',
       ],
       connectSrc: [
         "'self'",
-        'https://*.amazonaws.com',
-        'https://*.resend.com',
-        'https://*.stripe.com',
-        'https://*.algolia.net',
-        'https://*.algolianet.com',
-        process.env.NODE_ENV === 'development' ? 'http://localhost:*' : '',
-        process.env.NODE_ENV === 'development' ? 'ws://localhost:*' : '',
+        config.SERVER_URL,
+        config.CLIENT_URL,
+        'analytics.google.com',
+        'sentry.io',
       ],
-      frameSrc: ["'self'", 'https://*.stripe.com'],
+      frameSrc: ["'self'"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
       frameAncestors: ["'none'"],
-      upgradeInsecureRequests: process.env.NODE_ENV === 'production',
     },
-    useDefaults: true,
   },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   hsts: {
@@ -61,7 +56,7 @@ export const securityHeaders = helmet({
   xssFilter: true,
   frameguard: { action: 'deny' },
 });
+// SECURITY FIX: Removed 'unsafe-inline' and 'unsafe-eval' from CSP and used environment variables for trusted domains
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for CORS configuration

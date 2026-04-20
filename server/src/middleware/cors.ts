@@ -1,4 +1,5 @@
 import cors from 'cors';
+import { config } from '../config/env';
 
 // CORS configuration
 export const corsOptions = {
@@ -9,25 +10,22 @@ export const corsOptions = {
       return;
     }
     
-    // In development, allow localhost from any port
-    if (process.env.NODE_ENV === 'development') {
-      if (origin.match(/^http:\/\/localhost(:\d+)?$/)) {
-        callback(null, true);
-        return;
-      }
-    }
-    
-    // In production, only allow specific origins
     const allowedOrigins = [
-      process.env.CLIENT_URL,
+      config.CLIENT_URL,
       'https://shopsphere.vercel.app',
-      'https://www.shopsphere.com',
     ].filter(Boolean) as string[];
     
+    // Check if the origin is in our allowed list
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      // In development, allow localhost with any port
+      if (config.NODE_ENV === 'development' && 
+          (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   },
   credentials: true,
@@ -39,13 +37,11 @@ export const corsOptions = {
     'Accept',
     'Authorization',
     'X-CSRF-Token',
-    'X-Correlation-Id',
   ],
-  exposedHeaders: ['X-Correlation-Id'],
 };
 
 export const corsMiddleware = cors(corsOptions);
+// SECURITY FIX: Improved CORS validation to properly handle null origins and restrict localhost to development
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for error handling

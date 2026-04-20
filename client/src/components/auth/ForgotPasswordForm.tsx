@@ -1,85 +1,42 @@
-'use client';
-
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import React, { useState } from 'react';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { useAuth } from '../../lib/auth';
+import { useNavigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 
 interface ForgotPasswordFormProps {
   onBackToLogin: () => void;
 }
 
-export default function ForgotPasswordForm({ onBackToLogin }: ForgotPasswordFormProps) {
+export function ForgotPasswordForm({ onBackToLogin }: ForgotPasswordFormProps) {
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const { resetPassword } = useAuth();
-
-  const validateForm = () => {
-    if (!email.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Please enter your email address',
-      });
-      return false;
-    }
-
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Please enter a valid email address',
-      });
-      return false;
-    }
-
-    return true;
-  };
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    if (!validateForm()) {
-      return;
-    }
-
-    setLoading(true);
-
     try {
-      const result = await resetPassword(email);
-      
-      if (result.error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: result.error,
-        });
-      } else {
-        toast({
-          title: 'Success',
-          description: 'Password reset email sent. Please check your inbox.',
-        });
-        onBackToLogin();
-      }
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'An unexpected error occurred',
-      });
+      await resetPassword(email);
+      navigate('/reset-password-instructions');
+    } catch (error) {
+      // Error is handled by the useAuth hook
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md space-y-6">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold">Reset Password</h1>
-        <p className="text-text_dim">Enter your email to reset your password</p>
+    <div className="w-full space-y-6">
+      <div className="flex flex-col space-y-2 text-center">
+        <h1 className="text-2xl font-bold tracking-tight">Reset your password</h1>
+        <p className="text-sm text-muted-foreground">
+          Enter your email to receive password reset instructions
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -87,24 +44,31 @@ export default function ForgotPasswordForm({ onBackToLogin }: ForgotPasswordForm
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
-            type="email"
             placeholder="name@example.com"
+            type="email"
+            autoCapitalize="none"
+            autoComplete="email"
+            autoCorrect="off"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
+            disabled={isLoading}
           />
         </div>
 
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? 'Sending reset email...' : 'Send Reset Email'}
+        <Button className="w-full" type="submit" disabled={isLoading}>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Send Reset Instructions
         </Button>
       </form>
 
-      <div className="text-center">
-        <button onClick={onBackToLogin} className="text-sm text-accent hover:underline">
-          Back to Sign In
-        </button>
-      </div>
+      <Button
+        variant="ghost"
+        className="w-full"
+        onClick={onBackToLogin}
+        disabled={isLoading}
+      >
+        Back to login
+      </Button>
     </div>
   );
 }

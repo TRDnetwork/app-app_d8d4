@@ -3,101 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="ShopSphere – A full-featured e-commerce platform with Amazon-like functionality, offering a wide range of products with secure checkout and fast delivery" />
-    <meta name="keywords" content="e-commerce, online shopping, Amazon alternative, online store, buy products online" />
-    <meta name="robots" content="index, follow" />
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://shopsphere.com/" />
-    <meta property="og:title" content="ShopSphere - Premium E-commerce Platform" />
-    <meta property="og:description" content="ShopSphere offers a seamless shopping experience with a wide selection of products, secure payments, and fast delivery" />
-    <meta property="og:image" content="https://shopsphere.com/og-image.jpg" />
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://shopsphere.com/" />
-    <meta property="twitter:title" content="ShopSphere - Premium E-commerce Platform" />
-    <meta property="twitter:description" content="ShopSphere offers a seamless shopping experience with a wide selection of products, secure payments, and fast delivery" />
-    <meta property="twitter:image" content="https://shopsphere.com/og-image.jpg" />
-    
+    <meta name="description" content="ShopSphere – A full-featured e-commerce platform with Amazon-like functionality" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
-    <title>ShopSphere - Premium E-commerce Platform</title>
+    <title>ShopSphere</title>
+    <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Schema.org structured data -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "ShopSphere",
-      "url": "https://shopsphere.com/",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://shopsphere.com/search?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      }
-    }
-    </script>
-    
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "ShopSphere",
-      "url": "https://shopsphere.com/",
-      "logo": "https://shopsphere.com/logo.png",
-      "foundingDate": "2024",
-      "founders": [
-        {
-          "@type": "Person",
-          "name": "Alex Johnson"
-        },
-        {
-          "@type": "Person",
-          "name": "Sarah Chen"
-        }
-      ],
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": "+1-800-555-1234",
-        "contactType": "customer service",
-        "areaServed": "US",
-        "availableLanguage": "en"
-      },
-      "sameAs": [
-        "https://www.facebook.com/shopsphere",
-        "https://www.twitter.com/shopsphere",
-        "https://www.instagram.com/shopsphere"
-      ]
-    }
-    </script>
-    
-    <!-- Analytics: PostHog -->
+    <!-- ANALYTICS: PostHog tracking script -->
     <script>
       // Respect Do Not Track
-      if (!navigator.doNotTrack || navigator.doNotTrack !== "1") {
+      if (!navigator.doNotTrack && !window.doNotTrack && navigator.doNotTrack !== "1" && window.doNotTrack !== "1") {
         // Load PostHog script asynchronously
-        (function(t,e,a,l,i,n,c){t[i]=t[i]||function(){(t[i].q=t[i].q||[]).push(arguments)};
-        n=e.createElement(a),c=e.getElementsByTagName(a)[0];n.async=1;n.src=l;c.parentNode.insertBefore(n,c)})
-        (window,document,"script","https://app.posthog.com/js/posthog.js","ph");
-        
-        // Initialize PostHog
-        ph("init", "/* ANALYTICS_KEY */", {
-          api_host: "https://app.posthog.com",
-          autocapture: false, // Disable automatic event capture for privacy
-          capture_pageview: false, // We'll handle page views manually
-          capture_pageleave: false,
-          loaded: function(ph) {
-            // Only enable if user consents (in a real app, check cookie consent)
-            ph.has_opted_in_capturing() || ph.opt_in_capturing();
-          }
+        document.addEventListener('DOMContentLoaded', function() {
+          var script = document.createElement('script');
+          script.type = 'text/javascript';
+          script.async = true;
+          script.src = 'https://app.posthog.com/static/array.js';
+          script.onload = function() {
+            window.posthog = window.posthog || [];
+            window.posthog.push(['init', /* ANALYTICS_KEY */ 'phc_your_posthog_key_here', {api_host:'https://app.posthog.com'}]);
+            
+            // Track page views
+            window.posthog.push(['capture', '$pageview']);
+          };
+          document.head.appendChild(script);
         });
       }
     </script>
-    
-    <script type="module" src="/src/main.tsx"></script>
   </head>
   <body class="bg-bg text-text font-body antialiased">
     <div id="root"></div>

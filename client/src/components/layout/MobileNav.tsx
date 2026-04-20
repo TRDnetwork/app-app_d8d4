@@ -1,21 +1,34 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
-import { Menu, X, Search, ShoppingCart, User } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
+import { Menu, X, Search, ShoppingCart, User } from 'lucide-react';
 
 const MobileNav = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
 
-  const toggleMenu = () => setIsOpen(!isOpen);
+  const toggleMenu = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const handleSearch = () => {
+    navigate('/search');
+    setIsOpen(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsOpen(false);
+  };
 
   return (
     <>
       {/* Mobile menu button */}
-      <Button 
-        variant="ghost" 
-        size="icon" 
+      <Button
+        variant="ghost"
+        size="icon"
         className="md:hidden"
         onClick={toggleMenu}
         aria-label={isOpen ? "Close menu" : "Open menu"}
@@ -25,124 +38,127 @@ const MobileNav = () => {
 
       {/* Mobile menu overlay */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
-          <div className="flex flex-col h-full">
-            {/* Header with close button */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <Link to="/" className="text-2xl font-bold text-primary" onClick={() => setIsOpen(false)}>
-                ShopSphere
-              </Link>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={toggleMenu}
-                aria-label="Close menu"
-              >
-                <X className="h-6 w-6" />
-              </Button>
-            </div>
+        <div 
+          className="fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden"
+          onClick={toggleMenu}
+          role="button"
+          tabIndex={0}
+          aria-label="Close menu"
+        ></div>
+      )}
 
-            {/* Navigation links */}
-            <nav className="flex-1 p-4 space-y-6">
-              <Link 
-                to="/" 
-                className="block text-xl font-medium text-text hover:text-primary transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                Home
-              </Link>
-              <Link 
-                to="/products" 
-                className="block text-xl font-medium text-text hover:text-primary transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                Products
-              </Link>
-              <Link 
-                to="/wishlist" 
-                className="block text-xl font-medium text-text hover:text-primary transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                Wishlist
-              </Link>
-              <Link 
-                to="/orders" 
-                className="block text-xl font-medium text-text hover:text-primary transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                Orders
-              </Link>
-              
-              {/* User section */}
-              <div className="pt-6 border-t border-border">
-                {user ? (
-                  <div className="space-y-4">
-                    <p className="text-lg font-medium">Hello, {user.name}</p>
-                    <Link 
-                      to="/profile" 
-                      className="block text-text hover:text-primary transition-colors"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Profile
-                    </Link>
-                    <Link 
-                      to="/addresses" 
-                      className="block text-text hover:text-primary transition-colors"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Addresses
-                    </Link>
-                    <button 
-                      onClick={() => {
-                        // Handle logout
-                        setIsOpen(false);
-                      }}
-                      className="text-text hover:text-primary transition-colors"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <Link 
-                      to="/login" 
-                      className="block text-text hover:text-primary transition-colors"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Login
-                    </Link>
-                    <Link 
-                      to="/register" 
-                      className="block text-text hover:text-primary transition-colors"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Register
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </nav>
+      {/* Mobile menu */}
+      <div 
+        className={`fixed top-0 left-0 z-50 h-full w-64 bg-card transform transition-transform duration-300 ease-in-out md:hidden ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <Link to="/" className="text-2xl font-bold text-primary" onClick={() => setIsOpen(false)}>
+              ShopSphere
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleMenu}
+              aria-label="Close menu"
+            >
+              <X className="h-6 w-6" />
+            </Button>
+          </div>
 
-            {/* Bottom action buttons */}
-            <div className="p-4 border-t border-border">
-              <div className="flex items-center justify-between">
-                <Link to="/search" className="flex items-center space-x-2 text-text hover:text-primary">
-                  <Search className="h-5 w-5" />
-                  <span>Search</span>
-                </Link>
-                <Link to="/cart" className="flex items-center space-x-2 text-text hover:text-primary relative">
+          {/* Navigation */}
+          <nav className="flex-1 p-4 space-y-2">
+            <Link
+              to="/"
+              className="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              <span>Home</span>
+            </Link>
+            <Link
+              to="/products"
+              className="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              <span>Products</span>
+            </Link>
+            <Link
+              to="/wishlist"
+              className="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              <span>Wishlist</span>
+            </Link>
+            <Link
+              to="/orders"
+              className="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              <span>Orders</span>
+            </Link>
+            <button
+              onClick={handleSearch}
+              className="flex items-center space-x-3 w-full p-3 rounded-lg hover:bg-surface transition-colors text-left"
+            >
+              <Search className="h-5 w-5" />
+              <span>Search</span>
+            </button>
+          </nav>
+
+          {/* User section */}
+          <div className="p-4 border-t border-border">
+            {user ? (
+              <div className="space-y-2">
+                <div className="flex items-center space-x-3 p-3 rounded-lg">
+                  <User className="h-5 w-5" />
+                  <span className="font-medium">{user.name}</span>
+                </div>
+                <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface transition-colors">
                   <ShoppingCart className="h-5 w-5" />
-                  <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs">
-                    0
-                  </span>
-                </Link>
+                  <Link to="/cart" onClick={() => setIsOpen(false)}>
+                    Cart (0)
+                  </Link>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Button>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  asChild
+                >
+                  <Link to="/login" onClick={() => setIsOpen(false)}>
+                    Login
+                  </Link>
+                </Button>
+                <Button
+                  className="w-full"
+                  asChild
+                >
+                  <Link to="/register" onClick={() => setIsOpen(false)}>
+                    Register
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 };
 
 export default MobileNav;
+```
+
+```typescript

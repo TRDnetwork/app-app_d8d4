@@ -2,11 +2,12 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../lib/auth';
 
-interface ProtectedRouteProps {
-  allowedRoles?: string[];
+interface RoleBasedRouteProps {
+  allowedRoles: string[];
+  fallbackPath?: string;
 }
 
-export function ProtectedRoute({ allowedRoles = ['customer', 'seller', 'admin'] }: ProtectedRouteProps) {
+export function RoleBasedRoute({ allowedRoles, fallbackPath = '/' }: RoleBasedRouteProps) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -21,8 +22,8 @@ export function ProtectedRoute({ allowedRoles = ['customer', 'seller', 'admin'] 
     return <Navigate to="/login" />;
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user.user_metadata.role)) {
-    return <Navigate to="/" />;
+  if (!allowedRoles.includes(user.user_metadata.role)) {
+    return <Navigate to={fallbackPath} />;
   }
 
   return <Outlet />;

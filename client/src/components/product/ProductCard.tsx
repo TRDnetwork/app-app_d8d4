@@ -1,95 +1,64 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '../ui/button';
-import { Heart } from 'lucide-react';
-import { useWishlistStore } from '../../stores/wishlistStore';
-import { formatCurrency } from '../../lib/formatters';
-import { trackCTAClick } from '../../lib/analytics';
+import { Link } from 'react-router-dom';
 
 interface ProductCardProps {
-  id: string;
-  title: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  rating?: number;
-  reviewCount?: number;
+  product: {
+    id: string;
+    title: string;
+    price: number;
+    original_price?: number;
+    image: string;
+    rating?: number;
+  };
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({
-  id,
-  title,
-  price,
-  originalPrice,
-  image,
-  rating = 0,
-  reviewCount = 0,
-}) => {
-  const { has, toggle } = useWishlistStore();
-
-  const discountPercent = originalPrice ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
-
-  const handleWishlistToggle = (e: React.MouseEvent) => {
-    e.preventDefault();
-    toggle(id);
-    trackCTAClick('wishlist_toggle', 'product_card');
-  };
-
-  const handleAddToCart = () => {
-    trackCTAClick('add_to_cart', 'product_card');
-    // In real app: add to cart logic
-  };
-
+const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
-    <div className="card group overflow-hidden transition-all hover:shadow-lg">
-      <div className="relative">
+    <div className="card group hover:shadow-lg transition-shadow touch-manipulation">
+      <div className="relative overflow-hidden rounded-t-lg">
         <img
-          src={image}
-          alt={title}
-          className="w-full h-64 object-cover transition-transform group-hover:scale-105"
+          src={product.image}
+          alt={product.title}
+          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
           loading="lazy"
+          width={300}
+          height={200}
         />
-        {discountPercent > 0 && (
-          <span className="absolute top-2 left-2 bg-accent text-primary-foreground text-xs px-2 py-1 rounded">
-            -{discountPercent}%
-          </span>
-        )}
         <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-          onClick={handleWishlistToggle}
+          variant="secondary"
+          size="sm"
+          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity min-h-8 min-w-8 p-2"
+          aria-label={`Add ${product.title} to wishlist`}
         >
-          <Heart className={`h-5 w-5 ${has(id) ? 'fill-current text-accent' : 'text-text'}`} />
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
         </Button>
       </div>
-      <div className="card-content">
-        <Link to={`/product/${id}`} className="block">
-          <h3 className="font-semibold text-text line-clamp-2 mb-2">{title}</h3>
-          <div className="flex items-center mb-1">
-            <span className="text-primary font-bold text-lg">{formatCurrency(price)}</span>
-            {originalPrice && (
-              <span className="text-text_dim line-through ml-2 text-sm">
-                {formatCurrency(originalPrice)}
-              </span>
-            )}
+      <div className="card-content p-4">
+        <h3 className="font-semibold line-clamp-2 mb-2 text-sm md:text-base">{product.title}</h3>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-primary font-bold text-sm md:text-base">${product.price}</span>
+          {product.original_price && product.original_price > product.price && (
+            <span className="text-text-dim line-through text-xs md:text-sm">${product.original_price}</span>
+          )}
+        </div>
+        {product.rating && (
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-yellow-400 text-sm">★</span>
+            <span className="text-xs text-text-dim">{product.rating}</span>
           </div>
-          <div className="flex items-center text-sm text-text_dim">
-            <span>{rating.toFixed(1)}</span>
-            <div className="flex ml-1">
-              {[...Array(5)].map((_, i) => (
-                <span key={i} className={i < Math.round(rating) ? 'text-warning' : 'text-text_dim'}>
-                  ★
-                </span>
-              ))}
-            </div>
-            <span className="ml-1">({reviewCount})</span>
-          </div>
-        </Link>
-        <Button className="w-full mt-4" onClick={handleAddToCart}>Add to Cart</Button>
+        )}
+        <Button asChild className="w-full min-h-10 text-sm md:text-base">
+          <Link to={`/product/${product.id}`}>View Details</Link>
+        </Button>
       </div>
     </div>
   );
 };
 
-export default ProductCard;
+export default React.memo(ProductCard);
+```
+
+```typescript

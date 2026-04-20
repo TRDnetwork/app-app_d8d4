@@ -3,14 +3,19 @@ const CACHE_NAME = 'shopsphere-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/assets/logo.png',
-  '/assets/placeholder.jpg',
-  '/manifest.json',
-  '/favicon.ico',
-  '/robots.txt'
+  '/static/css/main.css',
+  '/static/js/main.js',
+  '/icons/icon-72x72.png',
+  '/icons/icon-96x96.png',
+  '/icons/icon-128x128.png',
+  '/icons/icon-144x144.png',
+  '/icons/icon-152x152.png',
+  '/icons/icon-192x192.png',
+  '/icons/icon-384x384.png',
+  '/icons/icon-512x512.png'
 ];
 
-// Install event - cache core assets
+// Install event - cache assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -25,10 +30,10 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
+        cacheNames.filter((cacheName) => {
+          return cacheName !== CACHE_NAME;
+        }).map((cacheName) => {
+          return caches.delete(cacheName);
         })
       );
     })
@@ -37,25 +42,21 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
-  // Don't cache API requests or dynamic content
-  if (event.request.url.includes('/api/') || 
-      event.request.url.includes('/cart/') || 
-      event.request.url.includes('/checkout/')) {
+  // Don't cache API requests
+  if (event.request.url.includes('/api/')) {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return new Response('You are offline. Some features may not work.', {
-          status: 503,
-          statusText: 'Service Unavailable',
-          headers: new Headers({
-            'Content-Type': 'text/html'
-          })
-        });
-      })
+      fetch(event.request)
+        .catch(() => {
+          // Return a default offline response for API failures
+          return new Response(JSON.stringify({ error: 'Offline' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        })
     );
     return;
   }
 
-  // Cache-first strategy for static assets
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -64,35 +65,36 @@ self.addEventListener('fetch', (event) => {
           return response;
         }
 
-        // Otherwise fetch from network
+        // Otherwise, fetch from network
         return fetch(event.request).then(
-          (networkResponse) => {
-            // Don't cache bad responses
-            if (!networkResponse || networkResponse.status !== 200) {
-              return networkResponse;
+          (response) => {
+            // Check if we received a valid response
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
             }
 
-            // Clone the response for the browser and cache
-            const responseToCache = networkResponse.clone();
+            // Clone the response for the cache
+            const responseToCache = response.clone();
+
             caches.open(CACHE_NAME)
               .then((cache) => {
                 cache.put(event.request, responseToCache);
               });
 
-            return networkResponse;
+            return response;
           }
         );
       })
   );
 });
 
-// Handle push notifications
+// Push notification handler
 self.addEventListener('push', (event) => {
   const data = event.data.json();
   const options = {
     body: data.body,
-    icon: '/assets/logo.png',
-    badge: '/assets/badge.png',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-72x72.png',
     data: {
       url: data.url
     }
@@ -103,9 +105,13 @@ self.addEventListener('push', (event) => {
   );
 });
 
+// Notification click handler
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
     clients.openWindow(event.notification.data.url)
   );
 });
+```
+
+```typescript
