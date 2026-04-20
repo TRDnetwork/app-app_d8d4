@@ -1,21 +1,22 @@
-import { Router } from 'express';
-import { 
-  getCart, 
-  addToCart, 
-  updateCartItem, 
-  removeCartItem 
-} from '../controllers/cartController';
-import { protect } from '../middleware/auth';
+import express from 'express';
+import { authenticate } from '../middleware/auth';
+import { rls, protectResource } from '../middleware/rls';
+import { cartController } from '../controllers/cartController';
 
-const router = Router();
+const router = express.Router();
 
-// Protected routes
-router.route('/')
-  .get(protect, getCart)
-  .post(protect, addToCart);
+// Apply authentication and RLS middleware
+router.use(authenticate, rls);
 
-router.route('/:id')
-  .put(protect, updateCartItem)
-  .delete(protect, removeCartItem);
+// Cart routes
+router.get('/', cartController.getCart);
+router.post('/items', cartController.addItem);
+router.put('/items/:id', cartController.updateItem);
+router.delete('/items/:id', cartController.removeItem);
+router.post('/apply-coupon', cartController.applyCoupon);
 
 export default router;
+```
+
+```typescript
+// SECURITY FIX: Update wishlist routes to use RLS

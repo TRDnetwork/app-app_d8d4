@@ -1,82 +1,83 @@
-import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { FilterSidebar } from '../components/FilterSidebar';
-import { ProductCard } from '../components/ProductCard';
-import { Button } from '../components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import React, { useState, useEffect } from 'react';
+import { apiClient } from '../lib/api';
+import ProductCard from '../components/ProductCard';
+import FilterSidebar from '../components/FilterSidebar';
 import { Skeleton } from '../components/ui/skeleton';
 
-const mockProducts = Array.from({ length: 12 }, (_, i) => ({
-  _id: (i + 1).toString(),
-  title: `Product ${i + 1}`,
-  price: Math.floor(Math.random() * 500) + 50,
-  image: `https://via.placeholder.com/300x300?text=Product+${i + 1}`,
-  rating: (Math.random() * 2 + 3).toFixed(1),
-}));
+const ProductListing: React.FC = () => {
+  const [products, setProducts] = useState<any[]>([]);
+  const [filters, setFilters] = useState({
+    category: '',
+    brand: '',
+    minPrice: 0,
+    maxPrice: 10000,
+    rating: 0,
+  });
+  const [sort, setSort] = useState('created_at');
+  const [loading, setLoading] = useState(true);
 
-export const ProductListing: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'relevance');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSortChange = (value: string) => {
-    setSortBy(value);
-    setSearchParams({ ...Object.fromEntries(searchParams), sort: value });
-  };
-
-  const handleFilterChange = (filters: Record<string, string>) => {
-    setSearchParams({ ...filters, sort: sortBy });
-  };
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          category: filters.category,
+          brand: filters.brand,
+          min_price: filters.minPrice.toString(),
+          max_price: filters.maxPrice.toString(),
+          min_rating: filters.rating.toString(),
+          sort,
+          limit: '20',
+        });
+        const data = await apiClient(`/products?${params}`);
+        setProducts(data.products);
+      } catch (err) {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, [filters, sort]);
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Products</h1>
-
-      <div className="flex flex-col md:flex-row gap-6">
+      <h1 className="text-3xl font-bold mb-8">Products</h1>
+      <div className="flex flex-col md:flex-row gap-8">
         <aside className="md:w-64 flex-shrink-0">
-          <FilterSidebar onFilterChange={handleFilterChange} />
+          <FilterSidebar filters={filters} setFilters={setFilters} />
         </aside>
-
         <main className="flex-1">
-          <div className="flex items-center justify-between mb-6">
-            <p className="text-text_dim">
-              Showing <span className="text-text">1-12</span> of <span className="text-text">147</span> products
-            </p>
-            <div className="flex items-center space-x-2">
-              <span className="text-text_dim text-sm">Sort by:</span>
-              <Select value={sortBy} onValueChange={handleSortChange}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="relevance">Relevance</SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="rating">Avg. Rating</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="flex justify-between items-center mb-6">
+            <span>{products.length} products found</span>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="border border-border rounded px-3 py-1 bg-surface text-text"
+            >
+              <option value="created_at">Newest</option>
+              <option value="price">Price: Low to High</option>
+              <option value="-price">Price: High to Low</option>
+              <option value="avg_rating">Avg Rating</option>
+              <option value="best_seller">Best Seller</option>
+            </select>
           </div>
-
-          {isLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <Skeleton className="h-48 w-full rounded-lg" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="card">
+                  <div className="p-4">
+                    <Skeleton className="h-48 w-full shimmer" />
+                    <Skeleton className="h-6 w-3/4 mt-4 shimmer" />
+                    <Skeleton className="h-4 w-1/2 mt-2 shimmer" />
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {mockProducts.map((product) => (
-                <ProductCard
-                  key={product._id}
-                  product={product}
-                  onAddToCart={() => console.log('Added to cart', product._id)}
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {products.map((product) => (
+                <ProductCard key={product._id} product={product} />
               ))}
             </div>
           )}
@@ -85,3 +86,5 @@ export const ProductListing: React.FC = () => {
     </div>
   );
 };
+
+export default ProductListing;

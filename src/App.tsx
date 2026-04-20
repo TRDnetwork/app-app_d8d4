@@ -1,8 +1,8 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './lib/auth';
-import { Header } from './components/Header';
-import { Footer } from './components/Footer';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import CustomerLayout from './layouts/CustomerLayout';
+import SellerLayout from './layouts/SellerLayout';
+import AdminLayout from './layouts/AdminLayout';
 import Home from './pages/Home';
 import ProductListing from './pages/ProductListing';
 import ProductDetail from './pages/ProductDetail';
@@ -28,55 +28,48 @@ import AdminCategories from './admin/pages/Categories';
 import AdminBanners from './admin/pages/Banners';
 import AdminCoupons from './admin/pages/Coupons';
 
-const App: React.FC = () => {
-  const { isAuthenticated, user } = useAuth();
-
+function App() {
   return (
     <BrowserRouter>
-      <div className="flex min-h-screen flex-col">
-        <Header />
-        <main className="flex-1">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/products" element={<ProductListing />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
-            <Route path="/register" element={isAuthenticated ? <Navigate to="/" /> : <Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+      <Routes>
+        {/* Customer Routes */}
+        <Route element={<CustomerLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/products" element={<ProductListing />} />
+          <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/order-confirmation" element={<OrderConfirmation />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/order/:id" element={<OrderTracking />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+        </Route>
 
-            {/* Customer Routes */}
-            <Route path="/checkout" element={isAuthenticated ? <Checkout /> : <Navigate to="/login" />} />
-            <Route path="/order-confirmation/:id" element={isAuthenticated ? <OrderConfirmation /> : <Navigate to="/login" />} />
-            <Route path="/orders" element={isAuthenticated ? <Orders /> : <Navigate to="/login" />} />
-            <Route path="/order/:id" element={isAuthenticated ? <OrderTracking /> : <Navigate to="/login" />} />
-            <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
-            <Route path="/wishlist" element={isAuthenticated ? <Wishlist /> : <Navigate to="/login" />} />
+        {/* Seller Routes */}
+        <Route element={<SellerLayout />}>
+          <Route path="/seller/dashboard" element={<SellerDashboard />} />
+          <Route path="/seller/products" element={<SellerProducts />} />
+          <Route path="/seller/products/new" element={<SellerAddProduct />} />
+          <Route path="/seller/orders" element={<SellerOrders />} />
+        </Route>
 
-            {/* Seller Routes */}
-            <Route path="/seller" element={isAuthenticated && user?.role === 'seller' ? <SellerDashboard /> : <Navigate to="/" />} />
-            <Route path="/seller/products" element={isAuthenticated && user?.role === 'seller' ? <SellerProducts /> : <Navigate to="/" />} />
-            <Route path="/seller/products/add" element={isAuthenticated && user?.role === 'seller' ? <SellerAddProduct /> : <Navigate to="/" />} />
-            <Route path="/seller/orders" element={isAuthenticated && user?.role === 'seller' ? <SellerOrders /> : <Navigate to="/" />} />
-
-            {/* Admin Routes */}
-            <Route path="/admin" element={isAuthenticated && user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/" />} />
-            <Route path="/admin/users" element={isAuthenticated && user?.role === 'admin' ? <AdminUsers /> : <Navigate to="/" />} />
-            <Route path="/admin/sellers" element={isAuthenticated && user?.role === 'admin' ? <AdminSellers /> : <Navigate to="/" />} />
-            <Route path="/admin/categories" element={isAuthenticated && user?.role === 'admin' ? <AdminCategories /> : <Navigate to="/" />} />
-            <Route path="/admin/banners" element={isAuthenticated && user?.role === 'admin' ? <AdminBanners /> : <Navigate to="/" />} />
-            <Route path="/admin/coupons" element={isAuthenticated && user?.role === 'admin' ? <AdminCoupons /> : <Navigate to="/" />} />
-
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
+        {/* Admin Routes */}
+        <Route element={<AdminLayout />}>
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/sellers" element={<AdminSellers />} />
+          <Route path="/admin/categories" element={<AdminCategories />} />
+          <Route path="/admin/banners" element={<AdminBanners />} />
+          <Route path="/admin/coupons" element={<AdminCoupons />} />
+        </Route>
+      </Routes>
     </BrowserRouter>
   );
-};
+}
 
 export default App;

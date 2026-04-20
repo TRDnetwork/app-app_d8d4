@@ -1,21 +1,45 @@
-import axios from 'axios';
+import { toast } from '@/components/ui/use-toast';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE = '/api';
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+export const apiClient = async (endpoint: string, options: RequestInit = {}) => {
+  const url = `${API_BASE}${endpoint}`;
+  const config = {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  };
 
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
+  const token = localStorage.getItem('authToken');
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers = {
+      ...config.headers,
+      Authorization: `Bearer ${token}`,
+    };
   }
-  return config;
-});
 
-export default api;
+  try {
+    const response = await fetch(url, config);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      toast({
+        title: 'Error',
+        description: error.message || 'Something went wrong',
+        variant: 'destructive',
+      });
+      throw new Error(error.message || 'Request failed');
+    }
+    return await response.json();
+  } catch (err) {
+    if (err instanceof Error) {
+      toast({
+        title: 'Network Error',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+    throw err;
+  }
+};

@@ -1,91 +1,83 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import api from '../lib/api';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { apiClient } from '../lib/api';
 
 interface CartItem {
   _id: string;
   product_id: string;
-  variant_id?: string;
+  variant_id: string;
   quantity: number;
-  price: number;
+  price_snapshot: number;
   title: string;
   image: string;
 }
 
-interface CartState {
+interface CartContextType {
   items: CartItem[];
   total: number;
+  loading: boolean;
+  addItem: (productId: string, variantId: string, quantity: number) => Promise<void>;
+  updateItem: (itemId: string, quantity: number) => Promise<void>;
+  removeItem: (itemId: string) => Promise<void>;
   fetchCart: () => Promise<void>;
-  addToCart: (product_id: string, variant_id?: string, quantity?: number) => Promise<void>;
-  updateQuantity: (item_id: string, quantity: number) => Promise<void>;
-  removeFromCart: (item_id: string) => Promise<void>;
-  clearCart: () => void;
 }
 
-export const useCartStore = create<CartState>()(
-  persist(
-    (set, get) => ({
-      items: [],
-      total: 0,
-      fetchCart: async () => {
-        try {
-          const res = await api.get('/cart');
-          const cart = res.data;
-          const items = cart.items.map((item: any) => ({
-            _id: item._id,
-            product_id: item.product_id,
-            variant_id: item.variant_id,
-            quantity: item.quantity,
-            price: item.price_snapshot,
-            title: item.product_title,
-            image: item.product_image,
-          }));
-          const total = items.reduce((sum: number, item: CartItem) => sum + item.price * item.quantity, 0);
-          set({ items, total });
-        } catch (error) {
-          console.error('Failed to fetch cart:', error);
-        }
-      },
-      addToCart: async (product_id, variant_id, quantity = 1) => {
-        try {
-          await api.post('/cart/items', { product_id, variant_id, quantity });
-          await get().fetchCart();
-        } catch (error) {
-          console.error('Failed to add to cart:', error);
-        }
-      },
-      updateQuantity: async (item_id, quantity) => {
-        if (quantity <= 0) {
-          await get().removeFromCart(item_id);
-          return;
-        }
-        try {
-          await api.put(`/cart/items/${item_id}`, { quantity });
-          await get().fetchCart();
-        } catch (error) {
-          console.error('Failed to update quantity:', error);
-        }
-      },
-      removeFromCart: async (item_id) => {
-        try {
-          await api.delete(`/cart/items/${item_id}`);
-          await get().fetchCart();
-        } catch (error) {
-          console.error('Failed to remove from cart:', error);
-        }
-      },
-      clearCart: () => set({ items: [], total: 0 }),
-    }),
-    {
-      name: 'cart-storage',
-    }
-  )
-);
+const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const { fetchCart } = useCartStore();
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const fetchCart = async () => {
+    try {
+      const data = await apiClient('/cart');
+      setItems(data.items);
+      setTotal(data.items.reduce((sum: number, item: CartItem) => sum + item.price_snapshot * item.quantity, 0));
+    } catch (err) {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchCart();
   }, []);
-  return <>{children}</>;
+
+  const addItem = async (productId: string, variantId: string, quantity: number) => {
+    await apiClient('/cart/items', {
+      method: 'POST',
+      body: JSON.stringify({ product_id: productId, variant_id: variantId, quantity }),
+    });
+    await fetchCart();
+  };
+
+  const updateItem = async (itemId: string, quantity: number) => {
+    if (quantity === 0) {
+      await removeItem(itemId);
+      return;
+    }
+    await apiClient(`/cart/items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ quantity }),
+    });
+    await fetchCart();
+  };
+
+  const removeItem = async (itemId: string) => {
+    await apiClient(`/cart/items/${itemId}`, { method: 'DELETE' });
+    await fetchCart();
+  };
+
+  return (
+    <CartContext.Provider value={{ items, total, loading, addItem, updateItem, removeItem, fetchCart }}>
+      {children}
+    </CartContext.Provider>
+  );
+};
+
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (!context) throw new Error('useCart must be used within CartProvider');
+  return context;
 };
