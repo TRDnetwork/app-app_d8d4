@@ -1,9 +1,10 @@
-# ShopSphere Payment Integration Setup
+# 🛍️ ShopSphere Payment Integration Setup
 
-## Stripe Configuration
+This document outlines the Stripe payment integration for ShopSphere e-commerce platform.
 
-### 1. Environment Variables
-Add these variables to your `.env` file:
+## 🔐 Environment Variables
+
+Add these to your `.env` file:
 
 ```env
 # Stripe API Keys
@@ -11,85 +12,125 @@ STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 
-# Application URLs
-FRONTEND_URL=https://shopsphere.com
-BACKEND_URL=https://api.shopsphere.com
+# Application URL
+NEXT_PUBLIC_APP_URL=https://shopsphere.com
 ```
 
-### 2. Webhook Setup
-1. Install Stripe CLI: `npm install -g stripe-cli`
-2. Login: `stripe login`
-3. Create webhook endpoint:
-   ```bash
-   stripe listen --forward-to localhost:5000/api/payment/webhook
-   ```
-4. Copy the webhook secret and add it to `.env` as `STRIPE_WEBHOOK_SECRET`
-5. In Stripe Dashboard, add the webhook endpoint:
-   - URL: `https://api.shopsphere.com/api/payment/webhook`
-   - Events: `checkout.session.completed`, `payment_intent.succeeded`, `payment_intent.payment_failed`
+## 🚀 Stripe Dashboard Setup
 
-### 3. Test Cards
-Use these test card numbers for development:
+1. **Create Stripe Account**
+   - Go to [stripe.com](https://stripe.com)
+   - Sign up and verify your business details
 
-| Card Type | Number | Result |
-|-----------|-------|--------|
-| Success | `4242 4242 4242 4242` | Payment succeeds |
-| Decline | `4000 0000 0000 0002` | Payment declines |
-| 3D Secure | `4000 0025 0000 3155` | Requires authentication |
+2. **Get API Keys**
+   - Dashboard → Developers → API Keys
+   - Copy `Secret Key` and `Publishable Key`
+   - Store in `.env` (never commit to git)
 
-### 4. Required Stripe Dashboard Settings
-1. **Account Settings**: Enable required business information
-2. **Webhooks**: Add the production webhook endpoint
-3. **Payment Methods**: Enable Card payments
-4. **Radar**: Configure basic fraud rules
+3. **Configure Webhooks**
+   - Dashboard → Developers → Webhooks
+   - Add endpoint: `https://your-domain.com/api/webhooks/stripe`
+   - Select events:
+     - `checkout.session.completed`
+     - `payment_intent.succeeded`
+     - `payment_intent.payment_failed`
+   - Copy the "Signing secret" and add to `.env` as `STRIPE_WEBHOOK_SECRET`
 
-## Backend Integration
+4. **Set Allowed Origins**
+   - Dashboard → Developers → Settings
+   - Add your frontend URLs to "Allowed origins"
 
-### API Endpoints
-- `POST /api/payment/create-checkout-session` - Create Stripe Checkout session
-- `POST /api/payment/webhook` - Handle Stripe webhook events
-- `GET /api/payment/order-details?session_id=...` - Get order details
+## 🧪 Testing Payments
 
-### Error Handling
-The payment system handles these common errors:
-- Invalid cart state
-- Missing address or delivery method
-- Payment processing failures
-- Webhook signature verification failures
+### Test Card Numbers
+- Visa: `4242 4242 4242 4242`
+- Mastercard: `5555 5555 5555 4444`
+- Amex: `3782 822463 10005`
 
-## Frontend Integration
+### Test Scenarios
+| Scenario | Card Number | Result |
+|--------|-------------|--------|
+| Success | Any test card | Payment succeeds |
+| Insufficient Funds | `4000 0000 0000 9995` | Payment fails |
+| Requires Authentication | `4000 0025 0000 3155` | 3D Secure flow |
 
-### Checkout Flow
-1. Address selection from user's saved addresses
-2. Delivery method selection (Standard, Express, Same-day)
-3. Payment method (credit/debit card via Stripe)
-4. Order review and confirmation
+### Local Testing with Stripe CLI
+```bash
+# Install Stripe CLI
+brew install stripe
 
-### Order Confirmation
-After successful payment, users are redirected to `/order-confirmation?session_id={CHECKOUT_SESSION_ID}` where they can view:
-- Order number
-- Order summary
-- Estimated delivery date
-- Next steps
+# Login
+stripe login
 
-## Security Considerations
-- All sensitive operations occur server-side
-- Webhook signatures are verified
-- No API keys are exposed to client-side code
-- HTTPS is required in production
-- Input validation on all endpoints
+# Start webhook forwarder
+stripe listen --forward-to localhost:5000/api/webhooks/stripe
 
-## Testing
-1. Use test mode with test API keys
-2. Verify webhook handling with Stripe CLI
-3. Test edge cases:
-   - Empty cart
-   - Invalid addresses
-   - Payment failures
-   - Session expiration
+# Copy the webhook secret to your .env
+# Use in another terminal:
+stripe trigger checkout.session.completed
+```
 
-## Production Deployment
-1. Replace test API keys with live keys
-2. Update webhook endpoint to production URL
-3. Enable monitoring for payment failures
-4. Set up alerts for webhook delivery failures
+## 📂 File Structure
+```
+/server
+  /src
+    /routes
+      payment.routes.js        # POST /api/payment/create-checkout-session
+    /webhooks
+      stripe.webhook.js        # POST /api/webhooks/stripe
+/client
+  /src
+    /components
+      CheckoutForm.jsx         # Address form
+      DeliveryOptions.jsx      # Shipping selection
+      PaymentForm.jsx          # Stripe Embedded Checkout
+    /app
+      checkout/page.tsx        # Multi-step checkout
+      order-confirmation/page.tsx # Success page
+```
+
+## ✅ Verification Steps
+
+1. **Frontend**
+   - [ ] Address form validates required fields
+   - [ ] Delivery options update shipping cost
+   - [ ] Stripe Embedded Checkout loads
+   - [ ] Success redirect to `/order-confirmation`
+
+2. **Backend**
+   - [ ] `/api/payment/create-checkout-session` returns client secret
+   - [ ] Webhook endpoint receives and verifies events
+   - [ ] Database updates order status on successful payment
+
+3. **Security**
+   - [ ] All API keys are in environment variables
+   - [ ] Webhook signatures are verified
+   - [ ] No sensitive data logged
+   - [ ] HTTPS enforced in production
+
+## 🚨 Error Handling
+
+| Error | Solution |
+|------|----------|
+| `Invalid API Key` | Verify `STRIPE_SECRET_KEY` is correct |
+| `Webhook signature verification failed` | Ensure `STRIPE_WEBHOOK_SECRET` matches dashboard |
+| `Customer email is required` | Frontend must send customerDetails.email |
+| `401 Unauthorized` | Check CORS settings and API route protection |
+
+## 📈 Monitoring
+
+- Set up alerts for:
+  - Failed webhook deliveries
+  - High payment failure rates (>10%)
+  - Sudden drop in conversion rate
+- Monitor using Stripe Dashboard → Balance & Events
+- Log all payment-related errors to your application monitoring tool
+
+## 🔄 Next Steps
+
+1. Implement order status updates in MongoDB
+2. Connect payment success to inventory deduction
+3. Set up email notifications (order confirmation, shipping updates)
+4. Add refund processing flow
+5. Implement subscription support if needed
+```

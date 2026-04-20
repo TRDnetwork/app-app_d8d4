@@ -1,100 +1,105 @@
 import { ProductCard } from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { SearchIcon } from 'lucide-react';
+import { SearchBar } from '@/components/SearchBar';
+import { Carousel } from '@/components/Carousel';
 
 export default function HomePage() {
   const featuredProducts = [
     {
       id: '1',
-      title: 'Wireless Noise-Cancelling Headphones',
-      price: 199.99,
-      discountedPrice: 149.99,
-      image: 'https://via.placeholder.com/300x300?text=Headphones',
-      rating: 4.7,
-      reviews: 124,
+      name: 'Wireless Noise-Cancelling Headphones',
+      price: 299.99,
+      originalPrice: 399.99,
+      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop',
+      rating: 4.5,
+      reviews: 1248,
     },
     {
       id: '2',
-      title: 'Smart Fitness Watch',
-      price: 249.99,
-      discountedPrice: 199.99,
-      image: 'https://via.placeholder.com/300x300?text=Watch',
-      rating: 4.5,
-      reviews: 89,
+      name: 'Smart Fitness Watch',
+      price: 199.99,
+      originalPrice: 249.99,
+      image: 'https://images.unsplash.com/photo-1523275335682-5f40b6cb2e4f?w=300&h=300&fit=crop',
+      rating: 4.7,
+      reviews: 892,
     },
     {
       id: '3',
-      title: 'Ultra HD 4K Streaming Box',
-      price: 89.99,
-      discountedPrice: 69.99,
-      image: 'https://via.placeholder.com/300x300?text=Streaming+Box',
+      name: 'Premium Leather Backpack',
+      price: 149.99,
+      originalPrice: 179.99,
+      image: 'https://images.unsplash.com/photo-1491637639811-60e2756cc1c7?w=300&h=300&fit=crop',
       rating: 4.8,
-      reviews: 203,
+      reviews: 634,
+    },
+  ];
+
+  const deals = [
+    {
+      id: '4',
+      name: '4K Ultra HD Smart TV',
+      price: 599.99,
+      originalPrice: 899.99,
+      image: 'https://images.unsplash.com/photo-1593784991095-a205069470b6?w=300&h=300&fit=crop',
+      discount: 33,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen">
       {/* Hero Banner */}
-      <section className="bg-gradient-to-r from-orange-500 to-blue-600 text-white py-20">
+      <section className="bg-accent text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-4">
             Welcome to ShopSphere
           </h1>
-          <p className="text-xl md:text-2xl mb-8 opacity-90">
-            Premium Products. Trusted Sellers. Fast Delivery.
+          <p className="text-xl mb-8 opacity-90">
+            Premium products with lightning-fast delivery
           </p>
-          <div className="max-w-2xl mx-auto relative">
-            <Input
-              type="text"
-              placeholder="Search for products..."
-              className="pl-12 pr-4 py-6 text-lg rounded-full border-none shadow-lg"
-            />
-            <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-6 w-6 text-gray-500" />
-          </div>
+          <SearchBar />
         </div>
       </section>
 
       {/* Deals of the Day */}
-      <section className="py-12 bg-gray-50">
+      <section className="py-12">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">
-            Deals of the Day
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredProducts.map((product) => (
+          <h2 className="text-3xl font-bold mb-8">Deals of the Day</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {deals.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
-          </div>
-          <div className="text-center mt-12">
-            <Button size="lg" variant="secondary">
-              View All Deals
-            </Button>
           </div>
         </div>
       </section>
 
       {/* Featured Categories */}
+      <section className="py-12 bg-surface">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold mb-8">Featured Categories</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {['Electronics', 'Fashion', 'Home & Kitchen', 'Beauty', 'Sports', 'Books'].map((category) => (
+              <div key={category} className="text-center p-6 bg-white rounded-lg shadow">
+                <div className="w-16 h-16 bg-accent rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">?</span>
+                </div>
+                <h3 className="font-semibold">{category}</h3>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Recommended For You */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">
-            Shop by Category
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {['Electronics', 'Fashion', 'Home & Kitchen', 'Sports'].map(
-              (category) => (
-                <div
-                  key={category}
-                  className="aspect-square bg-gray-200 rounded-lg flex items-center justify-center hover:shadow-md transition cursor-pointer"
-                >
-                  <span className="text-xl font-medium text-gray-700">
-                    {category}
-                  </span>
-                </div>
-              )
-            )}
-          </div>
+          <h2 className="text-3xl font-bold mb-8">Recommended For You</h2>
+          <Carousel>
+            {featuredProducts.map((product) => (
+              <div key={product.id} className="px-2">
+                <ProductCard product={product} />
+              </div>
+            ))}
+          </Carousel>
         </div>
       </section>
     </div>
