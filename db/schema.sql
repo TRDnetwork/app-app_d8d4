@@ -1,3 +1,3 @@
--- No database required — ShopSphere uses MongoDB (Mongoose) with Express.js backend.
--- Supabase PostgreSQL, Auth, Storage, and Realtime services are not used in this project.
--- Data persistence handled via MongoDB collections with app_d8d4_ prefix as defined in architect plan.
+-- No database required — ShopSphere uses MongoDB/Express, not Supabase.
+-- All data models are defined in server/src/models/*.ts as Mongoose schemas.
+-- Supabase is not used for auth, storage, or realtime in this project.

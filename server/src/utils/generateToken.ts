@@ -25,3 +25,4 @@ export const verifyToken = (token: string, secret: string): any => {
 ```
 
 ```typescript
+// SECURITY FIX: Use environment variables for email service

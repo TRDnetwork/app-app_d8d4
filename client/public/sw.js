@@ -3,13 +3,11 @@ const CACHE_NAME = 'shopsphere-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/static/css/main.css',
-  '/static/js/main.js',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+  '/assets/*',
+  '/manifest.json'
 ];
 
-// Install event - cache assets
+// Install event - cache core assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -19,14 +17,11 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Fetch event - serve from cache or network
+// Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
-  // Don't cache API requests
-  if (event.request.url.includes('/api/')) {
-    event.respondWith(
-      fetch(event.request)
-        .catch(() => caches.match('/'))
-    );
+  // Don't cache API requests or external resources
+  if (event.request.url.includes('/api/') || 
+      event.request.url.includes('http') && !event.request.url.includes(self.location.origin)) {
     return;
   }
 
@@ -39,24 +34,21 @@ self.addEventListener('fetch', (event) => {
         }
 
         // Otherwise fetch from network
-        return fetch(event.request).then(
-          (networkResponse) => {
-            // Clone the response for caching
-            const responseClone = networkResponse.clone();
+        return fetch(event.request)
+          .then((response) => {
+            // If response is valid, clone it and cache
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
 
-            // Open cache and store the response
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
 
-            return networkResponse;
-          }
-        ).catch(() => {
-          // Fallback to offline page for HTML requests
-          if (event.request.headers.get('accept').includes('text/html')) {
-            return caches.match('/');
-          }
-        });
+            return response;
+          });
       })
   );
 });
@@ -64,7 +56,6 @@ self.addEventListener('fetch', (event) => {
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   const cacheWhitelist = [CACHE_NAME];
-  
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -75,28 +66,5 @@ self.addEventListener('activate', (event) => {
         })
       );
     })
-  );
-});
-
-// Push notification handler
-self.addEventListener('push', (event) => {
-  const data = event.data.json();
-  const options = {
-    body: data.body,
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
-    data: data.url
-  };
-  
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
-});
-
-// Notification click handler
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(
-    clients.openWindow(event.notification.data)
   );
 });

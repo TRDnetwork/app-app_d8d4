@@ -1,1 +1,1 @@
--- No seed data for PostgreSQL — MongoDB seed data will be provided in db/seed.ts by Backend Agent.
+-- No seed data — MongoDB seed script is located at db/seed.ts
