@@ -1,47 +1,63 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 export interface IUser extends Document {
+  name: string;
   email: string;
   password: string;
-  name: string;
-  phone?: string;
   profilePictureUrl?: string;
-  emailVerified: boolean;
-  oauthProvider?: string;
-  oauthId?: string;
+  phone?: string;
   role: 'customer' | 'seller' | 'admin';
-  comparePassword: (password: string) => Promise<boolean>;
+  emailVerified: boolean;
+  oauthProvider?: 'google' | 'facebook';
+  oauthId?: string;
+  verificationToken?: string;
+  verificationTokenExpiresAt?: Date;
+  resetPasswordToken?: string;
+  resetPasswordTokenExpiresAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
-const userSchema = new Schema<IUser>(
+const UserSchema = new Schema<IUser>(
   {
+    name: {
+      type: String,
+      required: [true, 'Please add a name'],
+      trim: true,
+      maxlength: [50, 'Name cannot be more than 50 characters'],
+    },
     email: {
       type: String,
-      required: [true, 'Email is required'],
+      required: [true, 'Please add an email'],
       unique: true,
       lowercase: true,
-      trim: true,
-      match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email'],
+      match: [
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+        'Please add a valid email',
+      ],
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: [true, 'Please add a password'],
       minlength: [8, 'Password must be at least 8 characters'],
-      select: false,
-    },
-    name: {
-      type: String,
-      required: [true, 'Name is required'],
-      trim: true,
-    },
-    phone: {
-      type: String,
-      trim: true,
+      select: false, // Don't return password by default
     },
     profilePictureUrl: {
       type: String,
-      default: null,
+    },
+    phone: {
+      type: String,
+      match: [
+        /^\+?[1-9]\d{1,14}$/,
+        'Please add a valid phone number',
+      ],
+    },
+    role: {
+      type: String,
+      enum: ['customer', 'seller', 'admin'],
+      default: 'customer',
     },
     emailVerified: {
       type: Boolean,
@@ -50,89 +66,61 @@ const userSchema = new Schema<IUser>(
     oauthProvider: {
       type: String,
       enum: ['google', 'facebook'],
-      default: null,
     },
     oauthId: {
       type: String,
-      default: null,
-    },
-    role: {
-      type: String,
-      enum: ['customer', 'seller', 'admin'],
-      default: 'customer',
     },
     verificationToken: {
       type: String,
-      select: false,
     },
     verificationTokenExpiresAt: {
       type: Date,
-      select: false,
     },
     resetPasswordToken: {
       type: String,
-      select: false,
     },
     resetPasswordTokenExpiresAt: {
       type: Date,
-      select: false,
     },
   },
   {
     timestamps: true,
-    toJSON: {
-      transform: function (doc, ret) {
-        delete ret.password;
-        delete ret.verificationToken;
-        delete ret.verificationTokenExpiresAt;
-        delete ret.resetPasswordToken;
-        delete ret.resetPasswordTokenExpiresAt;
-        return ret;
-      },
-    },
   }
 );
 
-// Hash password before saving
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  
-  try {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
+// Encrypt password using bcrypt before saving
+UserSchema.pre('save', async function (next) {
+  // Only hash the password if it has been modified (or is new)
+  if (!this.isModified('password')) {
     next();
-  } catch (error) {
-    next(error as Error);
+    return;
   }
+
+  // Generate a salt
+  const salt = await bcrypt.genSalt(12);
+
+  // Hash the password
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
-// Compare password method
-userSchema.methods.comparePassword = async function (password: string): Promise<boolean> {
-  return await bcrypt.compare(password, this.password);
+// Method to compare password for login
+UserSchema.methods.comparePassword = async function (enteredPassword: string): Promise<boolean> {
+  return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Check if email is verified
-userSchema.methods.isEmailVerified = function (): boolean {
-  return this.emailVerified;
-};
+// Prevent password from being returned in queries
+UserSchema.set('toJSON', {
+  transform: function (doc, ret, options) {
+    delete ret.password;
+    return ret;
+  },
+});
 
-// Check if user is admin
-userSchema.methods.isAdmin = function (): boolean {
-  return this.role === 'admin';
-};
+// Create compound index for OAuth
+UserSchema.index({ oauthProvider: 1, oauthId: 1 }, { unique: true, sparse: true });
 
-// Check if user is seller
-userSchema.methods.isSeller = function (): boolean {
-  return this.role === 'seller';
-};
-
-// Check if user is customer
-userSchema.methods.isCustomer = function (): boolean {
-  return this.role === 'customer';
-};
-
-export const User = mongoose.model<IUser>('User', userSchema);
+export default mongoose.model<IUser>('User', UserSchema);
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for JWT secrets

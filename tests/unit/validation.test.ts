@@ -1,61 +1,128 @@
 import { describe, it, expect } from 'vitest';
-import { validateEmail, validatePassword, validateAddress } from '../../src/lib/validation';
+import { validateEmail, validatePassword, validatePhoneNumber, validateAddress } from '../../server/src/utils/validation';
 
-describe('validateEmail', () => {
-  it('validates valid email addresses', () => {
-    expect(validateEmail('test@example.com')).toBe(true);
-    expect(validateEmail('user.name@domain.co.uk')).toBe(true);
+describe('Validation Utilities', () => {
+  describe('validateEmail', () => {
+    it('returns true for valid email addresses', () => {
+      expect(validateEmail('user@example.com')).toBe(true);
+      expect(validateEmail('test+tag@domain.co.uk')).toBe(true);
+      expect(validateEmail('user.name@sub.domain.com')).toBe(true);
+    });
+
+    it('returns false for invalid email addresses', () => {
+      expect(validateEmail('')).toBe(false);
+      expect(validateEmail('invalid')).toBe(false);
+      expect(validateEmail('user@')).toBe(false);
+      expect(validateEmail('@domain.com')).toBe(false);
+      expect(validateEmail('user@domain')).toBe(false);
+    });
   });
 
-  it('rejects invalid email addresses', () => {
-    expect(validateEmail('invalid-email')).toBe(false);
-    expect(validateEmail('test@')).toBe(false);
-    expect(validateEmail('@example.com')).toBe(false);
-    expect(validateEmail('')).toBe(false);
-  });
-});
+  describe('validatePassword', () => {
+    it('returns true for strong passwords', () => {
+      const result = validatePassword('StrongPass123!');
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
 
-describe('validatePassword', () => {
-  it('validates strong passwords', () => {
-    expect(validatePassword('Password123!')).toBe(true);
-    expect(validatePassword('SecurePass99@')).toBe(true);
-  });
+    it('returns false for passwords missing uppercase', () => {
+      const result = validatePassword('weakpass123!');
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Password must contain at least one uppercase letter');
+    });
 
-  it('rejects weak passwords', () => {
-    expect(validatePassword('password')).toBe(false);
-    expect(validatePassword('12345678')).toBe(false);
-    expect(validatePassword('short')).toBe(false);
-    expect(validatePassword('')).toBe(false);
-  });
-});
+    it('returns false for passwords missing lowercase', () => {
+      const result = validatePassword('WEAKPASS123!');
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Password must contain at least one lowercase letter');
+    });
 
-describe('validateAddress', () => {
-  it('validates complete address', () => {
-    const address = {
-      name: 'John Doe',
-      phone: '+1234567890',
-      street: '123 Main St',
-      city: 'Anytown',
-      state: 'CA',
-      zip: '12345',
-      country: 'USA'
-    };
-    expect(validateAddress(address)).toBe(true);
-  });
+    it('returns false for passwords missing numbers', () => {
+      const result = validatePassword('WeakPass!');
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Password must contain at least one number');
+    });
 
-  it('rejects incomplete address', () => {
-    const incompleteAddress = {
-      name: 'John Doe',
-      street: '123 Main St',
-      city: 'Anytown'
-    };
-    expect(validateAddress(incompleteAddress)).toBe(false);
+    it('returns false for passwords missing special characters', () => {
+      const result = validatePassword('WeakPass123');
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Password must contain at least one special character');
+    });
+
+    it('returns false for passwords too short', () => {
+      const result = validatePassword('Sh1!');
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Password must be at least 8 characters long');
+    });
   });
 
-  it('validates US and international zip codes', () => {
-    const usAddress = { zip: '12345', country: 'USA' };
-    const ukAddress = { zip: 'SW1A 1AA', country: 'UK' };
-    expect(validateAddress({ ...usAddress, name: 'x', phone: 'x', street: 'x', city: 'x', state: 'x' })).toBe(true);
-    expect(validateAddress({ ...ukAddress, name: 'x', phone: 'x', street: 'x', city: 'x', state: 'x' })).toBe(true);
+  describe('validatePhoneNumber', () => {
+    it('returns true for valid phone numbers', () => {
+      expect(validatePhoneNumber('+1234567890')).toBe(true);
+      expect(validatePhoneNumber('1234567890')).toBe(true);
+      expect(validatePhoneNumber('+1-800-555-1234')).toBe(true);
+    });
+
+    it('returns false for invalid phone numbers', () => {
+      expect(validatePhoneNumber('')).toBe(false);
+      expect(validatePhoneNumber('invalid')).toBe(false);
+      expect(validatePhoneNumber('123')).toBe(false);
+    });
+  });
+
+  describe('validateAddress', () => {
+    it('returns true for valid address', () => {
+      const address = {
+        name: 'John Doe',
+        phone: '+1234567890',
+        street: '123 Main St',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        zip: '400001',
+        country: 'India'
+      };
+
+      const result = validateAddress(address);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('returns false for missing required fields', () => {
+      const address = {
+        name: '',
+        phone: '',
+        street: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: ''
+      };
+
+      const result = validateAddress(address);
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Name is required');
+      expect(result.errors).toContain('Valid phone number is required');
+      expect(result.errors).toContain('Street address is required');
+      expect(result.errors).toContain('City is required');
+      expect(result.errors).toContain('State is required');
+      expect(result.errors).toContain('ZIP code is required');
+      expect(result.errors).toContain('Country is required');
+    });
+
+    it('returns false for invalid ZIP code format', () => {
+      const address = {
+        name: 'John Doe',
+        phone: '+1234567890',
+        street: '123 Main St',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        zip: 'invalid',
+        country: 'India'
+      };
+
+      const result = validateAddress(address);
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Invalid ZIP code format');
+    });
   });
 });

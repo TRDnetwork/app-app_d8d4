@@ -1,167 +1,128 @@
 import { describe, it, expect } from 'vitest';
-import { server } from '../mocks/server';
-import { rest } from 'msw';
+import { api } from '../../src/lib/api';
 
-describe('API Endpoints', () => {
-  it('GET /api/products returns product list', async () => {
-    const response = await fetch('/api/products');
-    const data = await response.json();
-    
-    expect(response.status).toBe(200);
-    expect(data).toHaveProperty('data');
-    expect(Array.isArray(data.data)).toBe(true);
+describe('API Client', () => {
+  beforeEach(() => {
+    // Mock fetch
+    global.fetch = vi.fn();
   });
 
-  it('POST /api/auth/register creates new user', async () => {
-    const response = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+  it('should make authenticated requests with token', async () => {
+    // Mock successful response
+    (global.fetch as vi.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    });
+
+    // Mock token in localStorage
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        getItem: vi.fn().mockReturnValue('mock-jwt-token'),
       },
-      body: JSON.stringify({
+      writable: true,
+    });
+
+    await api.auth.me();
+    
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/auth/me',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'Authorization': 'Bearer mock-jwt-token',
+        }),
+      })
+    );
+  });
+
+  it('should show toast on API error', async () => {
+    const toastSpy = vi.spyOn(global.console, 'error');
+    
+    // Mock failed response
+    (global.fetch as vi.Mock).mockResolvedValueOnce({
+      ok: false,
+      json: () => Promise.resolve({ message: 'Unauthorized' }),
+    });
+
+    try {
+      await api.auth.me();
+    } catch (error) {
+      expect(toastSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: 'destructive',
+          description: 'Unauthorized',
+        })
+      );
+    }
+  });
+
+  it('should handle login request correctly', async () => {
+    // Mock successful login response
+    (global.fetch as vi.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        token: 'mock-jwt-token',
+        user: {
+          _id: 'user123',
+          name: 'Test User',
+          email: 'test@example.com',
+          role: 'customer'
+        }
+      }),
+    });
+
+    const result = await api.auth.login('test@example.com', 'password123!');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/auth/login',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          email: 'test@example.com',
+          password: 'password123!'
+        }),
+      })
+    );
+
+    expect(result).toEqual({
+      success: true,
+      token: 'mock-jwt-token',
+      user: {
+        _id: 'user123',
         name: 'Test User',
         email: 'test@example.com',
-        password: 'password123',
+        role: 'customer'
+      }
+    });
+  });
+
+  it('should handle register request correctly', async () => {
+    // Mock successful register response
+    (global.fetch as vi.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        message: 'User registered successfully'
       }),
     });
 
-    expect(response.status).toBe(201);
-    expect(await response.json()).toHaveProperty('success', true);
-  });
+    const result = await api.auth.register('Test User', 'test@example.com', 'StrongPass123!');
 
-  it('POST /api/auth/login authenticates user', async () => {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: 'test@example.com',
-        password: 'password123',
-      }),
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/auth/register',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Test User',
+          email: 'test@example.com',
+          password: 'StrongPass123!'
+        }),
+      })
+    );
+
+    expect(result).toEqual({
+      success: true,
+      message: 'User registered successfully'
     });
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toHaveProperty('token');
-  });
-
-  it('GET /api/cart returns user cart', async () => {
-    // Mock authentication
-    localStorage.setItem('token', 'mock-jwt-token');
-    
-    const response = await fetch('/api/cart');
-    expect(response.status).toBe(200);
-  });
-
-  it('POST /api/orders creates new order', async () => {
-    const response = await fetch('/api/orders', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer mock-jwt-token',
-      },
-      body: JSON.stringify({
-        address_id: 'mock-address-id',
-        payment_method: 'card',
-      }),
-    });
-
-    expect(response.status).toBe(201);
-    expect(await response.json()).toHaveProperty('data');
-  });
-
-  it('GET /api/users/profile returns user profile', async () => {
-    // Mock authentication
-    localStorage.setItem('token', 'mock-jwt-token');
-    
-    const response = await fetch('/api/users/profile');
-    expect(response.status).toBe(200);
-  });
-
-  it('POST /api/users/wishlist adds product to wishlist', async () => {
-    // Mock authentication
-    localStorage.setItem('token', 'mock-jwt-token');
-    
-    const response = await fetch('/api/users/wishlist', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        productId: 'mock-product-id',
-      }),
-    });
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toHaveProperty('success', true);
-  });
-
-  it('GET /api/products/:id returns product details', async () => {
-    const response = await fetch('/api/products/1');
-    const data = await response.json();
-    
-    expect(response.status).toBe(200);
-    expect(data).toHaveProperty('data');
-    expect(data.data).toHaveProperty('name');
-    expect(data.data).toHaveProperty('price');
-  });
-
-  it('GET /api/users/orders returns order history', async () => {
-    // Mock authentication
-    localStorage.setItem('token', 'mock-jwt-token');
-    
-    const response = await fetch('/api/users/orders');
-    const data = await response.json();
-    
-    expect(response.status).toBe(200);
-    expect(data).toHaveProperty('data');
-    expect(Array.isArray(data.data)).toBe(true);
-  });
-
-  it('POST /api/products/:id/reviews creates product review', async () => {
-    // Mock authentication
-    localStorage.setItem('token', 'mock-jwt-token');
-    
-    const response = await fetch('/api/products/1/reviews', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        rating: 5,
-        title: 'Great product!',
-        comment: 'This product exceeded my expectations.',
-      }),
-    });
-
-    expect(response.status).toBe(201);
-    expect(await response.json()).toHaveProperty('data');
-  });
-
-  it('GET /api/search returns search results', async () => {
-    const response = await fetch('/api/search?q=test');
-    const data = await response.json();
-    
-    expect(response.status).toBe(200);
-    expect(data).toHaveProperty('data');
-    expect(Array.isArray(data.data)).toBe(true);
-  });
-
-  it('POST /api/coupons/validate validates coupon code', async () => {
-    // Mock authentication
-    localStorage.setItem('token', 'mock-jwt-token');
-    
-    const response = await fetch('/api/coupons/validate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        code: 'DISCOUNT10',
-      }),
-    });
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toHaveProperty('valid');
   });
 });

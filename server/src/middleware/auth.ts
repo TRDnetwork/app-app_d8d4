@@ -3,49 +3,62 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 import { StatusCodes } from 'http-status-codes';
 
-// JWT token verification middleware
-export const protect = async (req: Request, res: Response, next: NextFunction) => {
-  let token: string | undefined;
-
-  // Check for token in Authorization header
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
+// Extend Express Request interface to include user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        role: string;
+      };
+    }
   }
+}
 
-  // Check for token in cookies (for refresh tokens)
-  if (!token && req.cookies?.refreshToken) {
-    token = req.cookies.refreshToken;
-  }
-
-  if (!token) {
+// Authentication middleware
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+  // Get token from header
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(StatusCodes.UNAUTHORIZED).json({
       success: false,
-      message: 'Not authorized, no token',
+      message: 'Access token required',
     });
   }
 
+  const token = authHeader.split(' ')[1];
+
   try {
-    // Verify token using JWT_SECRET with algorithm specification
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!, {
-      algorithms: ['HS256'],
-    }) as { id: string; role: string };
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string; role: string };
     
-    // Find user and attach to request
+    // Check if user exists
     const user = await User.findById(decoded.id).select('-password');
-    
     if (!user) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         success: false,
-        message: 'User not found',
+        message: 'Invalid token',
       });
     }
 
-    req.user = user;
+    // Add user to request object
+    req.user = {
+      id: decoded.id,
+      role: decoded.role,
+    };
+
     next();
   } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'Token expired',
+      });
+    }
+    
     return res.status(StatusCodes.UNAUTHORIZED).json({
       success: false,
-      message: 'Not authorized, token failed',
+      message: 'Invalid token',
     });
   }
 };
@@ -56,21 +69,55 @@ export const authorize = (...roles: string[]) => {
     if (!req.user) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         success: false,
-        message: 'Not authorized',
+        message: 'Authentication required',
       });
     }
 
     if (!roles.includes(req.user.role)) {
       return res.status(StatusCodes.FORBIDDEN).json({
         success: false,
-        message: `User role ${req.user.role} is not authorized to access this route`,
+        message: 'Insufficient permissions',
       });
     }
 
     next();
   };
 };
+
+// Rate limiting middleware for authentication endpoints
+export const authRateLimit = (windowMs: number = 15 * 60 * 1000, max: number = 5) => {
+  const limiter = new Map<string, { count: number; resetTime: number }>();
+  
+  return (req: Request, res: Response, next: NextFunction) => {
+    const ip = req.ip;
+    const now = Date.now();
+    
+    if (!limiter.has(ip)) {
+      limiter.set(ip, { count: 1, resetTime: now + windowMs });
+    } else {
+      const record = limiter.get(ip)!;
+      
+      if (now > record.resetTime) {
+        // Reset counter if window has passed
+        record.count = 1;
+        record.resetTime = now + windowMs;
+      } else {
+        record.count++;
+      }
+    }
+    
+    const record = limiter.get(ip)!;
+    
+    if (record.count > max) {
+      return res.status(StatusCodes.TOO_MANY_REQUESTS).json({
+        success: false,
+        message: 'Too many requests, please try again later',
+      });
+    }
+    
+    next();
+  };
+};
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for client URL

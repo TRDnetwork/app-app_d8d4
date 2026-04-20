@@ -1,30 +1,24 @@
-import { Router } from 'express';
-import { 
-  register, 
-  verifyEmail, 
-  login, 
-  refreshToken, 
-  logout, 
-  forgotPassword, 
-  resetPassword 
-} from '../controllers/authController';
-import { authLimiter, passwordResetLimiter } from '../middleware/rateLimiter';
+import express from 'express';
+import { authRateLimit } from '../middleware/rateLimit';
+import { authController } from '../controllers/authController';
 
-const router = Router();
+const router = express.Router();
 
-// Public routes with rate limiting
-router.post('/register', authLimiter, register);
-router.post('/verify-email', authLimiter, verifyEmail);
-router.post('/login', authLimiter, login);
-router.post('/forgot-password', authLimiter, forgotPassword);
-router.post('/reset-password', passwordResetLimiter, resetPassword);
+// Apply rate limiting to all auth routes
+router.use(authRateLimit);
+
+// Public routes
+router.post('/register', authController.register);
+router.post('/login', authController.login);
+router.post('/verify-email', authController.verifyEmail);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
 
 // Protected routes
-router.post('/refresh-token', refreshToken);
-router.post('/logout', logout);
+router.post('/refresh', authController.refreshToken);
+router.post('/logout', authController.logout);
 
 export default router;
 ```
 
 ```typescript
-// SECURITY FIX: Use environment variables for OAuth credentials
